@@ -16,6 +16,7 @@ Item {
             accent: "#ec4899"
             cornerRadius: 28
             padding: 24
+            borderTone: "#dfe8ef"
 
             Column {
                 width: parent.width
@@ -32,7 +33,7 @@ Item {
                             text: "Recent dictation history"
                             color: "#163042"
                             font.family: "Segoe UI Variable Display"
-                            font.pixelSize: 31
+                            font.pixelSize: 29
                             font.weight: Font.Black
                         }
 
@@ -95,6 +96,7 @@ Item {
                 cornerRadius: 22
                 accent: modelData.usedFallback ? "#f97316" : "#0d9488"
                 padding: 18
+                borderTone: "#dfe8ef"
 
                 Column {
                     width: parent.width

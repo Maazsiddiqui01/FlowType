@@ -77,7 +77,8 @@ Item {
             prominent: true
             accent: "#2563eb"
             cornerRadius: 28
-            padding: 24
+            padding: 22
+            borderTone: "#dfe8ef"
 
             RowLayout {
                 width: parent.width
@@ -91,7 +92,7 @@ Item {
                         text: "Cleanup provider and model selection"
                         color: "#163042"
                         font.family: "Segoe UI Variable Display"
-                        font.pixelSize: 30
+                        font.pixelSize: 28
                         font.weight: Font.Black
                     }
 
@@ -126,6 +127,7 @@ Item {
             accent: "#2563eb"
             cornerRadius: 24
             padding: 20
+            borderTone: "#dfe8ef"
 
             Column {
                 width: parent.width
@@ -141,15 +143,15 @@ Item {
 
                 Flow {
                     width: parent.width
-                    spacing: 12
+                    spacing: 10
 
                     Repeater {
                         model: AppController.providerCards
 
                         delegate: Rectangle {
-                            width: (parent.width - 24) / 3
-                            height: 108
-                            radius: 20
+                            width: (parent.width - 20) / 3
+                            height: 100
+                            radius: 18
                             color: root.providerDraft === modelData.identifier ? Qt.rgba(modelData.accent.r, modelData.accent.g, modelData.accent.b, 0.12) : "#ffffff"
                             border.width: 1
                             border.color: root.providerDraft === modelData.identifier ? Qt.rgba(modelData.accent.r, modelData.accent.g, modelData.accent.b, 0.48) : "#dce7ed"
@@ -157,7 +159,7 @@ Item {
                             RowLayout {
                                 anchors.fill: parent
                                 anchors.margins: 16
-                                spacing: 12
+                                spacing: 10
 
                                 ProviderBadge {
                                     badge: modelData.badge
@@ -224,6 +226,7 @@ Item {
                 accent: "#0d9488"
                 cornerRadius: 24
                 padding: 18
+                borderTone: "#dfe8ef"
 
                 RowLayout {
                     anchors.fill: parent
@@ -290,6 +293,7 @@ Item {
                 cornerRadius: 24
                 padding: 18
                 visible: root.providerDraft !== "none"
+                borderTone: "#dfe8ef"
 
                 ColumnLayout {
                     anchors.fill: parent
@@ -306,7 +310,6 @@ Item {
                         id: modelCombo
                         Layout.fillWidth: true
                         model: root.providerModels
-                        textRole: "label"
                         currentIndex: root.modelIndex()
                         selectedCard: root.selectedModelCard()
                         placeholderText: "Select a model"
@@ -348,6 +351,7 @@ Item {
                 accent: "#2563eb"
                 cornerRadius: 20
                 padding: 14
+                borderTone: "#dfe8ef"
 
                 ColumnLayout {
                     anchors.fill: parent
@@ -380,6 +384,7 @@ Item {
                 accent: "#0d9488"
                 cornerRadius: 20
                 padding: 14
+                borderTone: "#dfe8ef"
 
                 ColumnLayout {
                     anchors.fill: parent
@@ -418,6 +423,7 @@ Item {
             accent: "#0d9488"
             cornerRadius: 24
             padding: 22
+            borderTone: "#dfe8ef"
 
             Column {
                 width: parent.width

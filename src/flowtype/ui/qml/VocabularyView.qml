@@ -35,6 +35,7 @@ Item {
             accent: "#10b981"
             cornerRadius: 28
             padding: 24
+            borderTone: "#dfe8ef"
 
             RowLayout {
                 width: parent.width
@@ -48,7 +49,7 @@ Item {
                         text: "Vocabulary that survives transcription and cleanup"
                         color: "#163042"
                         font.family: "Segoe UI Variable Display"
-                        font.pixelSize: 31
+                        font.pixelSize: 29
                         font.weight: Font.Black
                         wrapMode: Text.WordWrap
                         Layout.fillWidth: true
@@ -81,6 +82,7 @@ Item {
                 accent: "#10b981"
                 cornerRadius: 24
                 padding: 20
+                borderTone: "#dfe8ef"
 
                 Column {
                     width: parent.width
@@ -124,6 +126,7 @@ Item {
                 accent: "#3b82f6"
                 cornerRadius: 24
                 padding: 20
+                borderTone: "#dfe8ef"
 
                 Column {
                     width: parent.width

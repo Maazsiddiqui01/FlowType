@@ -13,8 +13,8 @@ Item {
 
     signal shortcutRecorded(string newShortcut)
 
-    implicitWidth: 340
-    implicitHeight: 50
+    implicitWidth: 308
+    implicitHeight: 46
 
     function formatToken(token) {
         if (!token)
@@ -136,7 +136,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        radius: 16
+        radius: 15
         color: root.isRecording ? "#eef6ff" : "#ffffff"
         border.width: 1
         border.color: root.feedbackMessage.length > 0 ? "#ef4444" : (root.isRecording ? "#7aa7ff" : "#dce7ee")
@@ -171,8 +171,8 @@ Item {
 
             RowLayout {
                 anchors.fill: parent
-                anchors.margins: 12
-                spacing: 10
+                anchors.margins: 11
+                spacing: 8
 
                 Rectangle {
                     width: 10
@@ -224,8 +224,8 @@ Item {
                             color: "#f3f8fb"
                             border.width: 1
                             border.color: "#d9e4eb"
-                            implicitWidth: keyText.implicitWidth + 16
-                            implicitHeight: 26
+                            implicitWidth: keyText.implicitWidth + 14
+                            implicitHeight: 24
 
                             Text {
                                 id: keyText
@@ -233,7 +233,7 @@ Item {
                                 text: root.formatToken(modelData)
                                 color: "#173042"
                                 font.family: "Bahnschrift SemiBold"
-                                font.pixelSize: 11
+                                font.pixelSize: 10
                             }
                         }
                     }

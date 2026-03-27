@@ -21,8 +21,8 @@ Window {
     readonly property bool idleHint: AppController.status === "ready" && (idlePreviewVisible || readyControlsVisible || languagePopup.visible)
     readonly property bool lineIdle: idleHint && !recording && !busy && !errorState && !readyControlsVisible && !languagePopup.visible
 
-    width: lineIdle ? 36 : (compact ? (recording || busy || errorState ? 138 : 90) : (recording || busy || errorState ? 182 : 118))
-    height: lineIdle ? 5 : (compact ? 34 : 42)
+    width: lineIdle ? 32 : (compact ? (recording || busy || errorState ? 126 : 84) : (recording || busy || errorState ? 166 : 110))
+    height: lineIdle ? 4 : (compact ? 32 : 40)
     x: Math.round((Screen.width - width) / 2)
     y: Math.round(Screen.height - height - (lineIdle ? 16 : 24))
     opacity: blockedByOnboarding ? 0 : ((recording || busy || errorState || idleHint) ? 1 : 0)
@@ -141,8 +141,8 @@ Window {
     Rectangle {
         id: shell
         anchors.fill: parent
-        radius: hud.lineIdle ? 3 : height / 2
-        color: hud.lineIdle ? "#8f9399" : "#05090d"
+        radius: hud.lineIdle ? 2 : height / 2
+        color: hud.lineIdle ? "#8e959c" : "#05090d"
         border.width: hud.lineIdle ? 0 : 1
         border.color: hud.recording ? "#5f402e" : (hud.errorState ? "#7c2d2d" : (hud.busy ? "#28415b" : "#25384a"))
 
@@ -172,8 +172,8 @@ Window {
 
         Rectangle {
             visible: hud.readyControlsVisible && !hud.recording && !hud.busy && !hud.errorState && !languagePopup.visible
-            width: Math.min(332, readyHintText.implicitWidth + 26)
-            height: 34
+            width: Math.min(316, readyHintText.implicitWidth + 24)
+            height: 32
             radius: 17
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.bottom: parent.top
@@ -188,7 +188,7 @@ Window {
                 text: hud.detailText()
                 color: "#f6f7fb"
                 font.family: "Segoe UI Variable Text"
-                font.pixelSize: 11
+                font.pixelSize: 10
                 font.weight: Font.DemiBold
             }
         }
@@ -201,8 +201,8 @@ Window {
             Rectangle {
                 id: languageButton
                 visible: hud.readyControlsVisible || hud.recording || hud.busy
-                width: 22
-                height: 22
+                width: 20
+                height: 20
                 radius: 11
                 color: "#0b1219"
                 border.width: 1
@@ -213,7 +213,7 @@ Window {
                     text: hud.languageCode()
                     color: "#f6f7fb"
                     font.family: "Bahnschrift SemiBold"
-                    font.pixelSize: 9
+                    font.pixelSize: 8
                 }
 
                 MouseArea {
@@ -232,8 +232,8 @@ Window {
             }
 
             Rectangle {
-                width: hud.compact ? 70 : 92
-                height: hud.compact ? 20 : 24
+                width: hud.compact ? 64 : 86
+                height: hud.compact ? 18 : 22
                 radius: height / 2
                 color: "#04080c"
                 border.width: 1
@@ -245,7 +245,7 @@ Window {
                     barWidth: hud.compact ? 3 : 4
                     gap: 3
                     minimumBarHeight: 3
-                    maximumBarHeight: hud.compact ? 12 : 15
+                    maximumBarHeight: hud.compact ? 11 : 14
                     level: hud.displayedLevel
                     mode: hud.recording ? "recording" : (hud.errorState ? "error" : (hud.busy ? "busy" : "idle"))
                 }
@@ -253,8 +253,8 @@ Window {
 
             Rectangle {
                 visible: hud.busy || hud.errorState
-                width: 22
-                height: 20
+                width: 20
+                height: 18
                 radius: 10
                 color: "#0b1219"
                 border.width: 1

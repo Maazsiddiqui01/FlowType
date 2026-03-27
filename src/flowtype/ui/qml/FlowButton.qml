@@ -13,9 +13,9 @@ Rectangle {
     property bool buttonEnabled: true
     signal clicked()
 
-    implicitWidth: fillWidth ? 180 : Math.max(compact ? 100 : 118, buttonLabel.implicitWidth + (compact ? 28 : 34))
-    implicitHeight: compact ? 38 : 44
-    radius: compact ? 14 : 16
+    implicitWidth: fillWidth ? 180 : Math.max(compact ? 96 : 112, buttonLabel.implicitWidth + (compact ? 26 : 30))
+    implicitHeight: compact ? 36 : 42
+    radius: compact ? 14 : 15
     scale: root.buttonEnabled && mouseArea.pressed ? 0.986 : 1.0
     opacity: root.buttonEnabled ? 1.0 : 0.52
 
@@ -69,7 +69,7 @@ Rectangle {
         text: root.label
         color: root.textTone()
         font.family: "Segoe UI Variable Text"
-        font.pixelSize: compact ? 12 : 13
+        font.pixelSize: compact ? 11 : 12
         font.weight: Font.DemiBold
     }
 

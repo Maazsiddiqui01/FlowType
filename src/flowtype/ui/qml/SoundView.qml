@@ -39,6 +39,7 @@ Item {
             accent: "#f97316"
             cornerRadius: 28
             padding: 24
+            borderTone: "#dfe8ef"
 
             RowLayout {
                 width: parent.width
@@ -52,7 +53,7 @@ Item {
                         text: "Recording HUD and timing"
                         color: "#163042"
                         font.family: "Segoe UI Variable Display"
-                        font.pixelSize: 30
+                        font.pixelSize: 28
                         font.weight: Font.Black
                     }
 
@@ -156,6 +157,7 @@ Item {
             accent: "#0d9488"
             cornerRadius: 24
             padding: 22
+            borderTone: "#dfe8ef"
 
             Column {
                 width: parent.width

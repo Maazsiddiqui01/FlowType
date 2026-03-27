@@ -9,13 +9,15 @@ Rectangle {
     property bool prominent: false
     property bool showAccentBar: false
     property bool showOrb: false
-    property color baseColor: prominent ? "#ffffff" : "#fbfdfe"
+    property bool outlined: true
+    property color baseColor: prominent ? "#ffffff" : "#ffffff"
+    property color borderTone: prominent ? "#dfe8ef" : "#e7eef3"
     default property alias contentData: contentItem.data
 
     color: baseColor
     radius: cornerRadius
-    border.width: 1
-    border.color: prominent ? "#dce6ed" : "#e7eef3"
+    border.width: outlined ? 1 : 0
+    border.color: borderTone
     implicitHeight: Math.max(contentItem.implicitHeight + (padding * 2), 92)
 
     Rectangle {

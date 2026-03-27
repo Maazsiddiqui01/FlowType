@@ -30,7 +30,8 @@ Item {
             width: parent.width
             accent: "#0d9488"
             cornerRadius: 24
-            padding: 22
+            padding: 20
+            borderTone: "#dfe8ef"
 
             Column {
                 width: parent.width
@@ -84,7 +85,7 @@ Item {
 
                     delegate: Rectangle {
                         width: parent.width
-                        height: 84
+                        height: 76
                         radius: 18
                         color: "#ffffff"
                         border.width: 1
@@ -118,8 +119,8 @@ Item {
                             }
 
                             ShortcutRecorder {
-                                Layout.preferredWidth: 360
-                                Layout.maximumWidth: 420
+                                Layout.preferredWidth: 312
+                                Layout.maximumWidth: 360
                                 currentShortcut: modelData.shortcut
                                 requireModifier: modelData.requireModifier
                                 idleText: modelData.idleText
@@ -143,7 +144,8 @@ Item {
             width: parent.width
             accent: "#10b981"
             cornerRadius: 24
-            padding: 22
+            padding: 20
+            borderTone: "#dfe8ef"
 
             Column {
                 width: parent.width
@@ -183,14 +185,14 @@ Item {
 
                 Flow {
                     width: parent.width
-                    spacing: 12
+                    spacing: 10
 
                     Repeater {
                         model: AppController.transcriptionLanguageCards
 
                         delegate: Rectangle {
-                            width: Math.min((parent.width - 24) / 3, 300)
-                            height: 94
+                            width: Math.min((parent.width - 30) / 4, 238)
+                            height: 88
                             radius: 18
                             color: root.languageDraft === modelData.code ? Qt.rgba(16 / 255, 185 / 255, 129 / 255, 0.12) : "#ffffff"
                             border.width: 1
@@ -235,7 +237,8 @@ Item {
             width: parent.width
             accent: "#6366f1"
             cornerRadius: 24
-            padding: 22
+            padding: 20
+            borderTone: "#dfe8ef"
 
             Column {
                 width: parent.width
@@ -291,7 +294,7 @@ Item {
 
                     delegate: Rectangle {
                         width: parent.width
-                        height: 82
+                        height: 74
                         radius: 18
                         color: "#ffffff"
                         border.width: 1
@@ -347,7 +350,8 @@ Item {
             width: parent.width
             accent: "#2563eb"
             cornerRadius: 24
-            padding: 22
+            padding: 20
+            borderTone: "#dfe8ef"
 
             Column {
                 width: parent.width

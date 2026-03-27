@@ -11,18 +11,19 @@ SurfacePanel {
     prominent: true
     accent: tone
     implicitWidth: 216
-    implicitHeight: 118
+    implicitHeight: 110
     showAccentBar: false
     showOrb: false
+    borderTone: "#dfe8ef"
 
     Column {
         width: parent.width
-        spacing: 10
+        spacing: 8
 
         Rectangle {
-            width: 40
-            height: 40
-            radius: 14
+            width: 36
+            height: 36
+            radius: 12
             color: Qt.rgba(root.tone.r, root.tone.g, root.tone.b, 0.16)
             border.width: 1
             border.color: Qt.rgba(root.tone.r, root.tone.g, root.tone.b, 0.22)
@@ -40,7 +41,7 @@ SurfacePanel {
             text: root.value
             color: "#113045"
             font.family: "Segoe UI Variable Display"
-            font.pixelSize: 30
+            font.pixelSize: 28
             font.weight: Font.Black
         }
 

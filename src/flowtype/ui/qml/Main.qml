@@ -6,10 +6,10 @@ ApplicationWindow {
     id: window
 
     visible: (typeof StartHidden === "undefined") ? true : !StartHidden
-    width: 1420
-    height: 840
-    minimumWidth: 1220
-    minimumHeight: 740
+    width: 1360
+    height: 820
+    minimumWidth: 1160
+    minimumHeight: 710
     title: "FlowType"
     color: "#f7fafc"
 
@@ -62,7 +62,7 @@ ApplicationWindow {
         property int pageIndex: 0
 
         radius: 18
-        color: window.currentPage === pageIndex ? Qt.rgba(accent.r, accent.g, accent.b, 0.1) : (navArea.containsMouse ? "#f8fbfd" : "transparent")
+        color: window.currentPage === pageIndex ? Qt.rgba(accent.r, accent.g, accent.b, 0.11) : (navArea.containsMouse ? "#f8fbfd" : "transparent")
         border.width: 1
         border.color: window.currentPage === pageIndex ? Qt.rgba(accent.r, accent.g, accent.b, 0.24) : "transparent"
         scale: navArea.pressed ? 0.988 : 1.0
@@ -74,9 +74,9 @@ ApplicationWindow {
             spacing: 12
 
             Rectangle {
-                Layout.preferredWidth: 34
-                Layout.preferredHeight: 34
-                radius: 12
+                Layout.preferredWidth: 32
+                Layout.preferredHeight: 32
+                radius: 11
                 color: window.currentPage === pageIndex ? accent : Qt.rgba(accent.r, accent.g, accent.b, 0.14)
 
                 Text {
@@ -84,7 +84,7 @@ ApplicationWindow {
                     text: label.substring(0, 1)
                     color: window.currentPage === pageIndex ? "#ffffff" : "#184056"
                     font.family: "Bahnschrift SemiBold"
-                    font.pixelSize: 14
+                    font.pixelSize: 13
                 }
             }
 
@@ -93,7 +93,7 @@ ApplicationWindow {
                 text: label
                 color: window.currentPage === pageIndex ? "#163042" : "#29465b"
                 font.family: "Segoe UI Variable Text"
-                font.pixelSize: 14
+                font.pixelSize: 13
                 font.weight: Font.DemiBold
             }
         }
@@ -142,8 +142,8 @@ ApplicationWindow {
     Rectangle {
         anchors.fill: parent
         gradient: Gradient {
-            GradientStop { position: 0.0; color: "#fbfdfe" }
-            GradientStop { position: 1.0; color: "#f3f7fa" }
+            GradientStop { position: 0.0; color: "#fbfdff" }
+            GradientStop { position: 1.0; color: "#f4f8fb" }
         }
     }
 
@@ -151,25 +151,26 @@ ApplicationWindow {
 
     RowLayout {
         anchors.fill: parent
-        anchors.margins: 16
-        spacing: 16
+        anchors.margins: 14
+        spacing: 14
 
         SurfacePanel {
-            Layout.preferredWidth: 196
+            Layout.preferredWidth: 188
             Layout.fillHeight: true
-            padding: 14
-            cornerRadius: 24
+            padding: 12
+            cornerRadius: 22
             prominent: true
             accent: "#0d9488"
             showOrb: false
+            borderTone: "#dfe8ee"
 
             ColumnLayout {
                 anchors.fill: parent
-                spacing: 10
+                spacing: 8
 
                 Item {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 66
+                    Layout.preferredHeight: 62
 
                     RowLayout {
                         anchors.fill: parent
@@ -178,8 +179,8 @@ ApplicationWindow {
                         spacing: 12
 
                         Rectangle {
-                            Layout.preferredWidth: 42
-                            Layout.preferredHeight: 42
+                            Layout.preferredWidth: 40
+                            Layout.preferredHeight: 40
                             radius: 12
                             color: "#f3f7fb"
                             border.width: 1
@@ -202,7 +203,7 @@ ApplicationWindow {
                                 text: "FlowType"
                                 color: "#163042"
                                 font.family: "Segoe UI Variable Display"
-                                font.pixelSize: 20
+                                font.pixelSize: 18
                                 font.weight: Font.Black
                             }
 
@@ -210,7 +211,7 @@ ApplicationWindow {
                                 text: "Local dictation for Windows"
                                 color: "#6f8798"
                                 font.family: "Segoe UI Variable Text"
-                                font.pixelSize: 11
+                                font.pixelSize: 10
                             }
                         }
                     }
@@ -221,7 +222,7 @@ ApplicationWindow {
 
                     delegate: NavButton {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 52
+                        Layout.preferredHeight: 48
                         label: modelData.label
                         accent: modelData.accent
                         pageIndex: index
@@ -232,7 +233,7 @@ ApplicationWindow {
 
                 RowLayout {
                     Layout.fillWidth: true
-                    spacing: 10
+                    spacing: 8
 
                     Rectangle {
                         Layout.preferredWidth: 9
@@ -248,7 +249,7 @@ ApplicationWindow {
                             : AppController.detail
                         color: "#60798b"
                         font.family: "Segoe UI Variable Text"
-                        font.pixelSize: 11
+                        font.pixelSize: 10
                         wrapMode: Text.WordWrap
                     }
                 }
@@ -258,23 +259,26 @@ ApplicationWindow {
         SurfacePanel {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            prominent: true
+            prominent: false
+            outlined: false
+            baseColor: "transparent"
             accent: window.navItems[window.displayedPage].accent
             cornerRadius: 26
-            padding: 16
+            padding: 0
             showOrb: false
 
             ColumnLayout {
                 anchors.fill: parent
-                spacing: 12
+                spacing: 10
 
                 SurfacePanel {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 68
-                    cornerRadius: 20
+                    Layout.preferredHeight: 64
+                    cornerRadius: 18
                     accent: window.navItems[window.displayedPage].accent
                     padding: 14
-                    showAccentBar: true
+                    showAccentBar: false
+                    borderTone: "#dbe7ef"
 
                     RowLayout {
                         anchors.fill: parent
@@ -288,7 +292,7 @@ ApplicationWindow {
                                 text: window.navItems[window.displayedPage].label
                                 color: "#163042"
                                 font.family: "Segoe UI Variable Display"
-                                font.pixelSize: 24
+                                font.pixelSize: 22
                                 font.weight: Font.Black
                             }
 
@@ -296,27 +300,27 @@ ApplicationWindow {
                                 text: window.navItems[window.displayedPage].subtitle
                                 color: "#6e8798"
                                 font.family: "Segoe UI Variable Text"
-                                font.pixelSize: 12
+                                font.pixelSize: 11
                             }
                         }
 
                         Rectangle {
-                            radius: 16
+                            radius: 15
                             color: "#ffffff"
                             border.width: 1
                             border.color: "#d8e5ec"
-                            implicitWidth: statusRow.implicitWidth + 22
-                            implicitHeight: 34
+                            implicitWidth: statusRow.implicitWidth + 18
+                            implicitHeight: 32
 
                             RowLayout {
                                 id: statusRow
                                 anchors.centerIn: parent
-                                spacing: 8
+                                spacing: 7
 
                                 Rectangle {
-                                    width: 8
-                                    height: 8
-                                    radius: 4
+                                    width: 7
+                                    height: 7
+                                    radius: 3.5
                                     color: window.statusColor(AppController.status)
                                 }
 
@@ -324,7 +328,7 @@ ApplicationWindow {
                                     text: AppController.status === "ready" ? "Ready" : AppController.status.toUpperCase()
                                     color: "#173042"
                                     font.family: "Bahnschrift SemiBold"
-                                    font.pixelSize: 11
+                                    font.pixelSize: 10
                                 }
                             }
                         }
@@ -394,8 +398,8 @@ ApplicationWindow {
     Rectangle {
         anchors.top: parent.top
         anchors.right: parent.right
-        anchors.topMargin: 24
-        anchors.rightMargin: 24
+        anchors.topMargin: 20
+        anchors.rightMargin: 20
         radius: 18
         width: Math.min(420, toastLabel.implicitWidth + 50)
         height: 52

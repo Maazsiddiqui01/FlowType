@@ -25,17 +25,18 @@ Item {
             prominent: true
             accent: "#0d9488"
             cornerRadius: 28
-            padding: 26
+            padding: 24
             showAccentBar: false
             showOrb: false
+            borderTone: "#dfe8ef"
 
             RowLayout {
                 width: parent.width
-                spacing: 20
+                spacing: 18
 
                 ColumnLayout {
                     Layout.fillWidth: true
-                    spacing: 14
+                    spacing: 12
 
                     Flow {
                         width: parent.width
@@ -54,7 +55,7 @@ Item {
                                 border.width: 1
                                 border.color: "#d0ece7"
                                 implicitWidth: chipText.implicitWidth + 20
-                                implicitHeight: 32
+                                implicitHeight: 30
 
                                 Label {
                                     id: chipText
@@ -62,7 +63,7 @@ Item {
                                     text: modelData
                                     color: "#1c4a52"
                                     font.family: "Segoe UI Variable Text"
-                                    font.pixelSize: 12
+                                    font.pixelSize: 11
                                     font.weight: Font.Medium
                                 }
                             }
@@ -73,7 +74,7 @@ Item {
                         text: "Dictate, clean, and paste without babysitting the app"
                         color: "#163042"
                         font.family: "Segoe UI Variable Display"
-                        font.pixelSize: 34
+                        font.pixelSize: 32
                         font.weight: Font.Black
                         wrapMode: Text.WordWrap
                         Layout.fillWidth: true
@@ -83,13 +84,13 @@ Item {
                         text: "FlowType keeps transcription local, then uses your selected cleanup provider only when you want grammar polish, filler removal, and smarter sentence shaping."
                         color: "#627b8e"
                         font.family: "Segoe UI Variable Text"
-                        font.pixelSize: 14
+                        font.pixelSize: 13
                         wrapMode: Text.WordWrap
                         Layout.fillWidth: true
                     }
 
                     RowLayout {
-                        spacing: 10
+                        spacing: 8
 
                         FlowButton {
                             label: AppController.status === "recording" ? "Finish Dictation" : "Start Dictation"
@@ -113,13 +114,14 @@ Item {
                 }
 
                 SurfacePanel {
-                    Layout.preferredWidth: 300
-                    Layout.preferredHeight: 214
+                    Layout.preferredWidth: 282
+                    Layout.preferredHeight: 198
                     accent: "#2563eb"
                     cornerRadius: 24
                     padding: 18
                     showAccentBar: false
                     showOrb: false
+                    borderTone: "#dfe8ef"
 
                     ColumnLayout {
                         anchors.fill: parent
@@ -129,7 +131,7 @@ Item {
                             text: "Current loop"
                             color: "#163042"
                             font.family: "Segoe UI Variable Display"
-                            font.pixelSize: 22
+                            font.pixelSize: 20
                             font.weight: Font.Black
                         }
 
@@ -172,6 +174,7 @@ Item {
                             cornerRadius: 18
                             padding: 12
                             showAccentBar: false
+                            borderTone: "#e4ecf2"
 
                             RowLayout {
                                 anchors.fill: parent
@@ -181,7 +184,7 @@ Item {
                                     width: 8
                                     height: 8
                                     radius: 4
-                                    color: AppController.status === "ready" ? "#0d9488" : "#2563eb"
+                                    color: AppController.status === "error" ? "#ef4444" : (AppController.status === "ready" ? "#0d9488" : "#2563eb")
                                 }
 
                                 Label {
@@ -202,13 +205,13 @@ Item {
 
         Flow {
             width: parent.width
-            spacing: 12
+            spacing: 10
 
             Repeater {
                 model: AppController.homeStats
 
                 delegate: MetricTile {
-                    width: (parent.width - 36) / 4
+                    width: (parent.width - 30) / 4
                     value: modelData.value
                     label: modelData.label
                     tone: modelData.tone
@@ -222,12 +225,13 @@ Item {
 
             SurfacePanel {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 218
+                Layout.preferredHeight: 206
                 accent: "#2563eb"
                 cornerRadius: 24
-                padding: 22
+                padding: 20
                 showAccentBar: false
                 showOrb: false
+                borderTone: "#dfe8ef"
 
                 Column {
                     width: parent.width
@@ -237,7 +241,7 @@ Item {
                         text: "Use it daily without hunting through menus"
                         color: "#163042"
                         font.family: "Segoe UI Variable Display"
-                        font.pixelSize: 24
+                        font.pixelSize: 22
                         font.weight: Font.Black
                     }
 
@@ -265,7 +269,7 @@ Item {
                                 text: modelData
                                 color: "#627b8e"
                                 font.family: "Segoe UI Variable Text"
-                                font.pixelSize: 13
+                                font.pixelSize: 12
                                 wrapMode: Text.WordWrap
                             }
                         }
@@ -275,12 +279,13 @@ Item {
 
             SurfacePanel {
                 Layout.preferredWidth: 318
-                Layout.preferredHeight: 218
+                Layout.preferredHeight: 206
                 accent: "#f97316"
                 cornerRadius: 24
-                padding: 22
+                padding: 20
                 showAccentBar: false
                 showOrb: false
+                borderTone: "#dfe8ef"
 
                 Column {
                     width: parent.width
@@ -290,7 +295,7 @@ Item {
                         text: "Live audio preview"
                         color: "#163042"
                         font.family: "Segoe UI Variable Display"
-                        font.pixelSize: 22
+                        font.pixelSize: 20
                         font.weight: Font.Black
                     }
 
@@ -305,13 +310,14 @@ Item {
 
                     SurfacePanel {
                         width: parent.width
-                        height: 78
+                        height: 74
                         cornerRadius: 22
                         accent: "#163042"
                         baseColor: "#081018"
                         padding: 16
                         showAccentBar: false
                         showOrb: false
+                        borderTone: "#182630"
 
                         WaveStrip {
                             anchors.centerIn: parent
@@ -332,9 +338,10 @@ Item {
             width: parent.width
             accent: "#ec4899"
             cornerRadius: 24
-            padding: 22
+            padding: 20
             showAccentBar: false
             showOrb: false
+            borderTone: "#dfe8ef"
 
             Column {
                 width: parent.width
@@ -351,7 +358,7 @@ Item {
                             text: "Recent output"
                             color: "#163042"
                             font.family: "Segoe UI Variable Display"
-                            font.pixelSize: 24
+                            font.pixelSize: 22
                             font.weight: Font.Black
                         }
 
