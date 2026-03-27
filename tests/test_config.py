@@ -20,6 +20,7 @@ def test_load_config_creates_default_file(tmp_path: Path, monkeypatch: pytest.Mo
     assert config.general.log_file.parent == config_path.parent / "logs"
     assert config.experience.onboarding_dismissed is False
     assert config.experience.close_to_tray is True
+    assert config.experience.hud_position == "bottom"
     assert config.startup.launch_at_login is True
     assert config.startup.start_minimized is True
     assert config.startup.prompt_completed is False
@@ -115,6 +116,7 @@ def test_save_config_data_persists_user_changes(tmp_path: Path) -> None:
             },
             "experience": {
                 "close_to_tray": False,
+                "hud_position": "top",
             },
             "startup": {
                 "launch_at_login": False,
@@ -132,6 +134,7 @@ def test_save_config_data_persists_user_changes(tmp_path: Path) -> None:
     assert config.output.paste_method == "clipboard_only"
     assert config.output.restore_clipboard is True
     assert config.experience.close_to_tray is False
+    assert config.experience.hud_position == "top"
     assert config.startup.launch_at_login is False
     assert config.startup.start_minimized is False
     assert config.startup.prompt_completed is True

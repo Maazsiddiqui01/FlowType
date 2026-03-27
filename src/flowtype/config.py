@@ -80,6 +80,7 @@ restore_clipboard = false
 
 [experience]
 hud_style = "mini"
+hud_position = "bottom"
 show_idle_hud = true
 onboarding_dismissed = false
 close_to_tray = true
@@ -153,6 +154,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     },
     "experience": {
         "hud_style": "mini",
+        "hud_position": "bottom",
         "show_idle_hud": True,
         "onboarding_dismissed": False,
         "close_to_tray": True,
@@ -247,6 +249,7 @@ class VocabularyConfig:
 @dataclass(slots=True, frozen=True)
 class ExperienceConfig:
     hud_style: str
+    hud_position: str
     show_idle_hud: bool
     onboarding_dismissed: bool
     close_to_tray: bool
@@ -406,6 +409,7 @@ def load_config(explicit_path: str | Path | None = None) -> AppConfig:
     )
     experience = ExperienceConfig(
         hud_style=str(merged.get("experience", {}).get("hud_style", "mini")).strip().lower(),
+        hud_position=str(merged.get("experience", {}).get("hud_position", "bottom")).strip().lower(),
         show_idle_hud=bool(merged.get("experience", {}).get("show_idle_hud", True)),
         onboarding_dismissed=bool(merged.get("experience", {}).get("onboarding_dismissed", False)),
         close_to_tray=bool(merged.get("experience", {}).get("close_to_tray", True)),
@@ -521,6 +525,8 @@ def validate_config(config: AppConfig) -> None:
         raise ValueError("output.paste_method must be ctrl_v or clipboard_only")
     if config.experience.hud_style not in {"classic", "mini"}:
         raise ValueError("experience.hud_style must be classic or mini")
+    if config.experience.hud_position not in {"top", "bottom"}:
+        raise ValueError("experience.hud_position must be top or bottom")
     if config.history.max_items <= 0:
         raise ValueError("history.max_items must be greater than zero")
 
@@ -590,6 +596,7 @@ def render_config(values: dict[str, Any]) -> str:
         "",
         "[experience]",
         f'hud_style = "{_escape_basic_string(str(values.get("experience", {}).get("hud_style", "mini")))}"',
+        f'hud_position = "{_escape_basic_string(str(values.get("experience", {}).get("hud_position", "bottom")))}"',
         f'show_idle_hud = {_toml_bool(values.get("experience", {}).get("show_idle_hud", True))}',
         f'onboarding_dismissed = {_toml_bool(values.get("experience", {}).get("onboarding_dismissed", False))}',
         f'close_to_tray = {_toml_bool(values.get("experience", {}).get("close_to_tray", True))}',

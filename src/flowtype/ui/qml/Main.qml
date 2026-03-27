@@ -146,9 +146,6 @@ ApplicationWindow {
             GradientStop { position: 1.0; color: "#f4f8fb" }
         }
     }
-
-    HUDWindow { }
-
     RowLayout {
         anchors.fill: parent
         anchors.margins: 14

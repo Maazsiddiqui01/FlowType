@@ -6,6 +6,7 @@ Item {
     id: root
 
     property string hudStyleDraft: AppController.hudStyle
+    property string hudPositionDraft: AppController.hudPosition
     property bool showIdleHudDraft: AppController.showIdleHud
     property string minDurationDraft: String(AppController.minDurationMs)
     property string maxDurationDraft: String(AppController.maxDurationSeconds)
@@ -21,6 +22,7 @@ Item {
 
         function onConfigChanged() {
             root.hudStyleDraft = AppController.hudStyle
+            root.hudPositionDraft = AppController.hudPosition
             root.showIdleHudDraft = AppController.showIdleHud
             root.minDurationDraft = String(AppController.minDurationMs)
             root.maxDurationDraft = String(AppController.maxDurationSeconds)
@@ -72,6 +74,7 @@ Item {
                     variant: "warm"
                     onClicked: AppController.saveExperienceSettings(
                         root.hudStyleDraft,
+                        root.hudPositionDraft,
                         root.showIdleHudDraft,
                         root.asInt(root.minDurationDraft, AppController.minDurationMs),
                         root.asInt(root.maxDurationDraft, AppController.maxDurationSeconds),
@@ -226,6 +229,66 @@ Item {
                                             root.maxDurationDraft = text
                                         else
                                             root.pasteDelayDraft = text
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                RowLayout {
+                    width: parent.width
+                    spacing: 10
+
+                    Label {
+                        text: "HUD position"
+                        color: "#173042"
+                        font.family: "Segoe UI Variable Text"
+                        font.pixelSize: 13
+                    }
+
+                    Rectangle {
+                        radius: 16
+                        color: "#ffffff"
+                        border.width: 1
+                        border.color: "#dce7ed"
+                        implicitWidth: positionRow.implicitWidth + 12
+                        implicitHeight: 38
+
+                        Row {
+                            id: positionRow
+                            anchors.centerIn: parent
+                            spacing: 6
+
+                            Repeater {
+                                model: [
+                                    { "id": "bottom", "label": "Bottom" },
+                                    { "id": "top", "label": "Top" }
+                                ]
+
+                                delegate: Rectangle {
+                                    radius: 13
+                                    color: root.hudPositionDraft === modelData.id ? "#eef5ff" : "transparent"
+                                    border.width: root.hudPositionDraft === modelData.id ? 1 : 0
+                                    border.color: "#bdd4ff"
+                                    implicitWidth: posLabel.implicitWidth + 16
+                                    implicitHeight: 28
+
+                                    Label {
+                                        id: posLabel
+                                        anchors.centerIn: parent
+                                        text: modelData.label
+                                        color: "#173042"
+                                        font.family: "Segoe UI Variable Text"
+                                        font.pixelSize: 12
+                                        font.weight: Font.DemiBold
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: root.hudPositionDraft = modelData.id
                                     }
                                 }
                             }

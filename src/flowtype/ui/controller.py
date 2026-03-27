@@ -222,6 +222,10 @@ class AppController(QObject):
     def hudStyle(self) -> str:
         return self._config.experience.hud_style
 
+    @Property(str, notify=configChanged)
+    def hudPosition(self) -> str:
+        return self._config.experience.hud_position
+
     @Property(bool, notify=configChanged)
     def showIdleHud(self) -> bool:
         return self._config.experience.show_idle_hud
@@ -445,10 +449,11 @@ class AppController(QObject):
 
         self._persist_config(mutate, "Cleanup and paste settings updated.")
 
-    @Slot(str, bool, int, int, int)
+    @Slot(str, str, bool, int, int, int)
     def saveExperienceSettings(
         self,
         hud_style: str,
+        hud_position: str,
         show_idle_hud: bool,
         min_duration_ms: int,
         max_duration_seconds: int,
@@ -459,6 +464,7 @@ class AppController(QObject):
             data.setdefault("audio", {})
             data.setdefault("output", {})
             data["experience"]["hud_style"] = hud_style.strip().lower() or "classic"
+            data["experience"]["hud_position"] = hud_position.strip().lower() or "bottom"
             data["experience"]["show_idle_hud"] = bool(show_idle_hud)
             data["audio"]["min_duration_ms"] = int(min_duration_ms)
             data["audio"]["max_duration_seconds"] = int(max_duration_seconds)

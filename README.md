@@ -7,7 +7,7 @@ FlowType is a Windows-focused desktop dictation app with local Faster-Whisper tr
 ### Install on Windows
 
 - GitHub release install: download the latest installer from [Releases](https://github.com/Maazsiddiqui01/FlowType/releases).
-- Local installer built from this workspace: `dist-installer\FlowType-Beta-0.1.2.exe`
+- Local installer built from this workspace: `dist-installer\FlowType-Beta-0.1.3.exe`
 - Install target: `%LocalAppData%\Programs\FlowType`
 - User data stays in `%APPDATA%\FlowType`
 

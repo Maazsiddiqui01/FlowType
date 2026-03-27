@@ -77,8 +77,9 @@ def test_controller_saves_and_reloads_runtime_settings(tmp_path: Path) -> None:
     assert controller.restoreClipboard is True
     assert controller.pasteMethod == "clipboard_only"
 
-    controller.saveExperienceSettings("mini", False, 400, 180, 240)
+    controller.saveExperienceSettings("mini", "top", False, 400, 180, 240)
     assert controller.hudStyle == "mini"
+    assert controller.hudPosition == "top"
     assert controller.showIdleHud is False
     assert controller.minDurationMs == 400
     assert controller.maxDurationSeconds == 180

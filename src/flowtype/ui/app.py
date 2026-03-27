@@ -178,9 +178,20 @@ def run_ui_mode(
             parent_logger.error("Failed to load Main.qml. Exiting.")
             return 1
 
+        hud_engine = QQmlApplicationEngine()
+        hud_engine.rootContext().setContextProperty("AppController", controller)
+        hud_qml_file = Path(__file__).resolve().parent / "qml" / "HUDWindow.qml"
+        hud_engine.load(str(hud_qml_file))
+        if not hud_engine.rootObjects():
+            parent_logger.error("Failed to load HUDWindow.qml. Exiting.")
+            return 1
+
         window = engine.rootObjects()[0]
+        hud_window = hud_engine.rootObjects()[0]
         if app_icon and hasattr(window, "setIcon"):
             window.setIcon(app_icon)
+        if app_icon and hasattr(hud_window, "setIcon"):
+            hud_window.setIcon(app_icon)
 
         def show_main_window(page_index: int | None = None) -> None:
             if page_index is not None:
@@ -219,10 +230,17 @@ def run_ui_mode(
             try:
                 hwnd = int(window.winId())
             except Exception:
-                return
-            set_native_title_bar_colors(hwnd, "#eef4ff", "#10243a", "#c7d7eb")
-            if icon_path.exists():
-                set_native_window_icon(hwnd, str(icon_path))
+                hwnd = 0
+            if hwnd:
+                set_native_title_bar_colors(hwnd, "#eef4ff", "#10243a", "#c7d7eb")
+                if icon_path.exists():
+                    set_native_window_icon(hwnd, str(icon_path))
+            try:
+                hud_hwnd = int(hud_window.winId())
+            except Exception:
+                hud_hwnd = 0
+            if hud_hwnd and icon_path.exists():
+                set_native_window_icon(hud_hwnd, str(icon_path))
 
         apply_window_branding()
 
