@@ -24,6 +24,8 @@ Item {
             accent: root.sections[root.currentSection].accent
             cornerRadius: 26
             padding: 20
+            showAccentBar: false
+            showOrb: false
 
             ColumnLayout {
                 anchors.fill: parent

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import logging
+import sys
 import threading
 from dataclasses import dataclass
 
@@ -156,6 +157,10 @@ class AudioRecorder:
             try:
                 self._sounddevice = importlib.import_module("sounddevice")
             except ModuleNotFoundError as exc:  # pragma: no cover - dependency issue
+                if getattr(sys, "frozen", False):
+                    raise AudioRecorderError(
+                        "Audio capture components are missing from this FlowType install. Reinstall the latest build."
+                    ) from exc
                 raise AudioRecorderError(
                     "sounddevice is not installed. Run `python -m pip install -e .` first."
                 ) from exc

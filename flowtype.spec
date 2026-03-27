@@ -22,6 +22,9 @@ hiddenimports = [
     "pystray._win32",
     "PIL.Image",
     "PIL.ImageDraw",
+    "sounddevice",
+    "_sounddevice",
+    "_sounddevice_data",
 ]
 
 binaries = []
@@ -31,6 +34,7 @@ datas = []
 datas += collect_data_files("faster_whisper")
 datas += collect_data_files("flowtype", includes=["ui/qml/*.qml", "assets/branding/*"])
 datas += collect_data_files("pystray")
+datas += collect_data_files("_sounddevice_data")
 
 
 a = Analysis(

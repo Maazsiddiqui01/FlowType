@@ -26,6 +26,8 @@ Item {
             accent: "#0d9488"
             cornerRadius: 28
             padding: 26
+            showAccentBar: false
+            showOrb: false
 
             RowLayout {
                 width: parent.width
@@ -116,6 +118,8 @@ Item {
                     accent: "#2563eb"
                     cornerRadius: 24
                     padding: 18
+                    showAccentBar: false
+                    showOrb: false
 
                     ColumnLayout {
                         anchors.fill: parent
@@ -164,9 +168,10 @@ Item {
                         SurfacePanel {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 54
-                            accent: AppController.status === "ready" ? "#0d9488" : "#2563eb"
+                            accent: AppController.status === "error" ? "#ef4444" : (AppController.status === "ready" ? "#0d9488" : "#2563eb")
                             cornerRadius: 18
                             padding: 12
+                            showAccentBar: false
 
                             RowLayout {
                                 anchors.fill: parent
@@ -221,6 +226,8 @@ Item {
                 accent: "#2563eb"
                 cornerRadius: 24
                 padding: 22
+                showAccentBar: false
+                showOrb: false
 
                 Column {
                     width: parent.width
@@ -272,6 +279,8 @@ Item {
                 accent: "#f97316"
                 cornerRadius: 24
                 padding: 22
+                showAccentBar: false
+                showOrb: false
 
                 Column {
                     width: parent.width
@@ -301,6 +310,8 @@ Item {
                         accent: "#163042"
                         baseColor: "#081018"
                         padding: 16
+                        showAccentBar: false
+                        showOrb: false
 
                         WaveStrip {
                             anchors.centerIn: parent
@@ -322,6 +333,8 @@ Item {
             accent: "#ec4899"
             cornerRadius: 24
             padding: 22
+            showAccentBar: false
+            showOrb: false
 
             Column {
                 width: parent.width
@@ -378,6 +391,8 @@ Item {
                         cornerRadius: 18
                         accent: modelData.usedFallback ? "#f97316" : "#0d9488"
                         padding: 16
+                        showAccentBar: false
+                        showOrb: false
 
                         Column {
                             width: parent.width

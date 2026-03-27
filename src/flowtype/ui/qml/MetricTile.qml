@@ -12,6 +12,8 @@ SurfacePanel {
     accent: tone
     implicitWidth: 216
     implicitHeight: 118
+    showAccentBar: false
+    showOrb: false
 
     Column {
         width: parent.width
