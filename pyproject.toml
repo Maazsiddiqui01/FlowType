@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "flowtype"
-version = "0.1.1"
+version = "0.1.2"
 description = "Windows-ready desktop dictation app with local Faster-Whisper transcription and optional LLM cleanup."
 readme = "README.md"
 requires-python = ">=3.11"

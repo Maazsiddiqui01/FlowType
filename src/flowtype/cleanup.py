@@ -37,7 +37,11 @@ class TextCleaner:
             self.logger.warning("Cleanup skipped because no API key is configured")
             return CleanupResult(stripped, True, 0, self.settings.provider)
 
-        httpx = self._load_httpx()
+        try:
+            httpx = self._load_httpx()
+        except Exception as exc:
+            self.logger.warning("Cleanup runtime is unavailable, using raw transcript: %s", exc)
+            return CleanupResult(text=stripped, used_fallback=True, attempts=0, provider=self.settings.provider)
         url = self._endpoint_for_provider()
         headers = self._headers_for_provider()
         payload = self._build_payload(stripped)
@@ -78,6 +82,12 @@ class TextCleaner:
         try:
             return importlib.import_module("httpx")
         except ModuleNotFoundError as exc:  # pragma: no cover - dependency issue
+            import sys
+
+            if getattr(sys, "frozen", False):
+                raise RuntimeError(
+                    "Cleanup components are missing from this FlowType install. Reinstall the latest build."
+                ) from exc
             raise RuntimeError("httpx is not installed. Run `python -m pip install -e .` first.") from exc
 
     def _endpoint_for_provider(self) -> str:

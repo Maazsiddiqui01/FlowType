@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import Callable
 
 from flowtype.audio import AudioRecorder, CapturedAudio
-from flowtype.cleanup import TextCleaner
+from flowtype.cleanup import CleanupResult, TextCleaner
 from flowtype.config import AppConfig
 from flowtype.output import OutputDelivery
 from flowtype.transcriber import Transcriber
@@ -238,7 +238,16 @@ class DictationPipeline:
 
             self._set_status("cleaning", "Polishing transcript...")
             cleanup_start = time.perf_counter()
-            cleanup_result = self.cleaner.clean(raw_text)
+            try:
+                cleanup_result = self.cleaner.clean(raw_text)
+            except Exception as exc:
+                self.logger.exception("Cleanup failed unexpectedly, using raw transcript: %s", exc)
+                cleanup_result = CleanupResult(
+                    text=raw_text,
+                    used_fallback=True,
+                    attempts=0,
+                    provider=self.config.cleanup.provider,
+                )
             metrics.cleanup_seconds = time.perf_counter() - cleanup_start
 
             final_text = cleanup_result.text.strip() or raw_text
@@ -278,7 +287,10 @@ class DictationPipeline:
             self._set_status("ready", "Ready")
         except Exception as exc:
             self.logger.exception("Dictation failed: %s", exc)
-            self._set_status("error", "Last dictation failed. Check the log.")
+            message = str(exc).strip() or "Last dictation failed. Check the log."
+            if len(message) > 96:
+                message = "Last dictation failed. Check the log."
+            self._set_status("error", message)
 
     def _set_status(self, status: str, detail: str) -> None:
         with self._state_lock:

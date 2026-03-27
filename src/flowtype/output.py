@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import logging
+import sys
 import time
 from dataclasses import dataclass
 
@@ -85,6 +86,10 @@ class OutputDelivery:
         try:
             return importlib.import_module("pyperclip")
         except ModuleNotFoundError as exc:  # pragma: no cover - dependency issue
+            if getattr(sys, "frozen", False):
+                raise RuntimeError(
+                    "Clipboard components are missing from this FlowType install. Reinstall the latest build."
+                ) from exc
             raise RuntimeError("pyperclip is not installed. Run `python -m pip install -e .` first.") from exc
 
     def _load_keyboard(self):
@@ -94,6 +99,10 @@ class OutputDelivery:
         try:
             keyboard = importlib.import_module("pynput.keyboard")
         except ModuleNotFoundError as exc:  # pragma: no cover - dependency issue
+            if getattr(sys, "frozen", False):
+                raise RuntimeError(
+                    "Keyboard automation components are missing from this FlowType install. Reinstall the latest build."
+                ) from exc
             raise RuntimeError("pynput is not installed. Run `python -m pip install -e .` first.") from exc
 
         self._keyboard_controller = keyboard.Controller()

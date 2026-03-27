@@ -20,11 +20,13 @@ Window {
     readonly property bool blockedByOnboarding: AppController.onboardingVisible
     readonly property bool idleHint: AppController.status === "ready" && (idlePreviewVisible || readyControlsVisible || languagePopup.visible)
     readonly property bool lineIdle: idleHint && !recording && !busy && !errorState && !readyControlsVisible && !languagePopup.visible
+    readonly property int availableScreenWidth: Screen.desktopAvailableWidth > 0 ? Screen.desktopAvailableWidth : Screen.width
+    readonly property int availableScreenHeight: Screen.desktopAvailableHeight > 0 ? Screen.desktopAvailableHeight : Screen.height
 
     width: lineIdle ? 32 : (compact ? (recording || busy || errorState ? 126 : 84) : (recording || busy || errorState ? 166 : 110))
     height: lineIdle ? 4 : (compact ? 32 : 40)
-    x: Math.round((Screen.width - width) / 2)
-    y: Math.round(Screen.height - height - (lineIdle ? 16 : 24))
+    x: Math.round((availableScreenWidth - width) / 2)
+    y: Math.round(availableScreenHeight - height - (lineIdle ? 10 : 18))
     opacity: blockedByOnboarding ? 0 : ((recording || busy || errorState || idleHint) ? 1 : 0)
 
     function titleText() {

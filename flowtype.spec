@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs
+from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs, collect_submodules
 
 
 block_cipher = None
@@ -25,7 +25,15 @@ hiddenimports = [
     "sounddevice",
     "_sounddevice",
     "_sounddevice_data",
+    "pyperclip",
+    "certifi",
+    "idna",
+    "sniffio",
+    "h11",
 ]
+hiddenimports += collect_submodules("httpx")
+hiddenimports += collect_submodules("httpcore")
+hiddenimports += collect_submodules("anyio")
 
 binaries = []
 binaries += collect_dynamic_libs("sounddevice")
@@ -35,6 +43,7 @@ datas += collect_data_files("faster_whisper")
 datas += collect_data_files("flowtype", includes=["ui/qml/*.qml", "assets/branding/*"])
 datas += collect_data_files("pystray")
 datas += collect_data_files("_sounddevice_data")
+datas += collect_data_files("certifi")
 
 
 a = Analysis(

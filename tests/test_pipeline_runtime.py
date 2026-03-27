@@ -61,6 +61,11 @@ class SuccessfulOutput:
         return DeliveryResult(copied=True, pasted=True)
 
 
+class FailingCleaner:
+    def clean(self, _raw_text: str) -> CleanupResult:
+        raise RuntimeError("cleanup runtime missing")
+
+
 def build_config(tmp_path: Path):
     config_path = tmp_path / "config.toml"
     write_default_config(config_path)
@@ -110,7 +115,7 @@ def test_pipeline_sets_error_status_when_delivery_fails(tmp_path: Path) -> None:
     )
 
     assert pipeline.status == "error"
-    assert status_updates[-1] == ("error", "Last dictation failed. Check the log.")
+    assert status_updates[-1] == ("error", "paste blocked")
 
 
 def test_toggle_recording_can_retry_from_error_state(tmp_path: Path) -> None:
@@ -153,3 +158,32 @@ def test_repaste_failure_sets_error_status(tmp_path: Path) -> None:
 
     assert pipeline.status == "error"
     assert status_updates[-1] == ("error", "Could not re-paste the last result. Check the log.")
+
+
+def test_pipeline_falls_back_to_raw_text_when_cleanup_raises(tmp_path: Path) -> None:
+    config = build_config(tmp_path)
+    results = []
+    pipeline = DictationPipeline(
+        config=config,
+        recorder=DummyRecorder(),
+        transcriber=DummyTranscriber(),
+        cleaner=FailingCleaner(),
+        output=SuccessfulOutput(),
+        result_callback=lambda result: results.append(result),
+        logger=logging.getLogger("test.pipeline.runtime"),
+    )
+
+    pipeline._process_capture(
+        CapturedAudio(
+            audio_array=[],
+            sample_rate=16000,
+            duration_seconds=1.2,
+            was_truncated=False,
+            frame_count=16000,
+        )
+    )
+
+    assert pipeline.status == "ready"
+    assert results
+    assert results[-1].final_text == "hello there from flowtype"
+    assert results[-1].used_fallback is True

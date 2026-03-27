@@ -151,3 +151,14 @@ def test_cleanup_omits_temperature_for_gpt5_models() -> None:
     payload = cleaner._build_payload("test")
 
     assert "temperature" not in payload
+
+
+def test_cleanup_falls_back_when_httpx_runtime_is_missing(monkeypatch) -> None:
+    cleaner = TextCleaner(build_settings(), logger=logging.getLogger("test.cleanup"))
+    monkeypatch.setattr(cleaner, "_load_httpx", lambda: (_ for _ in ()).throw(RuntimeError("missing httpx")))
+
+    result = cleaner.clean("This should still be returned")
+
+    assert result.text == "This should still be returned"
+    assert result.used_fallback is True
+    assert result.attempts == 0
