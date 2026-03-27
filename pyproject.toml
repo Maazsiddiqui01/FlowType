@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flowtype"
+version = "0.1.0"
+description = "Windows-ready desktop dictation app with local Faster-Whisper transcription and optional LLM cleanup."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+  { name = "AntiGravity" }
+]
+dependencies = [
+  "faster-whisper>=1.1.1",
+  "httpx>=0.28.1",
+  "numpy>=1.26.4",
+  "Pillow>=10.4.0",
+  "PySide6>=6.7.0",
+  "pynput>=1.7.7",
+  "pyperclip>=1.9.0",
+  "pystray>=0.19.5",
+  "sounddevice>=0.5.1",
+  "tomli>=2.2.1; python_version < '3.11'",
+]
+
+[project.optional-dependencies]
+build = [
+  "pyinstaller>=6.13.0",
+]
+dev = [
+  "pytest>=8.3.5",
+]
+
+[project.scripts]
+flowtype = "flowtype.main:cli"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+flowtype = ["ui/qml/*.qml", "assets/branding/*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

@@ -1,0 +1,25 @@
+.pytest_cache/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.coverage
+.venv/
+venv/
+build/
+dist/
+dist-installer/
+artifacts/
+tmp_ui_checks/
+ui-ux-pro-max/
+*.spec.bak
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+*.log
+config.toml
+tmp_qml_capture.toml
+
+# Local runtime data
+.flowtype/
+AppData/
