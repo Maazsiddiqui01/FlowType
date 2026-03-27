@@ -150,3 +150,21 @@ def test_load_config_uses_provider_specific_env_fallbacks(tmp_path: Path, monkey
     save_config_data(config_path, {"cleanup": {"provider": "xai", "api_key": "", "model": "grok-3-fast"}})
     config = load_config(config_path)
     assert config.cleanup.api_key == "xai-secret"
+
+
+def test_load_config_sanitizes_invalid_shortcuts(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.toml"
+    write_default_config(config_path)
+    config_path.write_text(
+        config_path.read_text(encoding="utf-8")
+        .replace('toggle_recording = "ctrl+alt+space"', 'toggle_recording = "`"')
+        .replace('cancel_recording = "escape"', 'cancel_recording = "tab"')
+        .replace('repaste_last = ""', 'repaste_last = "ctrl+v"'),
+        encoding="utf-8",
+    )
+
+    config = load_config(config_path)
+
+    assert config.shortcuts.toggle_recording == RECOMMENDED_SHORTCUTS["toggle_recording"]
+    assert config.shortcuts.cancel_recording == RECOMMENDED_SHORTCUTS["cancel_recording"]
+    assert config.shortcuts.repaste_last == RECOMMENDED_SHORTCUTS["repaste_last"]

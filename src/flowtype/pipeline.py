@@ -190,7 +190,7 @@ class DictationPipeline:
         with self._state_lock:
             if self._status == "recording":
                 self._handle_hold_release()
-            elif self._status in ("ready", "stopped"):
+            elif self._status in ("ready", "stopped", "error"):
                 self._handle_hold_press()
                 
     def _handle_cancel(self) -> None:
@@ -207,7 +207,12 @@ class DictationPipeline:
         if self._last_final_text:
             self.logger.info("Re-pasting last dictation")
             self._set_status("pasting", "Pasting previous result...")
-            self.output.deliver(self._last_final_text)
+            try:
+                self.output.deliver(self._last_final_text)
+            except Exception as exc:
+                self.logger.exception("Re-paste failed: %s", exc)
+                self._set_status("error", "Could not re-paste the last result. Check the log.")
+                return
             self._set_status("ready", "Ready")
         else:
             self.logger.info("No prior dictation to re-paste")
