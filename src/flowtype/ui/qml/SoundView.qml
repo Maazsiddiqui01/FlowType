@@ -5,6 +5,8 @@ import QtQuick.Layouts
 Item {
     id: root
 
+    Theme { id: theme }
+
     property string hudStyleDraft: AppController.hudStyle
     property string hudPositionDraft: AppController.hudPosition
     property bool showIdleHudDraft: AppController.showIdleHud
@@ -15,6 +17,16 @@ Item {
     function asInt(text, fallback) {
         var value = parseInt(text)
         return isNaN(value) ? fallback : value
+    }
+
+    function previewWaveMode() {
+        if (AppController.status === "recording")
+            return "recording"
+        if (AppController.status === "error")
+            return "error"
+        if (AppController.status === "transcribing" || AppController.status === "cleaning" || AppController.status === "pasting")
+            return "busy"
+        return "recording"
     }
 
     Connections {
@@ -32,44 +44,196 @@ Item {
 
     PageScroll {
         anchors.fill: parent
-        maxContentWidth: 1160
-        contentSpacing: 18
+        maxContentWidth: 1240
+        contentSpacing: theme.sectionGap
 
-        SurfacePanel {
+        RowLayout {
             width: parent.width
-            prominent: true
-            accent: "#f97316"
-            cornerRadius: 28
-            padding: 24
-            borderTone: "#dfe8ef"
+            spacing: theme.space16
 
-            RowLayout {
-                width: parent.width
-                spacing: 18
+            SectionCard {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 230
 
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 8
-
-                    Label {
-                        text: "Recording HUD and timing"
-                        color: "#163042"
-                        font.family: "Segoe UI Variable Display"
-                        font.pixelSize: 28
-                        font.weight: Font.Black
-                    }
-
-                    Label {
-                        text: "Style, position, and idle visibility apply immediately. Use Save Timing only for tap length, safety limit, and paste delay."
-                        color: "#627b8e"
-                        font.family: "Segoe UI Variable Text"
-                        font.pixelSize: 13
-                        wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
-                    }
+                SectionHeader {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    title: "Recording HUD"
+                    subtitle: "Style, position, and idle visibility apply immediately."
                 }
 
-                FlowButton {
+                Column {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.top: parent.top
+                    anchors.topMargin: 90
+                    spacing: theme.space12
+
+                    Rectangle {
+                        width: root.hudStyleDraft === "mini" ? 124 : 164
+                        height: root.hudStyleDraft === "mini" ? 36 : 44
+                        radius: height / 2
+                        color: theme.inkDark
+                        border.width: 1
+                        border.color: Qt.rgba(1, 1, 1, 0.08)
+
+                        Row {
+                            anchors.centerIn: parent
+                            spacing: 8
+
+                            Rectangle {
+                                visible: root.showIdleHudDraft || AppController.status !== "ready"
+                                width: 20
+                                height: 20
+                                radius: 10
+                                color: "#0C1622"
+                                border.width: 1
+                                border.color: "#233447"
+
+                                Label {
+                                    anchors.centerIn: parent
+                                    text: AppController.transcriptionLanguage === "auto"
+                                        ? "A"
+                                        : AppController.transcriptionLanguage.toUpperCase().slice(0, 2)
+                                    color: "#F7FAFC"
+                                    font.family: theme.fontUi
+                                    font.pixelSize: 9
+                                    font.weight: Font.DemiBold
+                                }
+                            }
+
+                            WaveStrip {
+                                anchors.verticalCenter: parent.verticalCenter
+                                bars: root.hudStyleDraft === "mini" ? 7 : 9
+                                barWidth: 4
+                                gap: 4
+                                minimumBarHeight: 4
+                                maximumBarHeight: root.hudStyleDraft === "mini" ? 14 : 18
+                                level: Math.max(AppController.audioLevel, 0.34)
+                                mode: root.previewWaveMode()
+                            }
+                        }
+                    }
+
+                    Label {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: root.hudPositionDraft === "top"
+                            ? "Previewing top-center placement"
+                            : "Previewing bottom-center placement"
+                        color: theme.textSecondary
+                        font.family: theme.fontUi
+                        font.pixelSize: theme.textHelper
+                    }
+                }
+            }
+
+            SectionCard {
+                Layout.preferredWidth: 360
+                Layout.preferredHeight: 230
+
+                SectionHeader {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    title: "Presentation"
+                    subtitle: "Keep the HUD small, centered, and easy to trust."
+                }
+
+                Column {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.topMargin: 76
+                    spacing: theme.space12
+
+                    Row {
+                        spacing: theme.space8
+
+                        ChoiceCard {
+                            width: 140
+                            compact: true
+                            hideChevron: true
+                            title: "Mini"
+                            selected: root.hudStyleDraft === "mini"
+                            accent: theme.warm
+                            onClicked: {
+                                root.hudStyleDraft = "mini"
+                                AppController.saveHudPresentation(root.hudStyleDraft, root.hudPositionDraft, root.showIdleHudDraft)
+                            }
+                        }
+
+                        ChoiceCard {
+                            width: 140
+                            compact: true
+                            hideChevron: true
+                            title: "Classic"
+                            selected: root.hudStyleDraft === "classic"
+                            accent: theme.warm
+                            onClicked: {
+                                root.hudStyleDraft = "classic"
+                                AppController.saveHudPresentation(root.hudStyleDraft, root.hudPositionDraft, root.showIdleHudDraft)
+                            }
+                        }
+                    }
+
+                    Row {
+                        spacing: theme.space8
+
+                        ChoiceCard {
+                            width: 140
+                            compact: true
+                            hideChevron: true
+                            title: "Bottom center"
+                            selected: root.hudPositionDraft === "bottom"
+                            accent: theme.primary
+                            onClicked: {
+                                root.hudPositionDraft = "bottom"
+                                AppController.saveHudPresentation(root.hudStyleDraft, root.hudPositionDraft, root.showIdleHudDraft)
+                            }
+                        }
+
+                        ChoiceCard {
+                            width: 140
+                            compact: true
+                            hideChevron: true
+                            title: "Top center"
+                            selected: root.hudPositionDraft === "top"
+                            accent: theme.primary
+                            onClicked: {
+                                root.hudPositionDraft = "top"
+                                AppController.saveHudPresentation(root.hudStyleDraft, root.hudPositionDraft, root.showIdleHudDraft)
+                            }
+                        }
+                    }
+
+                    FormRow {
+                        width: parent.width
+                        title: "Show subtle ready line while idle"
+                        detail: "Keep a minimal ready indicator visible when FlowType is waiting."
+
+                        FlowSwitch {
+                            checked: root.showIdleHudDraft
+                            onToggled: {
+                                root.showIdleHudDraft = checked
+                                AppController.saveHudPresentation(root.hudStyleDraft, root.hudPositionDraft, root.showIdleHudDraft)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        SectionCard {
+            width: parent.width
+
+            SectionHeader {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                title: "Recording timing"
+                subtitle: "Timing values require a save. Presentation changes above apply instantly."
+
+                trailing: FlowButton {
                     label: "Save Timing"
                     variant: "warm"
                     onClicked: AppController.saveExperienceSettings(
@@ -82,235 +246,55 @@ Item {
                     )
                 }
             }
-        }
 
-        Flow {
-            width: parent.width
-            spacing: 14
+            GridLayout {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.topMargin: 74
+                columns: 3
+                columnSpacing: theme.space12
+                rowSpacing: theme.space12
 
-            Repeater {
-                model: [
-                    { "id": "mini", "label": "Mini", "detail": "Smallest desktop footprint, closest to the Wispr-style bar." },
-                    { "id": "classic", "label": "Classic", "detail": "Slightly larger pill with more breathing room." }
-                ]
+                Repeater {
+                    model: [
+                        { "label": "Minimum tap length (ms)", "kind": "min" },
+                        { "label": "Safety limit (seconds)", "kind": "max" },
+                        { "label": "Paste delay (ms)", "kind": "paste" }
+                    ]
 
-                delegate: Rectangle {
-                    width: 316
-                    height: 176
-                    radius: 22
-                    color: root.hudStyleDraft === modelData.id ? Qt.rgba(249 / 255, 115 / 255, 22 / 255, 0.12) : "#ffffff"
-                    border.width: 1
-                    border.color: root.hudStyleDraft === modelData.id ? "#f5b27a" : "#dce7ed"
+                    delegate: SectionCard {
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        baseColor: theme.surfaceSubtle
 
-                    Column {
-                        anchors.fill: parent
-                        anchors.margins: 18
-                        spacing: 14
-
-                        Rectangle {
-                            width: modelData.id === "mini" ? 96 : 132
-                            height: modelData.id === "mini" ? 34 : 42
-                            radius: height / 2
-                            color: "#070b0f"
-                            border.width: 1
-                            border.color: "#26384a"
-
-                            WaveStrip {
-                                anchors.centerIn: parent
-                                bars: modelData.id === "mini" ? 7 : 10
-                                barWidth: modelData.id === "mini" ? 3 : 4
-                                gap: 3
-                                minimumBarHeight: 3
-                                maximumBarHeight: modelData.id === "mini" ? 12 : 16
-                                level: 0.46
-                                mode: "recording"
-                            }
-                        }
-
-                        Label {
-                            text: modelData.label
-                            color: "#163042"
-                            font.family: "Segoe UI Variable Display"
-                            font.pixelSize: 22
-                            font.weight: Font.Black
-                        }
-
-                        Label {
+                        Column {
                             width: parent.width
-                            text: modelData.detail
-                            color: "#627b8e"
-                            font.family: "Segoe UI Variable Text"
-                            font.pixelSize: 12
-                            wrapMode: Text.WordWrap
-                        }
-                    }
+                            spacing: theme.space8
 
-                    MouseArea {
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            root.hudStyleDraft = modelData.id
-                            AppController.saveHudPresentation(
-                                root.hudStyleDraft,
-                                root.hudPositionDraft,
-                                root.showIdleHudDraft
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        SurfacePanel {
-            width: parent.width
-            accent: "#0d9488"
-            cornerRadius: 24
-            padding: 22
-            borderTone: "#dfe8ef"
-
-            Column {
-                width: parent.width
-                spacing: 14
-
-                RowLayout {
-                    width: parent.width
-
-                    Label {
-                        text: "Show subtle ready line while idle"
-                        color: "#173042"
-                        font.family: "Segoe UI Variable Text"
-                        font.pixelSize: 13
-                    }
-
-                    Item { Layout.fillWidth: true }
-
-                    FlowSwitch {
-                        checked: root.showIdleHudDraft
-                        onToggled: {
-                            root.showIdleHudDraft = checked
-                            AppController.saveHudPresentation(
-                                root.hudStyleDraft,
-                                root.hudPositionDraft,
-                                root.showIdleHudDraft
-                            )
-                        }
-                    }
-                }
-
-                Flow {
-                    width: parent.width
-                    spacing: 14
-
-                    Repeater {
-                        model: [
-                            { "label": "Minimum tap length (ms)", "kind": "min" },
-                            { "label": "Safety limit (seconds)", "kind": "max" },
-                            { "label": "Paste delay (ms)", "kind": "paste" }
-                        ]
-
-                        delegate: Rectangle {
-                            width: 280
-                            height: 96
-                            radius: 20
-                            color: "#ffffff"
-                            border.width: 1
-                            border.color: "#dce7ed"
-
-                            Column {
-                                anchors.fill: parent
-                                anchors.margins: 14
-                                spacing: 6
-
-                                Label {
-                                    text: modelData.label
-                                    color: "#6a8496"
-                                    font.family: "Segoe UI Variable Text"
-                                    font.pixelSize: 12
-                                }
-
-                                TextField {
-                                    text: modelData.kind === "min" ? root.minDurationDraft : (modelData.kind === "max" ? root.maxDurationDraft : root.pasteDelayDraft)
-                                    color: "#173042"
-                                    font.family: "Bahnschrift SemiBold"
-                                    font.pixelSize: 20
-                                    validator: IntValidator { bottom: 0 }
-                                    background: null
-                                    onTextChanged: {
-                                        if (modelData.kind === "min")
-                                            root.minDurationDraft = text
-                                        else if (modelData.kind === "max")
-                                            root.maxDurationDraft = text
-                                        else
-                                            root.pasteDelayDraft = text
-                                    }
-                                }
+                            Label {
+                                text: modelData.label
+                                color: theme.textSecondary
+                                font.family: theme.fontUi
+                                font.pixelSize: theme.textHelper
                             }
-                        }
-                    }
-                }
 
-                RowLayout {
-                    width: parent.width
-                    spacing: 10
-
-                    Label {
-                        text: "HUD position"
-                        color: "#173042"
-                        font.family: "Segoe UI Variable Text"
-                        font.pixelSize: 13
-                    }
-
-                    Rectangle {
-                        radius: 16
-                        color: "#ffffff"
-                        border.width: 1
-                        border.color: "#dce7ed"
-                        implicitWidth: positionRow.implicitWidth + 12
-                        implicitHeight: 38
-
-                        Row {
-                            id: positionRow
-                            anchors.centerIn: parent
-                            spacing: 6
-
-                            Repeater {
-                                model: [
-                                    { "id": "bottom", "label": "Bottom" },
-                                    { "id": "top", "label": "Top" }
-                                ]
-
-                                delegate: Rectangle {
-                                    radius: 13
-                                    color: root.hudPositionDraft === modelData.id ? "#eef5ff" : "transparent"
-                                    border.width: root.hudPositionDraft === modelData.id ? 1 : 0
-                                    border.color: "#bdd4ff"
-                                    implicitWidth: posLabel.implicitWidth + 16
-                                    implicitHeight: 28
-
-                                    Label {
-                                        id: posLabel
-                                        anchors.centerIn: parent
-                                        text: modelData.label
-                                        color: "#173042"
-                                        font.family: "Segoe UI Variable Text"
-                                        font.pixelSize: 12
-                                        font.weight: Font.DemiBold
-                                    }
-
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            root.hudPositionDraft = modelData.id
-                                            AppController.saveHudPresentation(
-                                                root.hudStyleDraft,
-                                                root.hudPositionDraft,
-                                                root.showIdleHudDraft
-                                            )
-                                        }
-                                    }
+                            TextField {
+                                width: parent.width
+                                text: modelData.kind === "min" ? root.minDurationDraft : (modelData.kind === "max" ? root.maxDurationDraft : root.pasteDelayDraft)
+                                color: theme.textPrimary
+                                font.family: theme.fontDisplay
+                                font.pixelSize: 24
+                                font.weight: Font.Black
+                                validator: IntValidator { bottom: 0 }
+                                background: null
+                                onTextChanged: {
+                                    if (modelData.kind === "min")
+                                        root.minDurationDraft = text
+                                    else if (modelData.kind === "max")
+                                        root.maxDurationDraft = text
+                                    else
+                                        root.pasteDelayDraft = text
                                 }
                             }
                         }

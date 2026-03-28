@@ -5,6 +5,8 @@ import QtQuick.Layouts
 Item {
     id: root
 
+    Theme { id: theme }
+
     property bool showApiKey: false
     property string providerDraft: AppController.provider
     property string apiKeyDraft: AppController.apiKey
@@ -69,47 +71,23 @@ Item {
 
     PageScroll {
         anchors.fill: parent
-        maxContentWidth: 1220
-        contentSpacing: 18
+        maxContentWidth: 1240
+        contentSpacing: theme.sectionGap
 
-        SurfacePanel {
+        SectionCard {
             width: parent.width
-            prominent: true
-            accent: "#2563eb"
-            cornerRadius: 28
-            padding: 22
-            borderTone: "#dfe8ef"
 
-            RowLayout {
-                width: parent.width
-                spacing: 18
+            SectionHeader {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                title: "Cleanup provider and model selection"
+                subtitle: "Transcription stays local. Cleanup is optional, uses your own key, and can fall back to the raw transcript automatically."
 
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 8
-
-                    Label {
-                        text: "Cleanup provider and model selection"
-                        color: "#163042"
-                        font.family: "Segoe UI Variable Display"
-                        font.pixelSize: 28
-                        font.weight: Font.Black
-                    }
-
-                    Label {
-                        text: "Transcription stays local. Cleanup is optional, uses your own key, and shows a maintained current model list plus manual override when you want an exact model ID."
-                        color: "#4f697f"
-                        font.family: "Segoe UI Variable Text"
-                        font.pixelSize: 13
-                        wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
-                    }
-                }
-
-                FlowButton {
+                trailing: FlowButton {
                     label: "Save Cleanup"
                     variant: "primary"
-                    accent: "#2563eb"
+                    accent: theme.primary
                     onClicked: AppController.saveCleanupSettings(
                         root.providerDraft,
                         root.apiKeyDraft,
@@ -120,97 +98,29 @@ Item {
                     )
                 }
             }
-        }
 
-        SurfacePanel {
-            width: parent.width
-            accent: "#2563eb"
-            cornerRadius: 24
-            padding: 20
-            borderTone: "#dfe8ef"
+            GridLayout {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.topMargin: 76
+                columns: 3
+                columnSpacing: theme.space12
+                rowSpacing: theme.space12
 
-            Column {
-                width: parent.width
-                spacing: 12
+                Repeater {
+                    model: AppController.providerCards
 
-                Label {
-                    text: "Providers"
-                    color: "#163042"
-                    font.family: "Segoe UI Variable Display"
-                    font.pixelSize: 24
-                    font.weight: Font.Black
-                }
-
-                Flow {
-                    width: parent.width
-                    spacing: 10
-
-                    Repeater {
-                        model: AppController.providerCards
-
-                        delegate: Rectangle {
-                            width: (parent.width - 20) / 3
-                            height: 100
-                            radius: 18
-                            color: root.providerDraft === modelData.identifier ? Qt.rgba(modelData.accent.r, modelData.accent.g, modelData.accent.b, 0.12) : "#ffffff"
-                            border.width: 1
-                            border.color: root.providerDraft === modelData.identifier ? Qt.rgba(modelData.accent.r, modelData.accent.g, modelData.accent.b, 0.48) : "#dce7ed"
-
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.margins: 16
-                                spacing: 10
-
-                                ProviderBadge {
-                                    badge: modelData.badge
-                                    accent: modelData.accent
-                                    badgeBackground: modelData.badgeBackground
-                                    badgeForeground: modelData.badgeForeground
-                                }
-
-                                ColumnLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 5
-
-                                    RowLayout {
-                                        Layout.fillWidth: true
-
-                                        Label {
-                                            text: modelData.label
-                                            color: "#173042"
-                                            font.family: "Segoe UI Variable Text"
-                                            font.pixelSize: 14
-                                            font.weight: Font.DemiBold
-                                        }
-
-                                        Item { Layout.fillWidth: true }
-
-                                        Label {
-                                            text: root.providerDraft === modelData.identifier ? "Selected" : ""
-                                            color: "#5d7b8d"
-                                            font.family: "Bahnschrift SemiBold"
-                                            font.pixelSize: 10
-                                        }
-                                    }
-
-                                    Label {
-                                        text: modelData.summary
-                                        color: "#4f697f"
-                                        font.family: "Segoe UI Variable Text"
-                                        font.pixelSize: 11
-                                        wrapMode: Text.WordWrap
-                                        Layout.fillWidth: true
-                                    }
-                                }
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: root.providerDraft = modelData.identifier
-                            }
-                        }
+                    delegate: ChoiceCard {
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        title: modelData.label
+                        subtitle: modelData.summary
+                        badge: modelData.badge
+                        providerId: modelData.identifier
+                        accent: modelData.accent
+                        selected: root.providerDraft === modelData.identifier
+                        onClicked: root.providerDraft = modelData.identifier
                     }
                 }
             }
@@ -218,97 +128,98 @@ Item {
 
         RowLayout {
             width: parent.width
-            spacing: 18
+            spacing: theme.space16
 
-            SurfacePanel {
+            SectionCard {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 118
-                accent: "#0d9488"
-                cornerRadius: 24
-                padding: 18
-                borderTone: "#dfe8ef"
 
-                RowLayout {
-                    anchors.fill: parent
-                    spacing: 14
+                SectionHeader {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    title: root.providerNeedsKey ? "API key" : "Connection"
+                    subtitle: root.providerDraft === "ollama"
+                        ? "FlowType will use the default local Ollama endpoint at http://localhost:11434."
+                        : "A saved key or matching environment variable enables cleanup immediately."
+                }
 
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 4
+                Column {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.topMargin: 74
+                    spacing: theme.space12
 
-                        Label {
-                            text: root.providerNeedsKey ? "API key" : "Connection"
-                            color: "#6a8496"
-                            font.family: "Segoe UI Variable Text"
-                            font.pixelSize: 12
-                        }
+                    InputSurface {
+                        width: parent.width
+                        height: 52
 
-                        TextField {
-                            Layout.fillWidth: true
-                            text: root.apiKeyDraft
-                            color: "#173042"
-                            echoMode: root.showApiKey ? TextInput.Normal : TextInput.Password
-                            placeholderText: root.providerDraft === "none"
-                                ? "No key needed for local-only mode"
-                                : (root.providerDraft === "ollama"
-                                    ? "No API key required for a local Ollama instance"
-                                    : "Paste your " + (root.selectedProviderCard() === null ? "provider" : root.selectedProviderCard().label) + " API key")
-                            placeholderTextColor: "#8ca0af"
-                            font.family: "Segoe UI Variable Text"
-                            font.pixelSize: 13
-                            background: null
-                            readOnly: !root.providerNeedsKey
-                            onTextChanged: root.apiKeyDraft = text
-                        }
+                        RowLayout {
+                            anchors.fill: parent
+                            spacing: theme.space12
 
-                        Label {
-                            visible: root.providerDraft !== "none"
-                            text: root.providerDraft === "gemini"
-                                ? "Supports GEMINI_API_KEY or GOOGLE_API_KEY as an environment fallback."
-                                : (root.providerDraft === "ollama"
-                                    ? "FlowType will use the default local Ollama endpoint at http://localhost:11434."
-                                    : "A saved key or matching environment variable enables cleanup immediately.")
-                            color: "#72879a"
-                            font.family: "Segoe UI Variable Text"
-                            font.pixelSize: 11
-                            wrapMode: Text.WordWrap
-                            Layout.fillWidth: true
+                            TextField {
+                                Layout.fillWidth: true
+                                text: root.apiKeyDraft
+                                color: theme.textPrimary
+                                echoMode: root.showApiKey ? TextInput.Normal : TextInput.Password
+                                placeholderText: root.providerDraft === "none"
+                                    ? "No key needed for local-only mode"
+                                    : (root.providerDraft === "ollama"
+                                        ? "No API key required for a local Ollama instance"
+                                        : "Paste your " + (root.selectedProviderCard() === null ? "provider" : root.selectedProviderCard().label) + " API key")
+                                placeholderTextColor: theme.textTertiary
+                                font.family: theme.fontUi
+                                font.pixelSize: theme.textBody
+                                background: null
+                                readOnly: !root.providerNeedsKey
+                                onTextChanged: root.apiKeyDraft = text
+                            }
+
+                            FlowButton {
+                                visible: root.providerNeedsKey
+                                label: root.showApiKey ? "Hide" : "Show"
+                                variant: "secondary"
+                                compact: true
+                                onClicked: root.showApiKey = !root.showApiKey
+                            }
                         }
                     }
 
-                    FlowButton {
-                        visible: root.providerNeedsKey
-                        label: root.showApiKey ? "Hide" : "Show"
-                        variant: "secondary"
-                        compact: true
-                        onClicked: root.showApiKey = !root.showApiKey
+                    Label {
+                        visible: root.providerDraft === "gemini"
+                        width: parent.width
+                        text: "Gemini also supports GEMINI_API_KEY or GOOGLE_API_KEY as an environment fallback."
+                        color: theme.textSecondary
+                        font.family: theme.fontUi
+                        font.pixelSize: theme.textHelper
+                        wrapMode: Text.WordWrap
                     }
                 }
             }
 
-            SurfacePanel {
-                Layout.preferredWidth: 326
-                Layout.preferredHeight: 146
-                accent: "#2563eb"
-                cornerRadius: 24
-                padding: 18
-                visible: root.providerDraft !== "none"
-                borderTone: "#dfe8ef"
+            SectionCard {
+                Layout.preferredWidth: 360
 
-                ColumnLayout {
-                    anchors.fill: parent
-                    spacing: 8
+                SectionHeader {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    title: "Cleanup model"
+                    subtitle: root.providerDraft === "openrouter"
+                        ? "Shows maintained current free and paid picks."
+                        : "Use the maintained current model list for this provider."
+                }
 
-                    Label {
-                        text: "Cleanup model"
-                        color: "#6a8496"
-                        font.family: "Segoe UI Variable Text"
-                        font.pixelSize: 12
-                    }
+                Column {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.topMargin: 74
+                    spacing: theme.space12
 
                     FlowModelCombo {
-                        id: modelCombo
-                        Layout.fillWidth: true
+                        width: parent.width
                         model: root.providerModels
                         currentIndex: root.modelIndex()
                         selectedCard: root.selectedModelCard()
@@ -317,170 +228,150 @@ Item {
                     }
 
                     Label {
+                        width: parent.width
                         visible: root.providerModels.length === 0
                         text: "No curated model list for this provider yet. Use a manual model ID below."
-                        color: "#72879a"
-                        font.family: "Segoe UI Variable Text"
-                        font.pixelSize: 11
+                        color: theme.textTertiary
+                        font.family: theme.fontUi
+                        font.pixelSize: theme.textHelper
                         wrapMode: Text.WordWrap
                     }
 
                     Label {
+                        width: parent.width
                         visible: root.providerModels.length > 0
-                        text: root.providerDraft === "openrouter"
-                            ? "OpenRouter includes current free and paid model picks here. Use Custom model ID below for any exact model not shown."
-                            : "Showing a maintained current model list for this provider. Use Custom model ID below if you need an exact override."
-                        color: "#60788a"
-                        font.family: "Segoe UI Variable Text"
-                        font.pixelSize: 11
+                        text: "Use Custom model ID below for any exact model not shown here."
+                        color: theme.textSecondary
+                        font.family: theme.fontUi
+                        font.pixelSize: theme.textHelper
                         wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
                     }
                 }
             }
         }
 
         RowLayout {
-            visible: root.providerDraft !== "none"
             width: parent.width
-            spacing: 18
+            spacing: theme.space16
+            visible: root.providerDraft !== "none"
 
-            SurfacePanel {
+            SectionCard {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 82
-                accent: "#2563eb"
-                cornerRadius: 20
-                padding: 14
-                borderTone: "#dfe8ef"
 
-                ColumnLayout {
-                    anchors.fill: parent
-                    spacing: 4
+                SectionHeader {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    title: "Custom model ID"
+                    subtitle: "Optional override if you know the exact model identifier."
+                }
 
-                    Label {
-                        text: "Custom model ID"
-                        color: "#6a8496"
-                        font.family: "Segoe UI Variable Text"
-                        font.pixelSize: 12
-                    }
+                InputSurface {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.topMargin: 74
+                    height: 52
 
                     TextField {
-                        Layout.fillWidth: true
+                        anchors.fill: parent
                         text: root.modelDraft
-                        color: "#173042"
-                        placeholderText: "Optional override if you know the exact model ID"
-                        placeholderTextColor: "#8ca0af"
-                        font.family: "Segoe UI Variable Text"
-                        font.pixelSize: 13
+                        color: theme.textPrimary
+                        placeholderText: "e.g. openai/gpt-4.1-mini or deepseek/deepseek-r1-0528"
+                        placeholderTextColor: theme.textTertiary
+                        font.family: theme.fontUi
+                        font.pixelSize: theme.textBody
                         background: null
                         onTextChanged: root.modelDraft = text
                     }
                 }
             }
 
-            SurfacePanel {
-                Layout.preferredWidth: 300
-                Layout.preferredHeight: 82
-                accent: "#0d9488"
-                cornerRadius: 20
-                padding: 14
-                borderTone: "#dfe8ef"
+            SectionCard {
+                Layout.preferredWidth: 340
 
-                ColumnLayout {
-                    anchors.fill: parent
-                    spacing: 4
+                SectionHeader {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    title: "Paste behavior"
+                    subtitle: "Choose whether FlowType pastes immediately or only copies to the clipboard."
+                }
 
-                    Label {
-                        text: "Paste method"
-                        color: "#6a8496"
-                        font.family: "Segoe UI Variable Text"
-                        font.pixelSize: 12
+                Row {
+                    anchors.left: parent.left
+                    anchors.top: parent.top
+                    anchors.topMargin: 74
+                    spacing: theme.space8
+
+                    ChoiceCard {
+                        width: 148
+                        compact: true
+                        hideChevron: true
+                        title: "Paste into app"
+                        selected: root.pasteMethodDraft === "ctrl_v"
+                        accent: theme.primary
+                        onClicked: root.pasteMethodDraft = "ctrl_v"
                     }
 
-                    ComboBox {
-                        Layout.fillWidth: true
-                        model: [
-                            { "label": "Paste into active app", "value": "ctrl_v" },
-                            { "label": "Clipboard only", "value": "clipboard_only" }
-                        ]
-                        textRole: "label"
-                        currentIndex: root.pasteMethodDraft === "clipboard_only" ? 1 : 0
-                        onActivated: root.pasteMethodDraft = currentIndex === 1 ? "clipboard_only" : "ctrl_v"
-
-                        background: Rectangle {
-                            radius: 16
-                            color: "#ffffff"
-                            border.width: 1
-                            border.color: "#dce7ed"
-                        }
+                    ChoiceCard {
+                        width: 136
+                        compact: true
+                        hideChevron: true
+                        title: "Clipboard only"
+                        selected: root.pasteMethodDraft === "clipboard_only"
+                        accent: theme.primary
+                        onClicked: root.pasteMethodDraft = "clipboard_only"
                     }
                 }
             }
         }
 
-        SurfacePanel {
+        SectionCard {
             width: parent.width
-            accent: "#0d9488"
-            cornerRadius: 24
-            padding: 22
-            borderTone: "#dfe8ef"
+
+            SectionHeader {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                title: "Cleanup prompt"
+                subtitle: "This prompt is combined with the active mode and your vocabulary. Keep it short and focused on cleanup behavior."
+            }
 
             Column {
-                width: parent.width
-                spacing: 12
-
-                Label {
-                    text: "Cleanup prompt"
-                    color: "#163042"
-                    font.family: "Segoe UI Variable Display"
-                    font.pixelSize: 24
-                    font.weight: Font.Black
-                }
-
-                Label {
-                    width: parent.width
-                    text: "This prompt is combined with the active mode and your vocabulary. Keep it short and focused on cleanup behavior."
-                    color: "#627b8e"
-                    font.family: "Segoe UI Variable Text"
-                    font.pixelSize: 12
-                    wrapMode: Text.WordWrap
-                }
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.topMargin: 74
+                spacing: theme.space12
 
                 Rectangle {
                     width: parent.width
-                    height: 180
-                    radius: 20
-                    color: "#ffffff"
+                    height: 188
+                    radius: theme.radiusCard
+                    color: theme.surfaceSubtle
                     border.width: 1
-                    border.color: "#dce7ed"
+                    border.color: theme.border
 
                     TextArea {
                         anchors.fill: parent
                         anchors.margins: 14
                         text: root.promptDraft
-                        color: "#173042"
+                        color: theme.textPrimary
                         wrapMode: TextEdit.Wrap
-                        font.family: "Segoe UI Variable Text"
-                        font.pixelSize: 13
+                        font.family: theme.fontUi
+                        font.pixelSize: theme.textBody
                         background: null
                         placeholderText: "Return only the cleaned dictated text. Remove filler words when they are verbal fillers. Fix punctuation and grammar without changing meaning."
-                        placeholderTextColor: "#8ca0af"
+                        placeholderTextColor: theme.textTertiary
                         onTextChanged: root.promptDraft = text
                     }
                 }
 
-                RowLayout {
+                FormRow {
                     width: parent.width
-                    spacing: 10
-
-                    Label {
-                        text: "Restore clipboard after paste"
-                        color: "#173042"
-                        font.family: "Segoe UI Variable Text"
-                        font.pixelSize: 13
-                    }
-
-                    Item { Layout.fillWidth: true }
+                    title: "Restore clipboard after paste"
+                    detail: "Turn this on if you want FlowType to restore the previous clipboard contents after auto-paste."
 
                     FlowSwitch {
                         checked: root.restoreClipboardDraft

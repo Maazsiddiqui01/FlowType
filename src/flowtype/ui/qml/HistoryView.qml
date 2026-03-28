@@ -5,47 +5,25 @@ import QtQuick.Layouts
 Item {
     id: root
 
+    Theme { id: theme }
+
     PageScroll {
         anchors.fill: parent
         maxContentWidth: 1160
-        contentSpacing: 20
+        contentSpacing: theme.sectionGap
 
-        SurfacePanel {
+        SectionCard {
             width: parent.width
-            prominent: true
-            accent: "#ec4899"
-            cornerRadius: 28
-            padding: 24
-            borderTone: "#dfe8ef"
 
-            Column {
-                width: parent.width
-                spacing: 14
+            SectionHeader {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                title: "Recent dictation history"
+                subtitle: "History stays local to this device so you can compare the cleaned output with the raw transcript."
 
-                RowLayout {
-                    width: parent.width
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 4
-
-                        Label {
-                            text: "Recent dictation history"
-                            color: "#163042"
-                            font.family: "Segoe UI Variable Display"
-                            font.pixelSize: 29
-                            font.weight: Font.Black
-                        }
-
-                        Label {
-                            text: "History stays local to this device so you can compare the cleaned output with the raw transcript and sanity-check provider behavior."
-                            color: "#627b8e"
-                            font.family: "Segoe UI Variable Text"
-                            font.pixelSize: 13
-                            wrapMode: Text.WordWrap
-                            Layout.fillWidth: true
-                        }
-                    }
+                trailing: Row {
+                    spacing: theme.space8
 
                     FlowButton {
                         label: "Open Config"
@@ -59,122 +37,121 @@ Item {
                         onClicked: AppController.clearHistory()
                     }
                 }
+            }
 
-                Flow {
-                    width: parent.width
-                    spacing: 12
+            Row {
+                anchors.left: parent.left
+                anchors.top: parent.top
+                anchors.topMargin: 74
+                spacing: theme.space8
 
-                    Repeater {
-                        model: AppController.homeStats
+                Repeater {
+                    model: [
+                        { "label": "Stored locally", "value": "Yes" },
+                        { "label": "Cleanup provider", "value": AppController.cleanupEnabled ? AppController.providerLabel : "Local only" },
+                        { "label": "Fallback safe", "value": "Enabled" }
+                    ]
 
-                        delegate: MetricTile {
-                            width: (parent.width - 36) / 4
-                            value: modelData.value
-                            label: modelData.label
-                            tone: modelData.tone
-                        }
+                    delegate: TokenChip {
+                        label: modelData.label + ": " + modelData.value
                     }
                 }
             }
         }
 
-        Label {
+        EmptyState {
             visible: AppController.historyItems.length === 0
             width: parent.width
-            text: "Nothing stored yet. Run one full dictation and the result will appear here."
-            color: "#72879a"
-            font.family: "Segoe UI Variable Text"
-            font.pixelSize: 13
-            wrapMode: Text.WordWrap
+            title: "Nothing stored yet"
+            message: "Run one full dictation and the result will appear here."
         }
 
         Repeater {
             model: AppController.historyItems
 
-            delegate: SurfacePanel {
+            delegate: SectionCard {
                 width: parent.width
-                cornerRadius: 22
-                accent: modelData.usedFallback ? "#f97316" : "#0d9488"
-                padding: 18
-                borderTone: "#dfe8ef"
+                baseColor: theme.surface
 
                 Column {
                     width: parent.width
-                    spacing: 10
+                    spacing: theme.space12
 
                     RowLayout {
                         width: parent.width
+                        spacing: theme.space8
 
                         Label {
                             text: modelData.createdAt
-                            color: "#72879a"
-                            font.family: "Segoe UI Variable Text"
-                            font.pixelSize: 11
+                            color: theme.textTertiary
+                            font.family: theme.fontUi
+                            font.pixelSize: theme.textLabel
                         }
 
                         Item { Layout.fillWidth: true }
 
-                        Label {
-                            text: modelData.wordCount + " words"
-                            color: "#72879a"
-                            font.family: "Segoe UI Variable Text"
-                            font.pixelSize: 11
+                        ProviderBadge {
+                            compact: true
+                            providerId: modelData.providerId
+                            badgeBackground: theme.surfaceSubtle
                         }
 
                         Label {
-                            text: modelData.provider + " | " + modelData.model
-                            color: "#72879a"
-                            font.family: "Segoe UI Variable Text"
-                            font.pixelSize: 11
+                            text: modelData.provider + " • " + modelData.model
+                            color: theme.textSecondary
+                            font.family: theme.fontUi
+                            font.pixelSize: theme.textLabel
+                        }
+
+                        Label {
+                            text: modelData.wordCount + " words"
+                            color: theme.textTertiary
+                            font.family: theme.fontUi
+                            font.pixelSize: theme.textLabel
                         }
                     }
 
-                    Row {
-                        spacing: 8
+                    Flow {
+                        width: parent.width
+                        spacing: theme.space8
 
-                        Repeater {
-                            model: [
-                                modelData.pasted ? "Pasted" : "Clipboard only",
-                                modelData.usedFallback ? "Raw fallback" : "Cleanup applied"
-                            ]
+                        TokenChip {
+                            label: modelData.pasted ? "Pasted" : "Clipboard only"
+                        }
 
-                            delegate: Rectangle {
-                                radius: 13
-                                color: "#f4f8fb"
-                                border.width: 1
-                                border.color: "#dce7ed"
-                                implicitWidth: stateText.implicitWidth + 16
-                                implicitHeight: 28
-
-                                Label {
-                                    id: stateText
-                                    anchors.centerIn: parent
-                                    text: modelData
-                                    color: "#36566c"
-                                    font.family: "Segoe UI Variable Text"
-                                    font.pixelSize: 11
-                                }
-                            }
+                        TokenChip {
+                            label: modelData.usedFallback ? "Raw fallback" : "Cleanup applied"
                         }
                     }
 
                     Label {
                         width: parent.width
                         text: modelData.finalText
-                        color: "#173042"
+                        color: theme.textPrimary
+                        font.family: theme.fontUi
+                        font.pixelSize: theme.textBody
                         wrapMode: Text.WordWrap
-                        font.family: "Segoe UI Variable Text"
-                        font.pixelSize: 13
                     }
 
-                    Label {
+                    Rectangle {
                         visible: modelData.rawText.length > 0 && modelData.rawText !== modelData.finalText
                         width: parent.width
-                        text: "Raw: " + modelData.rawText
-                        color: "#708698"
-                        wrapMode: Text.WordWrap
-                        font.family: "Segoe UI Variable Text"
-                        font.pixelSize: 12
+                        radius: theme.radiusControl
+                        color: theme.surfaceSubtle
+                        border.width: 1
+                        border.color: theme.divider
+                        implicitHeight: rawLabel.implicitHeight + 24
+
+                        Label {
+                            id: rawLabel
+                            anchors.fill: parent
+                            anchors.margins: 12
+                            text: "Raw transcript: " + modelData.rawText
+                            color: theme.textSecondary
+                            font.family: theme.fontUi
+                            font.pixelSize: theme.textHelper
+                            wrapMode: Text.WordWrap
+                        }
                     }
                 }
             }

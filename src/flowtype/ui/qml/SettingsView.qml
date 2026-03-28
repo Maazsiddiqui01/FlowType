@@ -5,56 +5,83 @@ import QtQuick.Layouts
 Item {
     id: root
 
+    Theme { id: theme }
+
     property int currentSection: 0
 
     readonly property var sections: [
-        { "title": "General", "subtitle": "Shortcuts and language", "accent": "#0d9488" },
-        { "title": "Cleanup", "subtitle": "Providers, models, and paste behavior", "accent": "#2563eb" },
-        { "title": "Recording", "subtitle": "HUD and timing", "accent": "#f97316" }
+        { "title": "General", "subtitle": "Shortcuts and local behavior" },
+        { "title": "Cleanup", "subtitle": "Providers, models, and paste behavior" },
+        { "title": "Recording", "subtitle": "HUD presentation and timing" }
     ]
 
     ColumnLayout {
         anchors.fill: parent
-        spacing: 10
+        spacing: theme.sectionGap
 
-        Label {
-            text: "Settings that actually affect daily dictation"
-            color: "#163042"
-            font.family: "Segoe UI Variable Display"
-            font.pixelSize: 30
-            font.weight: Font.Black
-        }
-
-        Label {
-            text: "Keep the setup lean: shortcuts, cleanup provider, model selection, paste behavior, and recording feel."
-            color: "#6b8496"
-            font.family: "Segoe UI Variable Text"
-            font.pixelSize: 12
-            wrapMode: Text.WordWrap
+        SectionCard {
             Layout.fillWidth: true
+            padding: theme.cardPadding
+
+            RowLayout {
+                width: parent.width
+                spacing: theme.space24
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 4
+
+                    Label {
+                        text: "Settings that actually affect daily dictation"
+                        color: theme.textPrimary
+                        font.family: theme.fontDisplay
+                        font.pixelSize: theme.sizeSectionTitle + 8
+                        font.weight: Font.Black
+                    }
+
+                    Label {
+                        text: "Keep the setup lean: shortcuts, cleanup provider, model selection, paste behavior, and recording feel."
+                        color: theme.textSecondary
+                        font.family: theme.fontUi
+                        font.pixelSize: theme.textBody
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
+                    }
+                }
+
+                StatusPill {
+                    statusText: AppController.status === "ready" ? "Ready" : AppController.status.toUpperCase()
+                    tone: AppController.status === "error"
+                        ? theme.error
+                        : (AppController.status === "recording"
+                            ? theme.warm
+                            : (AppController.status === "ready" ? theme.success : theme.primary))
+                }
+            }
         }
 
         Row {
-            spacing: 8
+            Layout.fillWidth: true
+            spacing: theme.space8
 
             Repeater {
                 model: root.sections
 
                 delegate: Rectangle {
-                    radius: 15
-                    color: root.currentSection === index ? Qt.rgba(modelData.accent.r, modelData.accent.g, modelData.accent.b, 0.11) : "#ffffff"
+                    radius: theme.radiusControl
+                    color: root.currentSection === index ? theme.tint(theme.primary, 0.08) : theme.surface
                     border.width: 1
-                    border.color: root.currentSection === index ? Qt.rgba(modelData.accent.r, modelData.accent.g, modelData.accent.b, 0.34) : "#dbe7ee"
+                    border.color: root.currentSection === index ? theme.tint(theme.primary, 0.28) : theme.border
                     implicitWidth: tabLabel.implicitWidth + 26
-                    implicitHeight: 34
+                    implicitHeight: theme.controlHeightCompact
 
                     Label {
                         id: tabLabel
                         anchors.centerIn: parent
                         text: modelData.title
-                        color: root.currentSection === index ? "#173042" : "#456174"
-                        font.family: "Segoe UI Variable Text"
-                        font.pixelSize: 12
+                        color: root.currentSection === index ? theme.textPrimary : theme.textSecondary
+                        font.family: theme.fontUi
+                        font.pixelSize: theme.textBody
                         font.weight: Font.DemiBold
                     }
 
@@ -73,6 +100,7 @@ Item {
             Layout.fillHeight: true
 
             StackLayout {
+                id: settingsStack
                 anchors.fill: parent
                 currentIndex: root.currentSection
 

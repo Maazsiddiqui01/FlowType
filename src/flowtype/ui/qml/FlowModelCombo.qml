@@ -5,6 +5,8 @@ import QtQuick.Layouts
 Item {
     id: root
 
+    Theme { id: theme }
+
     property var model: []
     property var selectedCard: null
     property int currentIndex: -1
@@ -13,28 +15,29 @@ Item {
 
     signal optionPicked(int index)
 
-    implicitHeight: 52
+    implicitHeight: theme.buttonHeight
 
     Rectangle {
         anchors.fill: parent
-        radius: 16
-        color: "#ffffff"
+        radius: theme.radiusControl
+        color: theme.surface
         border.width: 1
-        border.color: mouseArea.containsMouse || popup.visible ? "#9cc4f6" : "#dce7ed"
+        border.color: mouseArea.containsMouse || popup.visible ? theme.tint(theme.primary, 0.5) : theme.border
 
         RowLayout {
             anchors.fill: parent
-            anchors.leftMargin: 12
-            anchors.rightMargin: 12
-            spacing: 10
+            anchors.leftMargin: theme.space12
+            anchors.rightMargin: theme.space12
+            spacing: theme.space8
 
             ProviderBadge {
                 visible: root.selectedCard !== null
                 compact: true
                 badge: root.selectedCard === null ? "" : root.selectedCard.familyBadge
-                accent: root.selectedCard === null ? "#2563eb" : root.selectedCard.familyAccent
-                badgeBackground: root.selectedCard === null ? "#edf3f7" : root.selectedCard.familyBadgeBackground
-                badgeForeground: root.selectedCard === null ? "#173042" : root.selectedCard.familyBadgeForeground
+                accent: root.selectedCard === null ? theme.primary : root.selectedCard.familyAccent
+                badgeBackground: root.selectedCard === null ? theme.surfaceSubtle : root.selectedCard.familyBadgeBackground
+                badgeForeground: root.selectedCard === null ? theme.textPrimary : root.selectedCard.familyBadgeForeground
+                providerId: root.selectedCard === null ? "" : root.selectedCard.family
             }
 
             ColumnLayout {
@@ -44,9 +47,9 @@ Item {
                 Label {
                     Layout.fillWidth: true
                     text: root.selectedCard === null ? root.placeholderText : root.selectedCard.label
-                    color: "#173042"
-                    font.family: "Segoe UI Variable Text"
-                    font.pixelSize: 13
+                    color: theme.textPrimary
+                    font.family: theme.fontUi
+                    font.pixelSize: theme.textBody
                     font.weight: Font.DemiBold
                     elide: Text.ElideRight
                 }
@@ -54,10 +57,10 @@ Item {
                 Label {
                     Layout.fillWidth: true
                     visible: root.selectedCard !== null
-                    text: root.selectedCard === null ? "" : root.selectedCard.tags.join(" · ")
-                    color: "#60788a"
-                    font.family: "Segoe UI Variable Text"
-                    font.pixelSize: 11
+                    text: root.selectedCard === null ? "" : root.selectedCard.tags.join(" • ")
+                    color: theme.textSecondary
+                    font.family: theme.fontUi
+                    font.pixelSize: theme.textLabel
                     elide: Text.ElideRight
                 }
             }
@@ -72,7 +75,7 @@ Item {
                     context.lineWidth = 1.6
                     context.lineCap = "round"
                     context.lineJoin = "round"
-                    context.strokeStyle = "#7a8e9d"
+                    context.strokeStyle = theme.textTertiary
                     context.beginPath()
                     context.moveTo(1, 1)
                     context.lineTo(width / 2, height - 1)
@@ -100,16 +103,16 @@ Item {
         id: popup
 
         y: root.height + 6
-        width: Math.max(root.width, 430)
-        padding: 8
+        width: Math.max(root.width, 440)
+        padding: theme.space8
         implicitHeight: Math.min(contentItem.implicitHeight + (padding * 2), 360)
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
 
         background: Rectangle {
-            radius: 18
-            color: "#ffffff"
+            radius: theme.radiusCard
+            color: theme.surface
             border.width: 1
-            border.color: "#dce7ed"
+            border.color: theme.border
         }
 
         contentItem: Loader {
@@ -125,22 +128,22 @@ Item {
             clip: true
             implicitHeight: contentHeight
             model: root.model
-            spacing: 6
+            spacing: theme.space4
             ScrollIndicator.vertical: ScrollIndicator { }
 
             delegate: Rectangle {
                 width: ListView.view ? ListView.view.width : root.width
-                height: 64
-                radius: 14
-                color: root.currentIndex === index ? "#eef5ff" : (delegateMouse.containsMouse ? "#f8fbfe" : "#ffffff")
+                height: 60
+                radius: theme.radiusControl
+                color: root.currentIndex === index ? theme.tint(theme.primary, 0.08) : (delegateMouse.containsMouse ? theme.surfaceSubtle : theme.surface)
                 border.width: 1
-                border.color: root.currentIndex === index ? "#bdd4ff" : "#ffffff"
+                border.color: root.currentIndex === index ? theme.tint(theme.primary, 0.34) : "transparent"
 
                 RowLayout {
                     anchors.fill: parent
-                    anchors.leftMargin: 10
-                    anchors.rightMargin: 10
-                    spacing: 10
+                    anchors.leftMargin: theme.space12
+                    anchors.rightMargin: theme.space12
+                    spacing: theme.space8
 
                     ProviderBadge {
                         compact: true
@@ -148,6 +151,7 @@ Item {
                         accent: modelData.familyAccent
                         badgeBackground: modelData.familyBadgeBackground
                         badgeForeground: modelData.familyBadgeForeground
+                        providerId: modelData.family
                     }
 
                     ColumnLayout {
@@ -156,20 +160,20 @@ Item {
 
                         RowLayout {
                             Layout.fillWidth: true
-                            spacing: 8
+                            spacing: theme.space8
 
                             Label {
                                 Layout.fillWidth: true
                                 text: modelData.label
-                                color: "#163042"
-                                font.family: "Segoe UI Variable Text"
-                                font.pixelSize: 13
+                                color: theme.textPrimary
+                                font.family: theme.fontUi
+                                font.pixelSize: theme.textBody
                                 font.weight: Font.DemiBold
                                 elide: Text.ElideRight
                             }
 
                             Row {
-                                spacing: 4
+                                spacing: theme.space4
 
                                 Repeater {
                                     model: modelData.tags
@@ -177,16 +181,16 @@ Item {
                                     delegate: Rectangle {
                                         radius: 10
                                         color: modelData === "Free"
-                                            ? "#e9fbf1"
+                                            ? theme.tint(theme.success, 0.12)
                                             : (modelData === "Paid"
-                                                ? "#eff4ff"
-                                                : "#f4f7fa")
+                                                ? theme.tint(theme.primary, 0.1)
+                                                : theme.surfaceSubtle)
                                         border.width: 1
                                         border.color: modelData === "Free"
-                                            ? "#bfe9cf"
+                                            ? theme.tint(theme.success, 0.3)
                                             : (modelData === "Paid"
-                                                ? "#cfe0ff"
-                                                : "#dde8ef")
+                                                ? theme.tint(theme.primary, 0.25)
+                                                : theme.border)
                                         implicitWidth: tagLabel.implicitWidth + 12
                                         implicitHeight: 22
 
@@ -195,12 +199,12 @@ Item {
                                             anchors.centerIn: parent
                                             text: modelData
                                             color: modelData === "Free"
-                                                ? "#1f7a4d"
+                                                ? Qt.darker(theme.success, 1.15)
                                                 : (modelData === "Paid"
-                                                    ? "#315dbe"
-                                                    : "#557186")
-                                            font.family: "Segoe UI Variable Text"
-                                            font.pixelSize: 10
+                                                    ? Qt.darker(theme.primary, 1.1)
+                                                    : theme.textSecondary)
+                                            font.family: theme.fontUi
+                                            font.pixelSize: theme.textLabel
                                             font.weight: Font.DemiBold
                                         }
                                     }
@@ -210,10 +214,10 @@ Item {
 
                         Label {
                             Layout.fillWidth: true
-                            text: modelData.speed + " · " + modelData.quality + " · " + modelData.cost
-                            color: "#597386"
-                            font.family: "Segoe UI Variable Text"
-                            font.pixelSize: 11
+                            text: modelData.speed + " • " + modelData.quality + " • " + modelData.cost
+                            color: theme.textSecondary
+                            font.family: theme.fontUi
+                            font.pixelSize: theme.textLabel
                             elide: Text.ElideRight
                         }
                     }
@@ -243,9 +247,9 @@ Item {
             Label {
                 anchors.centerIn: parent
                 text: root.emptyText
-                color: "#72879a"
-                font.family: "Segoe UI Variable Text"
-                font.pixelSize: 12
+                color: theme.textTertiary
+                font.family: theme.fontUi
+                font.pixelSize: theme.textBody
             }
         }
     }

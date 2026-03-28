@@ -5,6 +5,8 @@ import QtQuick.Layouts
 Item {
     id: root
 
+    Theme { id: theme }
+
     property string vocabularyDraft: AppController.vocabularyText
 
     function parsedEntries() {
@@ -27,154 +29,86 @@ Item {
     PageScroll {
         anchors.fill: parent
         maxContentWidth: 1160
-        contentSpacing: 20
-
-        SurfacePanel {
-            width: parent.width
-            prominent: true
-            accent: "#10b981"
-            cornerRadius: 28
-            padding: 24
-            borderTone: "#dfe8ef"
-
-            RowLayout {
-                width: parent.width
-                spacing: 18
-
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 8
-
-                    Label {
-                        text: "Vocabulary that survives transcription and cleanup"
-                        color: "#163042"
-                        font.family: "Segoe UI Variable Display"
-                        font.pixelSize: 29
-                        font.weight: Font.Black
-                        wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
-                    }
-
-                    Label {
-                        text: "Add names, acronyms, company jargon, and spoken-to-written replacements. These entries feed directly into the cleanup prompt."
-                        color: "#627b8e"
-                        font.family: "Segoe UI Variable Text"
-                        font.pixelSize: 14
-                        wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
-                    }
-                }
-
-                FlowButton {
-                    label: "Save Vocabulary"
-                    variant: "success"
-                    onClicked: AppController.saveVocabulary(root.vocabularyDraft)
-                }
-            }
-        }
+        contentSpacing: theme.sectionGap
 
         RowLayout {
             width: parent.width
-            spacing: 18
+            spacing: theme.space16
 
-            SurfacePanel {
+            SectionCard {
                 Layout.fillWidth: true
-                accent: "#10b981"
-                cornerRadius: 24
-                padding: 20
-                borderTone: "#dfe8ef"
 
-                Column {
-                    width: parent.width
-                    spacing: 12
+                SectionHeader {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    title: "Dictionary"
+                    subtitle: "Add names, acronyms, company jargon, and spoken-to-written replacements."
 
-                    Label {
-                        text: "Dictionary"
-                        color: "#163042"
-                        font.family: "Segoe UI Variable Display"
-                        font.pixelSize: 24
-                        font.weight: Font.Black
+                    trailing: FlowButton {
+                        label: "Save Vocabulary"
+                        variant: "success"
+                        onClicked: AppController.saveVocabulary(root.vocabularyDraft)
                     }
+                }
 
-                    Rectangle {
-                        width: parent.width
-                        height: 320
-                        radius: 22
-                        color: "#ffffff"
-                        border.width: 1
-                        border.color: "#dce7ed"
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.topMargin: 74
+                    height: 360
+                    radius: theme.radiusCard
+                    color: theme.surfaceSubtle
+                    border.width: 1
+                    border.color: theme.border
 
-                        TextArea {
-                            anchors.fill: parent
-                            anchors.margins: 14
-                            text: root.vocabularyDraft
-                            wrapMode: TextEdit.Wrap
-                            color: "#173042"
-                            font.family: "Cascadia Code"
-                            font.pixelSize: 13
-                            background: null
-                            placeholderText: "FlowType\nOpenRouter\n1Password\nvisual studio code => VS Code\nanti gravity => AntiGravity"
-                            placeholderTextColor: "#8ca0af"
-                            onTextChanged: root.vocabularyDraft = text
-                        }
+                    TextArea {
+                        anchors.fill: parent
+                        anchors.margins: 14
+                        text: root.vocabularyDraft
+                        wrapMode: TextEdit.Wrap
+                        color: theme.textPrimary
+                        font.family: theme.fontMono
+                        font.pixelSize: theme.textBody
+                        background: null
+                        placeholderText: "FlowType\nOpenRouter\n1Password\nvisual studio code => VS Code\nanti gravity => AntiGravity"
+                        placeholderTextColor: theme.textTertiary
+                        onTextChanged: root.vocabularyDraft = text
                     }
                 }
             }
 
-            SurfacePanel {
-                Layout.preferredWidth: 320
-                accent: "#3b82f6"
-                cornerRadius: 24
-                padding: 20
-                borderTone: "#dfe8ef"
+            SectionCard {
+                Layout.preferredWidth: 332
+
+                SectionHeader {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    title: "Preview"
+                    subtitle: root.parsedEntries().length === 0
+                        ? "Add a few terms and they will appear here as reusable cleanup cues."
+                        : "These entries are appended after the base cleanup prompt and the active mode."
+                }
 
                 Column {
-                    width: parent.width
-                    spacing: 12
-
-                    Label {
-                        text: "Preview"
-                        color: "#163042"
-                        font.family: "Segoe UI Variable Display"
-                        font.pixelSize: 24
-                        font.weight: Font.Black
-                    }
-
-                    Label {
-                        width: parent.width
-                        text: root.parsedEntries().length === 0
-                            ? "Add a few terms and they will appear here as reusable cleanup cues."
-                            : "These entries are appended after the base cleanup prompt and the active mode."
-                        color: "#627b8e"
-                        font.family: "Segoe UI Variable Text"
-                        font.pixelSize: 12
-                        wrapMode: Text.WordWrap
-                    }
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.topMargin: 74
+                    spacing: theme.space12
 
                     Flow {
                         width: parent.width
-                        spacing: 8
+                        spacing: theme.space8
 
                         Repeater {
                             model: root.parsedEntries()
 
-                            delegate: Rectangle {
+                            delegate: TokenChip {
                                 visible: index < 12
-                                radius: 14
-                                color: "#f4f8fb"
-                                border.width: 1
-                                border.color: "#dce7ed"
-                                implicitWidth: previewText.implicitWidth + 20
-                                implicitHeight: 34
-
-                                Label {
-                                    id: previewText
-                                    anchors.centerIn: parent
-                                    text: modelData
-                                    color: "#173042"
-                                    font.family: "Segoe UI Variable Text"
-                                    font.pixelSize: 12
-                                }
+                                label: modelData
                             }
                         }
                     }
@@ -182,7 +116,7 @@ Item {
                     Rectangle {
                         width: parent.width
                         height: 1
-                        color: "#e6eef3"
+                        color: theme.divider
                     }
 
                     Repeater {
@@ -194,21 +128,23 @@ Item {
 
                         delegate: RowLayout {
                             width: parent.width
-                            spacing: 10
+                            spacing: theme.space8
 
                             Rectangle {
-                                width: 7
-                                height: 7
-                                radius: 3.5
-                                color: index === 0 ? "#10b981" : (index === 1 ? "#3b82f6" : "#f97316")
+                                width: 8
+                                height: 8
+                                radius: 4
+                                color: index === 0 ? theme.teal : (index === 1 ? theme.primary : theme.warm)
+                                Layout.alignment: Qt.AlignTop
+                                Layout.topMargin: 5
                             }
 
                             Label {
                                 Layout.fillWidth: true
                                 text: modelData
-                                color: "#627b8e"
-                                font.family: "Segoe UI Variable Text"
-                                font.pixelSize: 12
+                                color: theme.textSecondary
+                                font.family: theme.fontUi
+                                font.pixelSize: theme.textBody
                                 wrapMode: Text.WordWrap
                             }
                         }

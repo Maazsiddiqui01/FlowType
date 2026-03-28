@@ -5,42 +5,53 @@ import QtQuick.Layouts
 Item {
     id: root
 
+    Theme { id: theme }
+
     signal navigateRequested(int index)
+
+    function statusTone(value) {
+        if (value === "recording")
+            return theme.warm
+        if (value === "transcribing" || value === "cleaning" || value === "pasting")
+            return theme.primary
+        if (value === "error")
+            return theme.error
+        if (value === "ready")
+            return theme.success
+        return theme.textTertiary
+    }
 
     function currentWaveMode() {
         if (AppController.status === "recording")
             return "recording"
         if (AppController.status === "transcribing" || AppController.status === "cleaning" || AppController.status === "pasting")
             return "busy"
+        if (AppController.status === "error")
+            return "error"
         return "idle"
     }
 
     PageScroll {
         anchors.fill: parent
-        maxContentWidth: 1180
-        contentSpacing: 20
+        maxContentWidth: 1240
+        contentSpacing: theme.sectionGap
 
-        SurfacePanel {
+        SectionCard {
             width: parent.width
-            prominent: true
-            accent: "#0d9488"
-            cornerRadius: 28
-            padding: 24
-            showAccentBar: false
-            showOrb: false
-            borderTone: "#dfe8ef"
+            padding: theme.cardPaddingLarge
+            cornerRadius: theme.radiusShell
 
             RowLayout {
                 width: parent.width
-                spacing: 18
+                spacing: theme.space24
 
                 ColumnLayout {
                     Layout.fillWidth: true
-                    spacing: 12
+                    spacing: theme.space16
 
                     Flow {
                         width: parent.width
-                        spacing: 8
+                        spacing: theme.space8
 
                         Repeater {
                             model: [
@@ -49,53 +60,38 @@ Item {
                                 "Auto paste when ready"
                             ]
 
-                            delegate: Rectangle {
-                                radius: 14
-                                color: "#eef7f6"
-                                border.width: 1
-                                border.color: "#d0ece7"
-                                implicitWidth: chipText.implicitWidth + 20
-                                implicitHeight: 30
-
-                                Label {
-                                    id: chipText
-                                    anchors.centerIn: parent
-                                    text: modelData
-                                    color: "#1c4a52"
-                                    font.family: "Segoe UI Variable Text"
-                                    font.pixelSize: 11
-                                    font.weight: Font.Medium
-                                }
+                            delegate: TokenChip {
+                                label: modelData
                             }
                         }
                     }
 
                     Label {
                         text: "Dictate, clean, and paste without babysitting the app"
-                        color: "#163042"
-                        font.family: "Segoe UI Variable Display"
-                        font.pixelSize: 32
+                        color: theme.textPrimary
+                        font.family: theme.fontDisplay
+                        font.pixelSize: 46
                         font.weight: Font.Black
                         wrapMode: Text.WordWrap
                         Layout.fillWidth: true
                     }
 
                     Label {
-                        text: "FlowType keeps transcription local, then uses your selected cleanup provider only when you want grammar polish, filler removal, and smarter sentence shaping."
-                        color: "#627b8e"
-                        font.family: "Segoe UI Variable Text"
-                        font.pixelSize: 13
+                        text: "FlowType keeps transcription local, then uses your selected cleanup provider only when you want punctuation polish, filler removal, and smarter sentence shaping."
+                        color: theme.textSecondary
+                        font.family: theme.fontUi
+                        font.pixelSize: theme.textBody
                         wrapMode: Text.WordWrap
                         Layout.fillWidth: true
                     }
 
                     RowLayout {
-                        spacing: 8
+                        spacing: theme.space8
 
                         FlowButton {
                             label: AppController.status === "recording" ? "Finish Dictation" : "Start Dictation"
                             variant: AppController.status === "recording" ? "danger" : "primary"
-                            accent: "#2563eb"
+                            accent: theme.primary
                             onClicked: AppController.toggleRecording()
                         }
 
@@ -113,89 +109,73 @@ Item {
                     }
                 }
 
-                SurfacePanel {
-                    Layout.preferredWidth: 282
-                    Layout.preferredHeight: 198
-                    accent: "#2563eb"
-                    cornerRadius: 24
-                    padding: 18
-                    showAccentBar: false
-                    showOrb: false
-                    borderTone: "#dfe8ef"
+                SectionCard {
+                    Layout.preferredWidth: 330
+                    Layout.alignment: Qt.AlignTop
+                    baseColor: theme.surfaceSubtle
+                    padding: theme.cardPadding
 
-                    ColumnLayout {
-                        anchors.fill: parent
-                        spacing: 12
+                    Column {
+                        width: parent.width
+                        spacing: theme.space12
 
                         Label {
                             text: "Current loop"
-                            color: "#163042"
-                            font.family: "Segoe UI Variable Display"
-                            font.pixelSize: 20
-                            font.weight: Font.Black
+                            color: theme.textPrimary
+                            font.family: theme.fontDisplay
+                            font.pixelSize: theme.sizeSectionTitle
+                            font.weight: Font.Bold
                         }
 
-                        Repeater {
-                            model: [
-                                { "label": "Cleanup", "value": AppController.cleanupEnabled ? AppController.providerLabel : "Local only right now" },
-                                { "label": "Model", "value": AppController.cleanupEnabled ? AppController.model : "Not active" },
-                                { "label": "Language", "value": AppController.transcriptionLanguageLabel },
-                                { "label": "Shortcut", "value": AppController.holdToTalk.toUpperCase().split("+").join(" + ") }
-                            ]
+                        InfoRow {
+                            width: parent.width
+                            label: "Cleanup"
+                            value: AppController.cleanupEnabled ? AppController.providerLabel : "Local only"
+                        }
 
-                            delegate: RowLayout {
-                                width: parent.width
+                        InfoRow {
+                            width: parent.width
+                            label: "Model"
+                            value: AppController.cleanupEnabled ? AppController.model : "Not active"
+                        }
 
-                                Label {
-                                    text: modelData.label
-                                    color: "#708698"
-                                    font.family: "Segoe UI Variable Text"
-                                    font.pixelSize: 12
-                                }
+                        InfoRow {
+                            width: parent.width
+                            label: "Language"
+                            value: AppController.transcriptionLanguageLabel
+                        }
 
-                                Item { Layout.fillWidth: true }
+                        InfoRow {
+                            width: parent.width
+                            label: "Shortcut"
+                            value: AppController.holdToTalk.toUpperCase().split("+").join(" + ")
+                        }
 
-                                Label {
-                                    text: modelData.value
-                                    color: "#173042"
-                                    font.family: "Segoe UI Variable Text"
-                                    font.pixelSize: 12
-                                    font.weight: Font.DemiBold
-                                }
+                        Rectangle {
+                            width: parent.width
+                            height: 1
+                            color: theme.divider
+                        }
+
+                        RowLayout {
+                            width: parent.width
+                            spacing: theme.space8
+
+                            Rectangle {
+                                width: 8
+                                height: 8
+                                radius: 4
+                                color: root.statusTone(AppController.status)
                             }
-                        }
 
-                        Item { Layout.fillHeight: true }
-
-                        SurfacePanel {
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 54
-                            accent: AppController.status === "error" ? "#ef4444" : (AppController.status === "ready" ? "#0d9488" : "#2563eb")
-                            cornerRadius: 18
-                            padding: 12
-                            showAccentBar: false
-                            borderTone: "#e4ecf2"
-
-                            RowLayout {
-                                anchors.fill: parent
-                                spacing: 12
-
-                                Rectangle {
-                                    width: 8
-                                    height: 8
-                                    radius: 4
-                                    color: AppController.status === "error" ? "#ef4444" : (AppController.status === "ready" ? "#0d9488" : "#2563eb")
-                                }
-
-                                Label {
-                                    Layout.fillWidth: true
-                                    text: AppController.status === "ready" ? "Standing by for your next take" : AppController.detail
-                                    color: "#173042"
-                                    font.family: "Segoe UI Variable Text"
-                                    font.pixelSize: 12
-                                    font.weight: Font.DemiBold
-                                    wrapMode: Text.WordWrap
-                                }
+                            Label {
+                                Layout.fillWidth: true
+                                text: AppController.status === "ready" ? "Standing by for your next take" : AppController.detail
+                                color: theme.textPrimary
+                                font.family: theme.fontUi
+                                font.pixelSize: theme.textBody
+                                font.weight: Font.DemiBold
+                                wrapMode: Text.WordWrap
                             }
                         }
                     }
@@ -203,15 +183,16 @@ Item {
             }
         }
 
-        Flow {
+        RowLayout {
             width: parent.width
-            spacing: 10
+            spacing: theme.space16
 
             Repeater {
                 model: AppController.homeStats
 
                 delegate: MetricTile {
-                    width: (parent.width - 30) / 4
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
                     value: modelData.value
                     label: modelData.label
                     tone: modelData.tone
@@ -221,55 +202,53 @@ Item {
 
         RowLayout {
             width: parent.width
-            spacing: 18
+            spacing: theme.space16
 
-            SurfacePanel {
+            SectionCard {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 206
-                accent: "#2563eb"
-                cornerRadius: 24
-                padding: 20
-                showAccentBar: false
-                showOrb: false
-                borderTone: "#dfe8ef"
+                Layout.preferredHeight: 220
+
+                SectionHeader {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    title: "Use it daily without hunting through menus"
+                    subtitle: "The product loop stays simple: dictate, let FlowType clean it if you want, and paste it back exactly where you were working."
+                }
 
                 Column {
-                    width: parent.width
-                    spacing: 14
-
-                    Label {
-                        text: "Use it daily without hunting through menus"
-                        color: "#163042"
-                        font.family: "Segoe UI Variable Display"
-                        font.pixelSize: 22
-                        font.weight: Font.Black
-                    }
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.topMargin: 76
+                    spacing: theme.space12
 
                     Repeater {
                         model: [
-                            "Hold your shortcut for quick dictation, or set a toggle shortcut for longer takes.",
-                            "If cleanup is disabled, FlowType still pastes the raw local transcript immediately.",
-                            "Vocabulary and mode rules feed directly into the cleanup prompt when a provider is active."
+                            { "tone": theme.primary, "text": "Hold your shortcut for quick dictation, or use a toggle shortcut for longer takes." },
+                            { "tone": theme.teal, "text": "If cleanup is off or fails, FlowType still pastes the raw local transcript immediately." },
+                            { "tone": theme.warm, "text": "Vocabulary and mode rules feed directly into the cleanup prompt when a provider is active." }
                         ]
 
                         delegate: RowLayout {
                             width: parent.width
-                            spacing: 10
+                            spacing: theme.space8
 
                             Rectangle {
                                 width: 8
                                 height: 8
                                 radius: 4
-                                color: index === 0 ? "#2563eb" : (index === 1 ? "#0d9488" : "#f97316")
-                                Layout.alignment: Qt.AlignVCenter
+                                color: modelData.tone
+                                Layout.alignment: Qt.AlignTop
+                                Layout.topMargin: 5
                             }
 
                             Label {
                                 Layout.fillWidth: true
-                                text: modelData
-                                color: "#627b8e"
-                                font.family: "Segoe UI Variable Text"
-                                font.pixelSize: 12
+                                text: modelData.text
+                                color: theme.textSecondary
+                                font.family: theme.fontUi
+                                font.pixelSize: theme.textBody
                                 wrapMode: Text.WordWrap
                             }
                         }
@@ -277,160 +256,113 @@ Item {
                 }
             }
 
-            SurfacePanel {
-                Layout.preferredWidth: 318
-                Layout.preferredHeight: 206
-                accent: "#f97316"
-                cornerRadius: 24
-                padding: 20
-                showAccentBar: false
-                showOrb: false
-                borderTone: "#dfe8ef"
+            SectionCard {
+                Layout.preferredWidth: 328
+                Layout.preferredHeight: 220
 
-                Column {
-                    width: parent.width
-                    spacing: 12
+                SectionHeader {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    title: "Live audio preview"
+                    subtitle: "The floating HUD reacts to your microphone while dictation is active."
+                }
 
-                    Label {
-                        text: "Live audio preview"
-                        color: "#163042"
-                        font.family: "Segoe UI Variable Display"
-                        font.pixelSize: 20
-                        font.weight: Font.Black
-                    }
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    height: 88
+                    radius: 24
+                    color: theme.inkDark
+                    border.width: 1
+                    border.color: Qt.rgba(1, 1, 1, 0.08)
 
-                    Label {
-                        width: parent.width
-                        text: "The tiny bottom HUD expands only when active. It stays subtle while idle and mirrors live audio while you speak."
-                        color: "#627b8e"
-                        font.family: "Segoe UI Variable Text"
-                        font.pixelSize: 12
-                        wrapMode: Text.WordWrap
-                    }
-
-                    SurfacePanel {
-                        width: parent.width
-                        height: 74
-                        cornerRadius: 22
-                        accent: "#163042"
-                        baseColor: "#081018"
-                        padding: 16
-                        showAccentBar: false
-                        showOrb: false
-                        borderTone: "#182630"
-
-                        WaveStrip {
-                            anchors.centerIn: parent
-                            bars: 14
-                            barWidth: 4
-                            gap: 4
-                            minimumBarHeight: 4
-                            maximumBarHeight: 24
-                            mode: root.currentWaveMode()
-                            level: AppController.audioLevel
-                        }
+                    WaveStrip {
+                        anchors.centerIn: parent
+                        bars: 14
+                        barWidth: 4
+                        gap: 4
+                        minimumBarHeight: 4
+                        maximumBarHeight: 26
+                        mode: root.currentWaveMode()
+                        level: AppController.audioLevel
                     }
                 }
             }
         }
 
-        SurfacePanel {
+        SectionCard {
             width: parent.width
-            accent: "#ec4899"
-            cornerRadius: 24
-            padding: 20
-            showAccentBar: false
-            showOrb: false
-            borderTone: "#dfe8ef"
+
+            SectionHeader {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                title: "Recent output"
+                subtitle: "The most recent cleaned or raw dictations appear here so you can sanity-check the output quickly."
+
+                trailing: FlowButton {
+                    label: "Open Full History"
+                    variant: "secondary"
+                    onClicked: root.navigateRequested(3)
+                }
+            }
 
             Column {
-                width: parent.width
-                spacing: 14
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.topMargin: 78
+                spacing: theme.space12
 
-                RowLayout {
-                    width: parent.width
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 4
-
-                        Label {
-                            text: "Recent output"
-                            color: "#163042"
-                            font.family: "Segoe UI Variable Display"
-                            font.pixelSize: 22
-                            font.weight: Font.Black
-                        }
-
-                        Label {
-                            text: "The most recent cleaned or raw dictations appear here so you can sanity-check the output quickly."
-                            color: "#627b8e"
-                            font.family: "Segoe UI Variable Text"
-                            font.pixelSize: 12
-                            wrapMode: Text.WordWrap
-                            Layout.fillWidth: true
-                        }
-                    }
-
-                    FlowButton {
-                        label: "Open Full History"
-                        variant: "secondary"
-                        onClicked: root.navigateRequested(3)
-                    }
-                }
-
-                Label {
+                EmptyState {
                     visible: AppController.historyItems.length === 0
                     width: parent.width
-                    text: "No dictations stored yet. Start one take and the most recent result will appear here."
-                    color: "#72879a"
-                    font.family: "Segoe UI Variable Text"
-                    font.pixelSize: 13
-                    wrapMode: Text.WordWrap
+                    title: "No dictations stored yet"
+                    message: "Start one take and the most recent result will appear here."
                 }
 
                 Repeater {
                     model: AppController.historyItems
 
-                    delegate: SurfacePanel {
+                    delegate: SectionCard {
                         visible: index < 3
                         width: parent.width
-                        cornerRadius: 18
-                        accent: modelData.usedFallback ? "#f97316" : "#0d9488"
-                        padding: 16
-                        showAccentBar: false
-                        showOrb: false
+                        baseColor: theme.surfaceSubtle
+                        padding: theme.cardPadding
 
                         Column {
                             width: parent.width
-                            spacing: 8
+                            spacing: theme.space8
 
                             RowLayout {
                                 width: parent.width
+                                spacing: theme.space8
 
                                 Label {
                                     text: modelData.createdAt
-                                    color: "#72879a"
-                                    font.family: "Segoe UI Variable Text"
-                                    font.pixelSize: 11
+                                    color: theme.textTertiary
+                                    font.family: theme.fontUi
+                                    font.pixelSize: theme.textLabel
                                 }
 
                                 Item { Layout.fillWidth: true }
 
                                 Label {
                                     text: modelData.wordCount + " words"
-                                    color: "#72879a"
-                                    font.family: "Segoe UI Variable Text"
-                                    font.pixelSize: 11
+                                    color: theme.textTertiary
+                                    font.family: theme.fontUi
+                                    font.pixelSize: theme.textLabel
                                 }
                             }
 
                             Label {
                                 width: parent.width
                                 text: modelData.finalText
-                                color: "#173042"
-                                font.family: "Segoe UI Variable Text"
-                                font.pixelSize: 13
+                                color: theme.textPrimary
+                                font.family: theme.fontUi
+                                font.pixelSize: theme.textBody
                                 wrapMode: Text.WordWrap
                             }
                         }

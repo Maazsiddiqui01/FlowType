@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from PySide6.QtCore import QEvent, QObject, QTimer
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QFont, QIcon
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuickControls2 import QQuickStyle
 from PySide6.QtWidgets import QApplication
@@ -74,6 +74,7 @@ def run_ui_mode(
     app.setQuitOnLastWindowClosed(False)
     app.setApplicationName(APP_DISPLAY_NAME)
     app.setOrganizationName(APP_PUBLISHER)
+    app.setFont(QFont("Segoe UI Variable Text", 10))
     set_app_user_model_id()
 
     icon_path = app_icon_path()
@@ -204,8 +205,7 @@ def run_ui_mode(
             rect = target_screen.availableGeometry()
             width = int(hud_window.width())
             height = int(hud_window.height())
-            idle = bool(hud_window.property("lineIdle"))
-            margin = 10 if idle else 18
+            margin = 12
             centered_x = rect.x() + max(0, round((rect.width() - width) / 2))
             top_docked = str(controller.hudPosition).strip().lower() == "top"
             y = rect.y() + margin if top_docked else rect.y() + rect.height() - height - margin

@@ -5,8 +5,18 @@ import QtQuick.Layouts
 Item {
     id: root
 
+    Theme { id: theme }
+
     property string selectedMode: AppController.activeMode
     property string customPromptDraft: AppController.customModePrompt
+
+    function selectedModeCard() {
+        for (var i = 0; i < AppController.modeCards.length; i += 1) {
+            if (AppController.modeCards[i].identifier === root.selectedMode)
+                return AppController.modeCards[i]
+        }
+        return AppController.modeCards.length > 0 ? AppController.modeCards[0] : null
+    }
 
     Connections {
         target: AppController
@@ -20,164 +30,63 @@ Item {
     PageScroll {
         anchors.fill: parent
         maxContentWidth: 1160
-        contentSpacing: 20
-
-        SurfacePanel {
-            width: parent.width
-            prominent: true
-            accent: "#3b82f6"
-            cornerRadius: 28
-            padding: 24
-            borderTone: "#dfe8ef"
-
-            RowLayout {
-                width: parent.width
-                spacing: 18
-
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 10
-
-                    Label {
-                        text: "Modes shape cleanup without adding more friction"
-                        color: "#163042"
-                        font.family: "Segoe UI Variable Display"
-                        font.pixelSize: 29
-                        font.weight: Font.Black
-                        wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
-                    }
-
-                    Label {
-                        text: "Pick one active preset for the way you usually work. Add only the extra notes that matter, and the cleanup prompt stays consistent."
-                        color: "#627b8e"
-                        font.family: "Segoe UI Variable Text"
-                        font.pixelSize: 14
-                        wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
-                    }
-                }
-
-                FlowButton {
-                    label: "Save Mode"
-                    variant: "primary"
-                    accent: "#2563eb"
-                    onClicked: AppController.saveModeSettings(root.selectedMode, root.customPromptDraft)
-                }
-            }
-        }
+        contentSpacing: theme.sectionGap
 
         RowLayout {
             width: parent.width
-            spacing: 18
+            spacing: theme.space16
 
-            SurfacePanel {
+            SectionCard {
                 Layout.fillWidth: true
-                accent: "#3b82f6"
-                cornerRadius: 24
-                padding: 20
-                borderTone: "#dfe8ef"
+
+                SectionHeader {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    title: "Modes"
+                    subtitle: "Pick one active preset for the way you usually work. Keep custom notes short and specific."
+                }
 
                 Column {
-                    width: parent.width
-                    spacing: 12
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.topMargin: 74
+                    spacing: theme.space12
 
-                    Label {
-                        text: "Preset cards"
-                        color: "#163042"
-                        font.family: "Segoe UI Variable Display"
-                        font.pixelSize: 23
-                        font.weight: Font.Black
-                    }
+                    Repeater {
+                        model: AppController.modeCards
 
-                    Flow {
-                        width: parent.width
-                        spacing: 12
-
-                        Repeater {
-                            model: AppController.modeCards
-
-                            delegate: Rectangle {
-                                width: (parent.width - 12) / 2
-                                height: 122
-                                radius: 20
-                                color: root.selectedMode === modelData.identifier ? Qt.rgba(modelData.accent.r, modelData.accent.g, modelData.accent.b, 0.12) : "#ffffff"
-                                border.width: 1
-                                border.color: root.selectedMode === modelData.identifier ? Qt.rgba(modelData.accent.r, modelData.accent.g, modelData.accent.b, 0.55) : "#dbe7ee"
-
-                                Column {
-                                    anchors.fill: parent
-                                    anchors.margins: 16
-                                    spacing: 10
-
-                                    RowLayout {
-                                        width: parent.width
-
-                                        Rectangle {
-                                            width: 10
-                                            height: 10
-                                            radius: 5
-                                            color: modelData.accent
-                                        }
-
-                                        Label {
-                                            text: modelData.label
-                                            color: "#163042"
-                                            font.family: "Segoe UI Variable Text"
-                                            font.pixelSize: 14
-                                            font.weight: Font.DemiBold
-                                        }
-
-                                        Item { Layout.fillWidth: true }
-
-                                        Label {
-                                            text: root.selectedMode === modelData.identifier ? "ACTIVE" : ""
-                                            color: "#50718a"
-                                            font.family: "Bahnschrift SemiBold"
-                                            font.pixelSize: 11
-                                        }
-                                    }
-
-                                    Label {
-                                        width: parent.width
-                                        text: modelData.summary
-                                        color: "#627b8e"
-                                        font.family: "Segoe UI Variable Text"
-                                        font.pixelSize: 12
-                                        wrapMode: Text.WordWrap
-                                    }
-                                }
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: root.selectedMode = modelData.identifier
-                                }
-                            }
+                        delegate: ChoiceCard {
+                            width: parent.width
+                            title: modelData.label
+                            subtitle: modelData.summary
+                            badge: modelData.label.slice(0, 1).toUpperCase()
+                            accent: modelData.accent
+                            selected: root.selectedMode === modelData.identifier
+                            onClicked: root.selectedMode = modelData.identifier
                         }
                     }
                 }
             }
 
-            SurfacePanel {
-                Layout.preferredWidth: 306
-                accent: "#0d9488"
-                cornerRadius: 24
-                padding: 20
-                borderTone: "#dfe8ef"
+            SectionCard {
+                Layout.preferredWidth: 360
+
+                SectionHeader {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    title: root.selectedModeCard() === null ? "Selected mode" : root.selectedModeCard().label
+                    subtitle: root.selectedModeCard() === null ? "" : root.selectedModeCard().summary
+                }
 
                 Column {
-                    width: parent.width
-                    spacing: 10
-
-                    Label {
-                        text: "Prompt stack"
-                        color: "#163042"
-                        font.family: "Segoe UI Variable Display"
-                        font.pixelSize: 23
-                        font.weight: Font.Black
-                    }
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.topMargin: 74
+                    spacing: theme.space12
 
                     Repeater {
                         model: [
@@ -187,25 +96,18 @@ Item {
                             "Vocabulary entries"
                         ]
 
-                        delegate: Rectangle {
+                        delegate: FormRow {
                             width: parent.width
-                            height: 54
-                            radius: 16
-                            color: "#f7fafc"
-                            border.width: 1
-                            border.color: "#dfe9ef"
+                            title: modelData
+                            detail: index === 1
+                                ? "This mode contributes its preset intent before the final LLM cleanup call."
+                                : ""
 
-                            Label {
-                                anchors.verticalCenter: parent.verticalCenter
-                                anchors.left: parent.left
-                                anchors.leftMargin: 14
-                                anchors.right: parent.right
-                                anchors.rightMargin: 14
-                                text: modelData
-                                color: "#34566c"
-                                font.family: "Segoe UI Variable Text"
-                                font.pixelSize: 12
-                                font.weight: Font.DemiBold
+                            Rectangle {
+                                width: 8
+                                height: 8
+                                radius: 4
+                                color: index === 0 ? theme.primary : (index === 1 ? theme.teal : (index === 2 ? theme.warm : theme.error))
                             }
                         }
                     }
@@ -213,55 +115,47 @@ Item {
             }
         }
 
-        SurfacePanel {
+        SectionCard {
             width: parent.width
-            accent: "#10b981"
-            cornerRadius: 24
-            padding: 22
-            borderTone: "#dfe8ef"
 
-            Column {
-                width: parent.width
-                spacing: 12
+            SectionHeader {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                title: "Custom instructions"
+                subtitle: "Good examples: preserve bullet structure, keep email replies concise, or protect technical jargon exactly."
 
-                Label {
-                    text: "Custom instructions"
-                    color: "#163042"
-                    font.family: "Segoe UI Variable Display"
-                    font.pixelSize: 24
-                    font.weight: Font.Black
+                trailing: FlowButton {
+                    label: "Save Mode"
+                    variant: "primary"
+                    accent: theme.primary
+                    onClicked: AppController.saveModeSettings(root.selectedMode, root.customPromptDraft)
                 }
+            }
 
-                Label {
-                    width: parent.width
-                    text: "Keep this short and specific. Good examples: preserve bullet structure, keep email replies concise, or protect technical jargon exactly."
-                    color: "#627b8e"
-                    font.family: "Segoe UI Variable Text"
-                    font.pixelSize: 12
-                    wrapMode: Text.WordWrap
-                }
+            Rectangle {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.topMargin: 74
+                height: 206
+                radius: theme.radiusCard
+                color: theme.surfaceSubtle
+                border.width: 1
+                border.color: theme.border
 
-                Rectangle {
-                    width: parent.width
-                    height: 188
-                    radius: 20
-                    color: "#ffffff"
-                    border.width: 1
-                    border.color: "#dce7ed"
-
-                    TextArea {
-                        anchors.fill: parent
-                        anchors.margins: 14
-                        text: root.customPromptDraft
-                        color: "#163042"
-                        wrapMode: TextEdit.Wrap
-                        font.family: "Segoe UI Variable Text"
-                        font.pixelSize: 13
-                        background: null
-                        placeholderText: "Example: Prefer short paragraphs. Preserve product names exactly. Keep technical flags and commands unchanged."
-                        placeholderTextColor: "#8ca0af"
-                        onTextChanged: root.customPromptDraft = text
-                    }
+                TextArea {
+                    anchors.fill: parent
+                    anchors.margins: 14
+                    text: root.customPromptDraft
+                    color: theme.textPrimary
+                    wrapMode: TextEdit.Wrap
+                    font.family: theme.fontUi
+                    font.pixelSize: theme.textBody
+                    background: null
+                    placeholderText: "Example: Prefer short paragraphs. Preserve product names exactly. Keep technical flags and commands unchanged."
+                    placeholderTextColor: theme.textTertiary
+                    onTextChanged: root.customPromptDraft = text
                 }
             }
         }

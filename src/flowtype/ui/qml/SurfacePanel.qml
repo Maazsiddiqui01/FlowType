@@ -3,42 +3,43 @@ import QtQuick
 Rectangle {
     id: root
 
-    property color accent: "#0d9488"
-    property int padding: 20
-    property int cornerRadius: 22
+    Theme { id: theme }
+
+    property color accent: theme.primary
+    property int padding: theme.cardPadding
+    property int cornerRadius: theme.radiusCard
     property bool prominent: false
     property bool showAccentBar: false
     property bool showOrb: false
     property bool outlined: true
-    property color baseColor: prominent ? "#ffffff" : "#ffffff"
-    property color borderTone: prominent ? "#dfe8ef" : "#e7eef3"
+    property color baseColor: prominent ? theme.surface : theme.surface
+    property color borderTone: outlined ? theme.border : "transparent"
     default property alias contentData: contentItem.data
 
     color: baseColor
     radius: cornerRadius
     border.width: outlined ? 1 : 0
     border.color: borderTone
-    implicitHeight: Math.max(contentItem.implicitHeight + (padding * 2), 92)
+    implicitHeight: Math.max(contentItem.implicitHeight + (padding * 2), 72)
 
     Rectangle {
         visible: root.showAccentBar
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        anchors.leftMargin: 22
-        anchors.rightMargin: 22
-        anchors.topMargin: 0
+        anchors.leftMargin: root.padding
+        anchors.rightMargin: root.padding
         height: 2
         radius: 1
         gradient: Gradient {
-            GradientStop { position: 0.0; color: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.7) }
-            GradientStop { position: 1.0; color: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.0) }
+            GradientStop { position: 0.0; color: theme.tint(root.accent, 0.68) }
+            GradientStop { position: 1.0; color: theme.tint(root.accent, 0.0) }
         }
     }
 
     Rectangle {
         visible: root.showOrb
-        width: Math.min(parent.width * 0.18, 104)
+        width: Math.min(parent.width * 0.12, 72)
         height: width
         radius: width / 2
         anchors.top: parent.top
@@ -46,7 +47,7 @@ Rectangle {
         anchors.topMargin: -width * 0.34
         anchors.rightMargin: -width * 0.16
         color: root.accent
-        opacity: root.prominent ? 0.025 : 0.015
+        opacity: root.prominent ? 0.035 : 0.018
     }
 
     Item {
@@ -58,4 +59,7 @@ Rectangle {
         implicitHeight: childrenRect.height
         height: root.height > 0 ? Math.max(root.height - (root.padding * 2), implicitHeight) : implicitHeight
     }
+
+    Behavior on border.color { ColorAnimation { duration: 140 } }
+    Behavior on color { ColorAnimation { duration: 140 } }
 }

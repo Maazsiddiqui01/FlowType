@@ -4,47 +4,55 @@ import QtQuick.Controls
 Rectangle {
     id: root
 
+    Theme { id: theme }
+
     property string label: ""
     property string variant: "secondary"
-    property color accent: "#2563eb"
+    property color accent: theme.primary
     property bool compact: false
     property bool fillWidth: false
     property bool emphasized: false
     property bool buttonEnabled: true
     signal clicked()
 
-    implicitWidth: fillWidth ? 180 : Math.max(compact ? 96 : 112, buttonLabel.implicitWidth + (compact ? 26 : 30))
-    implicitHeight: compact ? 36 : 42
-    radius: compact ? 14 : 15
+    implicitWidth: fillWidth ? 180 : Math.max(compact ? 92 : 112, buttonLabel.implicitWidth + (compact ? 28 : 34))
+    implicitHeight: compact ? theme.controlHeightCompact : theme.buttonHeight
+    radius: theme.radiusControl
     scale: root.buttonEnabled && mouseArea.pressed ? 0.986 : 1.0
     opacity: root.buttonEnabled ? 1.0 : 0.52
 
     function backgroundColor() {
         if (variant === "primary")
-            return mouseArea.pressed ? Qt.darker(accent, 1.1) : (mouseArea.containsMouse ? Qt.lighter(accent, 1.04) : accent)
+            return mouseArea.pressed ? Qt.darker(accent, 1.08) : (mouseArea.containsMouse ? Qt.lighter(accent, 1.03) : accent)
         if (variant === "success")
-            return mouseArea.pressed ? "#0b857b" : (mouseArea.containsMouse ? "#0fa396" : "#0d9488")
+            return mouseArea.pressed ? Qt.darker(theme.teal, 1.08) : (mouseArea.containsMouse ? Qt.lighter(theme.teal, 1.03) : theme.teal)
         if (variant === "warm")
-            return mouseArea.pressed ? "#dc7a09" : (mouseArea.containsMouse ? "#ef9a21" : "#eb8a0e")
+            return mouseArea.pressed ? Qt.darker(theme.warm, 1.08) : (mouseArea.containsMouse ? Qt.lighter(theme.warm, 1.03) : theme.warm)
         if (variant === "danger")
-            return mouseArea.pressed ? "#d96a61" : (mouseArea.containsMouse ? "#ea8279" : "#e57268")
-        return mouseArea.containsMouse ? "#f3f8fb" : "#ffffff"
+            return mouseArea.pressed ? Qt.darker(theme.error, 1.08) : (mouseArea.containsMouse ? Qt.lighter(theme.error, 1.03) : theme.error)
+        if (variant === "neutral")
+            return mouseArea.containsMouse ? theme.surface : theme.surfaceSubtle
+        return mouseArea.containsMouse ? theme.surfaceSubtle : theme.surface
     }
 
     function borderTone() {
         if (variant === "primary")
-            return Qt.darker(accent, 1.05)
+            return Qt.darker(accent, 1.04)
         if (variant === "success")
-            return "#0b857b"
+            return Qt.darker(theme.teal, 1.04)
         if (variant === "warm")
-            return "#dd7d06"
+            return Qt.darker(theme.warm, 1.04)
         if (variant === "danger")
-            return "#da6c62"
-        return mouseArea.containsMouse ? "#c5d7e1" : "#d9e5ec"
+            return Qt.darker(theme.error, 1.04)
+        if (variant === "neutral")
+            return mouseArea.containsMouse ? theme.border : theme.divider
+        return mouseArea.containsMouse ? theme.textTertiary : theme.border
     }
 
     function textTone() {
-        return variant === "secondary" ? "#173042" : "#ffffff"
+        return variant === "primary" || variant === "success" || variant === "warm" || variant === "danger"
+            ? "#ffffff"
+            : theme.textPrimary
     }
 
     color: backgroundColor()
@@ -52,7 +60,7 @@ Rectangle {
     border.color: borderTone()
 
     Rectangle {
-        visible: variant !== "secondary"
+        visible: variant === "primary" || variant === "success" || variant === "warm" || variant === "danger"
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
@@ -60,7 +68,7 @@ Rectangle {
         height: parent.height * 0.46
         radius: parent.radius - 1
         color: "#ffffff"
-        opacity: emphasized ? 0.2 : 0.11
+        opacity: emphasized ? 0.18 : 0.1
     }
 
     Label {
@@ -68,8 +76,8 @@ Rectangle {
         anchors.centerIn: parent
         text: root.label
         color: root.textTone()
-        font.family: "Segoe UI Variable Text"
-        font.pixelSize: compact ? 11 : 12
+        font.family: theme.fontUi
+        font.pixelSize: compact ? theme.textLabel : theme.textBody
         font.weight: Font.DemiBold
     }
 

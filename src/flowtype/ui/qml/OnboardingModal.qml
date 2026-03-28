@@ -5,6 +5,8 @@ import QtQuick.Layouts
 Item {
     id: root
 
+    Theme { id: theme }
+
     anchors.fill: parent
     visible: AppController.onboardingVisible || overlay.opacity > 0
 
@@ -78,8 +80,8 @@ Item {
     Rectangle {
         id: overlay
         anchors.fill: parent
-        color: "#edf4f7"
-        opacity: root.modalVisible ? 0.92 : 0.0
+        color: "#F1F6FA"
+        opacity: root.modalVisible ? 0.94 : 0.0
 
         Behavior on opacity { NumberAnimation { duration: 170 } }
 
@@ -89,15 +91,13 @@ Item {
         }
     }
 
-    SurfacePanel {
+    SectionCard {
         id: modalCard
-        width: Math.min(parent.width - 90, 980)
+        width: Math.min(parent.width - 80, 1040)
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: parent.verticalCenter
-        cornerRadius: 32
-        prominent: true
-        accent: "#2563eb"
-        padding: 28
+        padding: theme.cardPaddingLarge
+        cornerRadius: 28
         visible: overlay.opacity > 0.01
         opacity: root.modalVisible ? 1.0 : 0.0
         scale: root.modalVisible ? 1.0 : 0.98
@@ -107,186 +107,113 @@ Item {
 
         Column {
             width: parent.width
-            spacing: 18
+            spacing: theme.sectionGap
 
             Flow {
                 width: parent.width
-                spacing: 8
+                spacing: theme.space8
 
                 Repeater {
                     model: ["Local transcription works immediately", "Cleanup is optional", "Everything can change later"]
 
-                    delegate: Rectangle {
-                        radius: 14
-                        color: "#f2f7fb"
-                        border.width: 1
-                        border.color: "#dde8ef"
-                        implicitWidth: chipLabel.implicitWidth + 20
-                        implicitHeight: 32
-
-                        Label {
-                            id: chipLabel
-                            anchors.centerIn: parent
-                            text: modelData
-                            color: "#36566c"
-                            font.family: "Segoe UI Variable Text"
-                            font.pixelSize: 12
-                        }
+                    delegate: TokenChip {
+                        label: modelData
                     }
+                }
+            }
+
+            Column {
+                width: parent.width
+                spacing: theme.space8
+
+                Label {
+                    text: "Set FlowType up once, then get out of the way"
+                    color: theme.textPrimary
+                    font.family: theme.fontDisplay
+                    font.pixelSize: 40
+                    font.weight: Font.Black
+                    wrapMode: Text.WordWrap
+                    width: parent.width
+                }
+
+                Label {
+                    text: "Choose a cleanup provider if you want punctuation polish and filler removal, or skip and stay fully local for now."
+                    color: theme.textSecondary
+                    font.family: theme.fontUi
+                    font.pixelSize: theme.textBody
+                    wrapMode: Text.WordWrap
+                    width: parent.width
                 }
             }
 
             RowLayout {
                 width: parent.width
-                spacing: 18
+                spacing: theme.space16
 
-                ColumnLayout {
+                SectionCard {
                     Layout.fillWidth: true
-                    spacing: 6
+                    baseColor: theme.surfaceSubtle
 
-                    Label {
-                        text: "Set FlowType up once, then get out of the way"
-                        color: "#163042"
-                        font.family: "Segoe UI Variable Display"
-                        font.pixelSize: 34
-                        font.weight: Font.Black
-                        wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
+                    SectionHeader {
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        title: "1. Choose cleanup"
+                        subtitle: "Use your own provider key now, or skip and stay local for the first run."
                     }
-
-                    Label {
-                        text: "Choose a cleanup provider if you want punctuation polish and filler removal, or skip and stay fully local for now."
-                        color: "#627b8e"
-                        font.family: "Segoe UI Variable Text"
-                        font.pixelSize: 14
-                        wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
-                    }
-                }
-            }
-
-            RowLayout {
-                width: parent.width
-                spacing: 18
-
-                SurfacePanel {
-                    Layout.fillWidth: true
-                    accent: "#2563eb"
-                    cornerRadius: 24
-                    padding: 20
 
                     Column {
-                        width: parent.width
-                        spacing: 12
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.topMargin: 74
+                        spacing: theme.space12
 
-                        Label {
-                            text: "1. Choose cleanup"
-                            color: "#163042"
-                            font.family: "Segoe UI Variable Display"
-                            font.pixelSize: 24
-                            font.weight: Font.Black
-                        }
-
-                        Flow {
+                        GridLayout {
                             width: parent.width
-                            spacing: 12
+                            columns: 2
+                            columnSpacing: theme.space12
+                            rowSpacing: theme.space12
 
                             Repeater {
                                 model: AppController.featuredProviderCards
 
-                                delegate: Rectangle {
-                                    width: (parent.width - 20) / 3
-                                    height: 96
-                                    radius: 18
-                                    color: root.providerDraft === modelData.identifier ? Qt.rgba(modelData.accent.r, modelData.accent.g, modelData.accent.b, 0.12) : "#ffffff"
-                                    border.width: 1
-                                    border.color: root.providerDraft === modelData.identifier ? Qt.rgba(modelData.accent.r, modelData.accent.g, modelData.accent.b, 0.42) : "#dce7ed"
-
-                                    RowLayout {
-                                        anchors.fill: parent
-                                        anchors.margins: 14
-                                        spacing: 10
-
-                                        ProviderBadge {
-                                            badge: modelData.badge
-                                            accent: modelData.accent
-                                            badgeBackground: modelData.badgeBackground
-                                            badgeForeground: modelData.badgeForeground
-                                        }
-
-                                        ColumnLayout {
-                                            Layout.fillWidth: true
-                                            spacing: 4
-
-                                            Label {
-                                                text: modelData.label
-                                                color: "#173042"
-                                                font.family: "Segoe UI Variable Text"
-                                                font.pixelSize: 13
-                                                font.weight: Font.DemiBold
-                                            }
-
-                                            Label {
-                                                text: modelData.summary
-                                                color: "#627b8e"
-                                                font.family: "Segoe UI Variable Text"
-                                                font.pixelSize: 11
-                                                wrapMode: Text.WordWrap
-                                                Layout.fillWidth: true
-                                            }
-                                        }
-                                    }
-
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: root.providerDraft = modelData.identifier
-                                    }
+                                delegate: ChoiceCard {
+                                    Layout.fillWidth: true
+                                    title: modelData.label
+                                    subtitle: modelData.summary
+                                    badge: modelData.badge
+                                    providerId: modelData.identifier
+                                    accent: modelData.accent
+                                    selected: root.providerDraft === modelData.identifier
+                                    onClicked: root.providerDraft = modelData.identifier
                                 }
                             }
                         }
 
-                        Rectangle {
+                        InputSurface {
                             visible: root.providerDraft !== "none"
                             width: parent.width
-                            height: 74
-                            radius: 18
-                            color: "#ffffff"
-                            border.width: 1
-                            border.color: "#dce7ed"
+                            height: 52
 
                             RowLayout {
                                 anchors.fill: parent
-                                anchors.margins: 14
-                                spacing: 14
+                                spacing: theme.space12
 
-                                ColumnLayout {
+                                TextField {
                                     Layout.fillWidth: true
-                                    spacing: 4
-
-                                    Label {
-                                        text: root.providerNeedsKey ? "API key" : "Connection"
-                                        color: "#6a8496"
-                                        font.family: "Segoe UI Variable Text"
-                                        font.pixelSize: 12
-                                    }
-
-                                    TextField {
-                                        Layout.fillWidth: true
-                                        text: root.apiKeyDraft
-                                        color: "#173042"
-                                        echoMode: root.showApiKey ? TextInput.Normal : TextInput.Password
-                                        placeholderText: root.providerDraft === "ollama"
-                                            ? "No API key required for a local Ollama instance"
-                                            : "Paste your " + (root.selectedProviderCard() === null ? "provider" : root.selectedProviderCard().label) + " API key"
-                                        placeholderTextColor: "#8ca0af"
-                                        font.family: "Segoe UI Variable Text"
-                                        font.pixelSize: 13
-                                        background: null
-                                        readOnly: !root.providerNeedsKey
-                                        onTextChanged: root.apiKeyDraft = text
-                                    }
+                                    text: root.apiKeyDraft
+                                    color: theme.textPrimary
+                                    echoMode: root.showApiKey ? TextInput.Normal : TextInput.Password
+                                    placeholderText: root.providerDraft === "ollama"
+                                        ? "No API key required for a local Ollama instance"
+                                        : "Paste your " + (root.selectedProviderCard() === null ? "provider" : root.selectedProviderCard().label) + " API key"
+                                    placeholderTextColor: theme.textTertiary
+                                    font.family: theme.fontUi
+                                    font.pixelSize: theme.textBody
+                                    background: null
+                                    readOnly: !root.providerNeedsKey
+                                    onTextChanged: root.apiKeyDraft = text
                                 }
 
                                 FlowButton {
@@ -299,148 +226,63 @@ Item {
                             }
                         }
 
-                        Rectangle {
+                        FlowModelCombo {
                             visible: root.providerDraft !== "none"
                             width: parent.width
-                            height: 116
-                            radius: 18
-                            color: "#ffffff"
-                            border.width: 1
-                            border.color: "#dce7ed"
-
-                            ColumnLayout {
-                                anchors.fill: parent
-                                anchors.margins: 14
-                                spacing: 6
-
-                                Label {
-                                    text: "Cleanup model"
-                                    color: "#6a8496"
-                                    font.family: "Segoe UI Variable Text"
-                                    font.pixelSize: 12
-                                }
-
-                                FlowModelCombo {
-                                    id: onboardingModelCombo
-                                    Layout.fillWidth: true
-                                    model: root.providerModels
-                                    currentIndex: root.modelIndex()
-                                    selectedCard: root.selectedModelCard()
-                                    placeholderText: "Select a cleanup model"
-                                    onOptionPicked: (index) => root.modelDraft = root.providerModels[index].identifier
-                                }
-
-                                Label {
-                                    visible: root.providerModels.length > 0
-                                    Layout.fillWidth: true
-                                    text: root.providerDraft === "openrouter"
-                                        ? "Shows current maintained free and paid picks. Use Settings later if you want a manual model ID."
-                                        : "Shows the maintained current model list for this provider."
-                                    color: "#60788a"
-                                    font.family: "Segoe UI Variable Text"
-                                    font.pixelSize: 11
-                                    wrapMode: Text.WordWrap
-                                }
-                            }
+                            model: root.providerModels
+                            currentIndex: root.modelIndex()
+                            selectedCard: root.selectedModelCard()
+                            placeholderText: "Select a cleanup model"
+                            onOptionPicked: (index) => root.modelDraft = root.providerModels[index].identifier
                         }
                     }
                 }
 
-                SurfacePanel {
-                    Layout.preferredWidth: 310
-                    accent: "#0d9488"
-                    cornerRadius: 24
-                    padding: 20
+                SectionCard {
+                    Layout.preferredWidth: 332
+                    baseColor: theme.surfaceSubtle
+
+                    SectionHeader {
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        title: "2. Pick dictation language"
+                        subtitle: "Use a fixed language for the best speed and fewer bad guesses."
+                    }
 
                     Column {
-                        width: parent.width
-                        spacing: 12
-
-                        Label {
-                            text: "2. Pick dictation language"
-                            color: "#163042"
-                            font.family: "Segoe UI Variable Display"
-                            font.pixelSize: 24
-                            font.weight: Font.Black
-                        }
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.topMargin: 74
+                        spacing: theme.space12
 
                         Repeater {
                             model: AppController.transcriptionLanguageCards
 
-                            delegate: Rectangle {
+                            delegate: ChoiceCard {
                                 width: parent.width
-                                height: 68
-                                radius: 18
-                                color: root.languageDraft === modelData.code ? Qt.rgba(13 / 255, 148 / 255, 136 / 255, 0.12) : "#ffffff"
-                                border.width: 1
-                                border.color: root.languageDraft === modelData.code ? "#67d1c5" : "#dce7ed"
-
-                                Column {
-                                    anchors.fill: parent
-                                    anchors.margins: 14
-                                    spacing: 4
-
-                                    Label {
-                                        text: modelData.label
-                                        color: "#173042"
-                                        font.family: "Segoe UI Variable Text"
-                                        font.pixelSize: 14
-                                        font.weight: Font.DemiBold
-                                    }
-
-                                    Label {
-                                        width: parent.width
-                                        text: modelData.summary
-                                        color: "#627b8e"
-                                        font.family: "Segoe UI Variable Text"
-                                        font.pixelSize: 11
-                                        wrapMode: Text.WordWrap
-                                    }
-                                }
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: root.languageDraft = modelData.code
-                                }
+                                title: modelData.label
+                                subtitle: modelData.summary
+                                badge: modelData.code === "auto" ? "A" : modelData.code.toUpperCase()
+                                accent: theme.teal
+                                compact: true
+                                selected: root.languageDraft === modelData.code
+                                onClicked: root.languageDraft = modelData.code
                             }
                         }
                     }
                 }
             }
 
-            SurfacePanel {
+            SectionCard {
                 width: parent.width
-                accent: "#6366f1"
-                cornerRadius: 24
-                padding: 18
+                baseColor: theme.surfaceSubtle
 
-                RowLayout {
-                    width: parent.width
-                    spacing: 16
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 4
-
-                        Label {
-                            text: "3. Keep FlowType ready after login"
-                            color: "#163042"
-                            font.family: "Segoe UI Variable Display"
-                            font.pixelSize: 22
-                            font.weight: Font.Black
-                        }
-
-                        Label {
-                            text: "Recommended for the beta: start with Windows so the global dictation shortcut is already available when your desktop loads. FlowType will start minimized in the tray."
-                            color: "#627b8e"
-                            font.family: "Segoe UI Variable Text"
-                            font.pixelSize: 12
-                            wrapMode: Text.WordWrap
-                            Layout.fillWidth: true
-                        }
-                    }
+                FormRow {
+                    anchors.fill: parent
+                    title: "3. Keep FlowType ready after login"
+                    detail: "Recommended for the beta: start with Windows so the global dictation shortcut is already available when your desktop loads."
 
                     FlowSwitch {
                         checked: root.launchAtLoginDraft
@@ -449,15 +291,9 @@ Item {
                 }
             }
 
-            Rectangle {
-                width: parent.width
-                height: 1
-                color: "#e7eff4"
-            }
-
             RowLayout {
                 width: parent.width
-                spacing: 12
+                spacing: theme.space12
 
                 ColumnLayout {
                     Layout.fillWidth: true
@@ -465,9 +301,9 @@ Item {
 
                     Label {
                         text: "Local transcription already works. Cleanup turns on as soon as the provider settings are saved."
-                        color: "#173042"
-                        font.family: "Segoe UI Variable Text"
-                        font.pixelSize: 13
+                        color: theme.textPrimary
+                        font.family: theme.fontUi
+                        font.pixelSize: theme.textBody
                         font.weight: Font.DemiBold
                         wrapMode: Text.WordWrap
                         Layout.fillWidth: true
@@ -475,9 +311,9 @@ Item {
 
                     Label {
                         text: "You can change providers, models, startup behavior, language, and shortcuts later inside Settings."
-                        color: "#72879a"
-                        font.family: "Segoe UI Variable Text"
-                        font.pixelSize: 12
+                        color: theme.textSecondary
+                        font.family: theme.fontUi
+                        font.pixelSize: theme.textHelper
                         wrapMode: Text.WordWrap
                         Layout.fillWidth: true
                     }
@@ -492,7 +328,7 @@ Item {
                 FlowButton {
                     label: "Enable Cleanup"
                     variant: "primary"
-                    accent: "#2563eb"
+                    accent: theme.primary
                     buttonEnabled: root.canContinue
                     onClicked: AppController.completeOnboarding(root.providerDraft, root.apiKeyDraft, root.modelDraft, root.languageDraft, root.launchAtLoginDraft)
                 }

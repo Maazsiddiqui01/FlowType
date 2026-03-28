@@ -5,6 +5,8 @@ import QtQuick.Layouts
 Item {
     id: root
 
+    Theme { id: theme }
+
     property string currentShortcut: ""
     property bool isRecording: false
     property bool requireModifier: true
@@ -13,8 +15,8 @@ Item {
 
     signal shortcutRecorded(string newShortcut)
 
-    implicitWidth: 308
-    implicitHeight: 46
+    implicitWidth: 300
+    implicitHeight: theme.buttonHeight
 
     function formatToken(token) {
         if (!token)
@@ -136,10 +138,10 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        radius: 15
-        color: root.isRecording ? "#eef6ff" : "#ffffff"
+        radius: theme.radiusControl
+        color: root.isRecording ? theme.tint(theme.primary, 0.07) : theme.surface
         border.width: 1
-        border.color: root.feedbackMessage.length > 0 ? "#ef4444" : (root.isRecording ? "#7aa7ff" : "#dce7ee")
+        border.color: root.feedbackMessage.length > 0 ? theme.error : (root.isRecording ? theme.tint(theme.primary, 0.5) : theme.border)
 
         FocusScope {
             id: focusScope
@@ -171,59 +173,62 @@ Item {
 
             RowLayout {
                 anchors.fill: parent
-                anchors.margins: 11
-                spacing: 8
+                anchors.margins: theme.space12
+                spacing: theme.space8
 
                 Rectangle {
-                    width: 10
-                    height: 10
-                    radius: 5
-                    color: root.feedbackMessage.length > 0 ? "#ef4444" : (root.isRecording ? "#2563eb" : "#c5d3dd")
+                    width: 8
+                    height: 8
+                    radius: 4
+                    color: root.feedbackMessage.length > 0 ? theme.error : (root.isRecording ? theme.primary : theme.border)
                 }
 
                 Label {
                     visible: root.isRecording
                     text: root.feedbackMessage.length > 0 ? root.feedbackMessage : "Press the full shortcut"
-                    color: root.feedbackMessage.length > 0 ? "#b42318" : "#173042"
-                    font.family: "Segoe UI Variable Text"
-                    font.pixelSize: 12
+                    color: root.feedbackMessage.length > 0 ? Qt.darker(theme.error, 1.08) : theme.textPrimary
+                    font.family: theme.fontUi
+                    font.pixelSize: theme.textBody
                     font.weight: Font.DemiBold
                     Layout.fillWidth: true
+                    elide: Text.ElideRight
                 }
 
                 Label {
                     visible: !root.isRecording && root.currentShortcut.length === 0
                     text: root.feedbackMessage.length > 0 ? root.feedbackMessage : root.idleText
-                    color: root.feedbackMessage.length > 0 ? "#b42318" : "#72879a"
-                    font.family: "Segoe UI Variable Text"
-                    font.pixelSize: 12
+                    color: root.feedbackMessage.length > 0 ? Qt.darker(theme.error, 1.08) : theme.textTertiary
+                    font.family: theme.fontUi
+                    font.pixelSize: theme.textBody
                     font.weight: root.feedbackMessage.length > 0 ? Font.DemiBold : Font.Normal
                     Layout.fillWidth: true
+                    elide: Text.ElideRight
                 }
 
                 Label {
                     visible: !root.isRecording && root.currentShortcut.length > 0 && root.feedbackMessage.length > 0
                     text: root.feedbackMessage
-                    color: "#b42318"
-                    font.family: "Segoe UI Variable Text"
-                    font.pixelSize: 12
+                    color: Qt.darker(theme.error, 1.08)
+                    font.family: theme.fontUi
+                    font.pixelSize: theme.textBody
                     font.weight: Font.DemiBold
                     Layout.fillWidth: true
+                    elide: Text.ElideRight
                 }
 
                 Flow {
                     visible: !root.isRecording && root.currentShortcut.length > 0 && root.feedbackMessage.length === 0
                     Layout.fillWidth: true
-                    spacing: 6
+                    spacing: theme.space4
 
                     Repeater {
                         model: !root.isRecording && root.currentShortcut.length > 0 ? root.currentShortcut.split("+") : []
 
                         delegate: Rectangle {
-                            radius: 12
-                            color: "#f3f8fb"
+                            radius: 11
+                            color: theme.surfaceSubtle
                             border.width: 1
-                            border.color: "#d9e4eb"
+                            border.color: theme.border
                             implicitWidth: keyText.implicitWidth + 14
                             implicitHeight: 24
 
@@ -231,9 +236,10 @@ Item {
                                 id: keyText
                                 anchors.centerIn: parent
                                 text: root.formatToken(modelData)
-                                color: "#173042"
-                                font.family: "Bahnschrift SemiBold"
-                                font.pixelSize: 10
+                                color: theme.textPrimary
+                                font.family: theme.fontUi
+                                font.weight: Font.DemiBold
+                                font.pixelSize: theme.textLabel
                             }
                         }
                     }
@@ -242,9 +248,9 @@ Item {
                 Label {
                     visible: root.isRecording
                     text: "Esc to cancel"
-                    color: "#72879a"
-                    font.family: "Segoe UI Variable Text"
-                    font.pixelSize: 11
+                    color: theme.textTertiary
+                    font.family: theme.fontUi
+                    font.pixelSize: theme.textLabel
                 }
             }
         }

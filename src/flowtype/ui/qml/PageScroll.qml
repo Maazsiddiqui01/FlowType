@@ -4,8 +4,10 @@ import QtQuick.Controls
 ScrollView {
     id: root
 
+    Theme { id: theme }
+
     property int maxContentWidth: 1160
-    property int contentSpacing: 18
+    property int contentSpacing: theme.sectionGap
     property int contentLeftMargin: 0
     default property alias pageChildren: contentColumn.data
 
@@ -27,4 +29,6 @@ ScrollView {
             spacing: root.contentSpacing
         }
     }
+
+    ScrollBar.vertical.policy: ScrollBar.AsNeeded
 }

@@ -5,6 +5,8 @@ import QtQuick.Layouts
 Item {
     id: root
 
+    Theme { id: theme }
+
     property string languageDraft: AppController.transcriptionLanguage
     property bool launchAtLoginDraft: AppController.launchAtLogin
     property bool startMinimizedDraft: AppController.startMinimized
@@ -23,57 +25,33 @@ Item {
 
     PageScroll {
         anchors.fill: parent
-        maxContentWidth: 1220
-        contentSpacing: 18
+        maxContentWidth: 1240
+        contentSpacing: theme.sectionGap
 
-        SurfacePanel {
+        SectionCard {
             width: parent.width
-            accent: "#0d9488"
-            cornerRadius: 24
-            padding: 20
-            borderTone: "#dfe8ef"
+
+            SectionHeader {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                title: "Shortcuts"
+                subtitle: "Click a row, press the full combination, and FlowType reloads the runtime immediately."
+
+                trailing: FlowButton {
+                    label: "Use Recommended Defaults"
+                    variant: "secondary"
+                    compact: true
+                    onClicked: AppController.restoreRecommendedShortcuts()
+                }
+            }
 
             Column {
-                width: parent.width
-                spacing: 12
-
-                Label {
-                    text: "Shortcuts"
-                    color: "#163042"
-                    font.family: "Segoe UI Variable Display"
-                    font.pixelSize: 24
-                    font.weight: Font.Black
-                }
-
-                Label {
-                    width: parent.width
-                    text: "Click a row, press the full combination, and FlowType reloads the runtime immediately. Toggle recording is better for long dictation."
-                    color: "#627b8e"
-                    font.family: "Segoe UI Variable Text"
-                    font.pixelSize: 12
-                    wrapMode: Text.WordWrap
-                }
-
-                RowLayout {
-                    width: parent.width
-                    spacing: 10
-
-                    FlowButton {
-                        label: "Use Recommended Defaults"
-                        variant: "secondary"
-                        compact: true
-                        onClicked: AppController.restoreRecommendedShortcuts()
-                    }
-
-                    Label {
-                        Layout.fillWidth: true
-                        text: "Default setup: hold `Ctrl + Shift + Space`, toggle `Ctrl + Alt + Space`, cancel `Esc`."
-                        color: "#72879a"
-                        font.family: "Segoe UI Variable Text"
-                        font.pixelSize: 11
-                        wrapMode: Text.WordWrap
-                    }
-                }
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.topMargin: 74
+                spacing: theme.space12
 
                 Repeater {
                     model: [
@@ -83,198 +61,96 @@ Item {
                         { "title": "Re-paste last", "detail": "Send the most recent cleaned text again.", "key": "repaste_last", "shortcut": AppController.repasteLast, "requireModifier": true, "idleText": "Click, then press a safe modified shortcut" }
                     ]
 
-                    delegate: Rectangle {
+                    delegate: FormRow {
                         width: parent.width
-                        height: 76
-                        radius: 18
-                        color: "#ffffff"
-                        border.width: 1
-                        border.color: "#dce7ed"
+                        title: modelData.title
+                        detail: modelData.detail
 
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.margins: 16
-                            spacing: 14
+                        ShortcutRecorder {
+                            Layout.preferredWidth: 304
+                            currentShortcut: modelData.shortcut
+                            requireModifier: modelData.requireModifier
+                            idleText: modelData.idleText
+                            onShortcutRecorded: (newShortcut) => AppController.saveShortcut(modelData.key, newShortcut)
+                        }
 
-                            ColumnLayout {
-                                Layout.fillWidth: true
-                                spacing: 4
-
-                                Label {
-                                    text: modelData.title
-                                    color: "#173042"
-                                    font.family: "Segoe UI Variable Text"
-                                    font.pixelSize: 14
-                                    font.weight: Font.DemiBold
-                                }
-
-                                Label {
-                                    text: modelData.detail
-                                    color: "#627b8e"
-                                    font.family: "Segoe UI Variable Text"
-                                    font.pixelSize: 12
-                                    wrapMode: Text.WordWrap
-                                    Layout.fillWidth: true
-                                }
-                            }
-
-                            ShortcutRecorder {
-                                Layout.preferredWidth: 312
-                                Layout.maximumWidth: 360
-                                currentShortcut: modelData.shortcut
-                                requireModifier: modelData.requireModifier
-                                idleText: modelData.idleText
-                                onShortcutRecorded: (newShortcut) => AppController.saveShortcut(modelData.key, newShortcut)
-                            }
-
-                            FlowButton {
-                                label: "Clear"
-                                variant: "secondary"
-                                compact: true
-                                buttonEnabled: modelData.shortcut.length > 0
-                                onClicked: AppController.saveShortcut(modelData.key, "")
-                            }
+                        FlowButton {
+                            label: "Clear"
+                            variant: "secondary"
+                            compact: true
+                            buttonEnabled: modelData.shortcut.length > 0
+                            onClicked: AppController.saveShortcut(modelData.key, "")
                         }
                     }
                 }
             }
         }
 
-        SurfacePanel {
+        SectionCard {
             width: parent.width
-            accent: "#10b981"
-            cornerRadius: 24
-            padding: 20
-            borderTone: "#dfe8ef"
 
-            Column {
-                width: parent.width
-                spacing: 14
+            SectionHeader {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                title: "Transcription language"
+                subtitle: "Lock Whisper to one language for better speed and fewer bad guesses."
 
-                RowLayout {
-                    width: parent.width
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 4
-
-                        Label {
-                            text: "Transcription language"
-                            color: "#163042"
-                            font.family: "Segoe UI Variable Display"
-                            font.pixelSize: 24
-                            font.weight: Font.Black
-                        }
-
-                        Label {
-                            text: "Lock Whisper to one language for better speed and fewer bad guesses. Use auto detect only if you genuinely switch languages."
-                            color: "#627b8e"
-                            font.family: "Segoe UI Variable Text"
-                            font.pixelSize: 12
-                            wrapMode: Text.WordWrap
-                            Layout.fillWidth: true
-                        }
-                    }
-
-                    FlowButton {
-                        label: "Save Language"
-                        variant: "success"
-                        onClicked: AppController.saveTranscriptionLanguage(root.languageDraft)
-                    }
+                trailing: FlowButton {
+                    label: "Save Language"
+                    variant: "success"
+                    onClicked: AppController.saveTranscriptionLanguage(root.languageDraft)
                 }
+            }
 
-                Flow {
-                    width: parent.width
-                    spacing: 10
+            GridLayout {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.topMargin: 74
+                columns: 4
+                columnSpacing: theme.space12
+                rowSpacing: theme.space12
 
-                    Repeater {
-                        model: AppController.transcriptionLanguageCards
+                Repeater {
+                    model: AppController.transcriptionLanguageCards
 
-                        delegate: Rectangle {
-                            width: Math.min((parent.width - 30) / 4, 238)
-                            height: 88
-                            radius: 18
-                            color: root.languageDraft === modelData.code ? Qt.rgba(16 / 255, 185 / 255, 129 / 255, 0.12) : "#ffffff"
-                            border.width: 1
-                            border.color: root.languageDraft === modelData.code ? "#72d8c1" : "#dce7ed"
-
-                            Column {
-                                anchors.fill: parent
-                                anchors.margins: 16
-                                spacing: 6
-
-                                Label {
-                                    text: modelData.label
-                                    color: "#173042"
-                                    font.family: "Segoe UI Variable Text"
-                                    font.pixelSize: 14
-                                    font.weight: Font.DemiBold
-                                }
-
-                                Label {
-                                    width: parent.width
-                                    text: modelData.summary
-                                    color: "#627b8e"
-                                    font.family: "Segoe UI Variable Text"
-                                    font.pixelSize: 11
-                                    wrapMode: Text.WordWrap
-                                }
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: root.languageDraft = modelData.code
-                            }
-                        }
+                    delegate: ChoiceCard {
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        title: modelData.label
+                        subtitle: modelData.summary
+                        selected: root.languageDraft === modelData.code
+                        accent: theme.teal
+                        onClicked: root.languageDraft = modelData.code
                     }
                 }
             }
         }
 
-        SurfacePanel {
+        SectionCard {
             width: parent.width
-            accent: "#6366f1"
-            cornerRadius: 24
-            padding: 20
-            borderTone: "#dfe8ef"
+
+            SectionHeader {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                title: "Background behavior"
+                subtitle: "These settings control how FlowType behaves like a normal Windows utility."
+
+                trailing: FlowButton {
+                    label: "Save Background Behavior"
+                    variant: "secondary"
+                    onClicked: AppController.saveStartupSettings(root.launchAtLoginDraft, root.startMinimizedDraft, root.closeToTrayDraft)
+                }
+            }
 
             Column {
-                width: parent.width
-                spacing: 14
-
-                RowLayout {
-                    width: parent.width
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 4
-
-                        Label {
-                            text: "Background behavior"
-                            color: "#163042"
-                            font.family: "Segoe UI Variable Display"
-                            font.pixelSize: 24
-                            font.weight: Font.Black
-                        }
-
-                        Label {
-                            text: "These settings control how FlowType behaves like a normal Windows utility: startup, tray persistence, and whether login launches stay out of the way."
-                            color: "#627b8e"
-                            font.family: "Segoe UI Variable Text"
-                            font.pixelSize: 12
-                            wrapMode: Text.WordWrap
-                            Layout.fillWidth: true
-                        }
-                    }
-
-                    FlowButton {
-                        label: "Save Background Behavior"
-                        variant: "secondary"
-                        onClicked: AppController.saveStartupSettings(root.launchAtLoginDraft, root.startMinimizedDraft, root.closeToTrayDraft)
-                    }
-                }
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.topMargin: 74
+                spacing: theme.space12
 
                 Repeater {
                     model: [
@@ -292,53 +168,22 @@ Item {
                         }
                     ]
 
-                    delegate: Rectangle {
+                    delegate: FormRow {
                         width: parent.width
-                        height: 74
-                        radius: 18
-                        color: "#ffffff"
-                        border.width: 1
-                        border.color: "#dce7ed"
+                        title: modelData.title
+                        detail: modelData.detail
 
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.margins: 16
-                            spacing: 14
-
-                            ColumnLayout {
-                                Layout.fillWidth: true
-                                spacing: 4
-
-                                Label {
-                                    text: modelData.title
-                                    color: "#173042"
-                                    font.family: "Segoe UI Variable Text"
-                                    font.pixelSize: 14
-                                    font.weight: Font.DemiBold
-                                }
-
-                                Label {
-                                    Layout.fillWidth: true
-                                    text: modelData.detail
-                                    color: "#627b8e"
-                                    font.family: "Segoe UI Variable Text"
-                                    font.pixelSize: 12
-                                    wrapMode: Text.WordWrap
-                                }
-                            }
-
-                            FlowSwitch {
-                                checked: index === 0
-                                    ? root.launchAtLoginDraft
-                                    : (index === 1 ? root.startMinimizedDraft : root.closeToTrayDraft)
-                                onToggled: (checked) => {
-                                    if (index === 0)
-                                        root.launchAtLoginDraft = checked
-                                    else if (index === 1)
-                                        root.startMinimizedDraft = checked
-                                    else
-                                        root.closeToTrayDraft = checked
-                                }
+                        FlowSwitch {
+                            checked: index === 0
+                                ? root.launchAtLoginDraft
+                                : (index === 1 ? root.startMinimizedDraft : root.closeToTrayDraft)
+                            onToggled: (checked) => {
+                                if (index === 0)
+                                    root.launchAtLoginDraft = checked
+                                else if (index === 1)
+                                    root.startMinimizedDraft = checked
+                                else
+                                    root.closeToTrayDraft = checked
                             }
                         }
                     }
@@ -346,45 +191,39 @@ Item {
             }
         }
 
-        SurfacePanel {
+        SectionCard {
             width: parent.width
-            accent: "#2563eb"
-            cornerRadius: 24
-            padding: 20
-            borderTone: "#dfe8ef"
 
-            Column {
-                width: parent.width
-                spacing: 12
+            SectionHeader {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                title: "Local actions"
+                subtitle: "Open the app folder, logs, or config file without leaving FlowType."
+            }
 
-                Label {
-                    text: "Local actions"
-                    color: "#163042"
-                    font.family: "Segoe UI Variable Display"
-                    font.pixelSize: 24
-                    font.weight: Font.Black
+            Row {
+                anchors.left: parent.left
+                anchors.top: parent.top
+                anchors.topMargin: 74
+                spacing: theme.space8
+
+                FlowButton {
+                    label: "Open App Folder"
+                    variant: "secondary"
+                    onClicked: AppController.openAppDirectory()
                 }
 
-                Row {
-                    spacing: 12
+                FlowButton {
+                    label: "Open Logs"
+                    variant: "secondary"
+                    onClicked: AppController.openLogsDirectory()
+                }
 
-                    FlowButton {
-                        label: "Open App Folder"
-                        variant: "secondary"
-                        onClicked: AppController.openAppDirectory()
-                    }
-
-                    FlowButton {
-                        label: "Open Logs"
-                        variant: "secondary"
-                        onClicked: AppController.openLogsDirectory()
-                    }
-
-                    FlowButton {
-                        label: "Open Config"
-                        variant: "secondary"
-                        onClicked: AppController.openConfigFile()
-                    }
+                FlowButton {
+                    label: "Open Config"
+                    variant: "secondary"
+                    onClicked: AppController.openConfigFile()
                 }
             }
         }

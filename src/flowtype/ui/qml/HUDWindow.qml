@@ -5,6 +5,8 @@ import QtQuick.Window
 Window {
     id: hud
 
+    Theme { id: theme }
+
     flags: Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowDoesNotAcceptFocus
     color: "transparent"
     visible: opacity > 0.01
@@ -22,37 +24,29 @@ Window {
     readonly property bool lineIdle: idleHint && !recording && !busy && !errorState && !readyControlsVisible && !languagePopup.visible
     readonly property bool topDocked: AppController.hudPosition === "top"
 
-    width: lineIdle ? 32 : (compact ? (recording || busy || errorState ? 126 : 84) : (recording || busy || errorState ? 166 : 110))
-    height: lineIdle ? 4 : (compact ? 32 : 40)
+    width: lineIdle ? 28 : (compact ? (recording || busy || errorState ? 146 : 92) : (recording || busy || errorState ? 186 : 114))
+    height: lineIdle ? 4 : (compact ? 36 : 42)
     opacity: blockedByOnboarding ? 0 : ((recording || busy || errorState || idleHint) ? 1 : 0)
 
-    function titleText() {
+    function detailText() {
         if (recording)
             return "Listening"
         if (AppController.status === "transcribing")
             return "Transcribing"
         if (AppController.status === "cleaning")
-            return "Cleaning"
+            return "Polishing transcript"
         if (AppController.status === "pasting")
             return "Pasting"
-        return "Ready"
-    }
-
-    function detailText() {
-        if (recording)
-            return "Release to finish"
-        if (busy)
-            return AppController.detail
         if (errorState)
             return AppController.detail
-        return "Click or hold " + AppController.holdToTalk.toUpperCase().split("+").join(" + ") + " to start dictating"
+        return "Hold " + AppController.holdToTalk.toUpperCase().split("+").join(" + ") + " to start dictating"
     }
 
     function languageCode() {
         var code = AppController.transcriptionLanguage
         if (code === "auto")
-            return "AUTO"
-        return code.toUpperCase()
+            return "A"
+        return code.toUpperCase().slice(0, 2)
     }
 
     function scheduleIdleHint() {
@@ -84,9 +78,9 @@ Window {
         target: AppController
 
         function onStateChanged() {
-            if (AppController.status === "ready")
+            if (AppController.status === "ready") {
                 hud.scheduleIdleHint()
-            else {
+            } else {
                 hud.idlePreviewVisible = false
                 hud.readyControlsVisible = false
                 idleHintTimer.stop()
@@ -112,14 +106,14 @@ Window {
 
     Timer {
         id: idleHintTimer
-        interval: 1500
+        interval: 1600
         repeat: false
         onTriggered: hud.idlePreviewVisible = false
     }
 
     Timer {
         id: readyControlsTimer
-        interval: 2200
+        interval: 2400
         repeat: false
         onTriggered: hud.collapseReadyControls()
     }
@@ -141,9 +135,15 @@ Window {
         id: shell
         anchors.fill: parent
         radius: hud.lineIdle ? 2 : height / 2
-        color: hud.lineIdle ? "#8e959c" : "#05090d"
+        color: hud.lineIdle ? theme.textTertiary : theme.inkDark
         border.width: hud.lineIdle ? 0 : 1
-        border.color: hud.recording ? "#5f402e" : (hud.errorState ? "#7c2d2d" : (hud.busy ? "#28415b" : "#25384a"))
+        border.color: hud.recording
+            ? theme.tint(theme.warm, 0.42)
+            : (hud.errorState
+                ? theme.tint(theme.error, 0.45)
+                : (hud.busy
+                    ? theme.tint(theme.primary, 0.35)
+                    : Qt.rgba(1, 1, 1, 0.08)))
 
         Rectangle {
             visible: !hud.lineIdle
@@ -151,8 +151,8 @@ Window {
             anchors.margins: 1
             radius: parent.radius - 1
             gradient: Gradient {
-                GradientStop { position: 0.0; color: "#0d151f" }
-                GradientStop { position: 1.0; color: "#081018" }
+                GradientStop { position: 0.0; color: "#09111A" }
+                GradientStop { position: 1.0; color: "#060D15" }
             }
         }
 
@@ -171,23 +171,23 @@ Window {
 
         Rectangle {
             visible: hud.readyControlsVisible && !hud.recording && !hud.busy && !hud.errorState && !languagePopup.visible
-            width: Math.min(316, readyHintText.implicitWidth + 24)
-            height: 32
+            width: Math.min(360, readyHintText.implicitWidth + 24)
+            height: 34
             radius: 17
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.bottom: parent.top
             anchors.bottomMargin: 10
-            color: "#05090d"
+            color: theme.inkDark
             border.width: 1
-            border.color: "#24384b"
+            border.color: Qt.rgba(1, 1, 1, 0.08)
 
             Label {
                 id: readyHintText
                 anchors.centerIn: parent
                 text: hud.detailText()
-                color: "#f6f7fb"
-                font.family: "Segoe UI Variable Text"
-                font.pixelSize: 10
+                color: "#F7FAFC"
+                font.family: theme.fontUi
+                font.pixelSize: theme.textLabel
                 font.weight: Font.DemiBold
             }
         }
@@ -195,24 +195,24 @@ Window {
         Row {
             visible: !hud.lineIdle
             anchors.centerIn: parent
-            spacing: hud.compact ? 8 : 10
+            spacing: compact ? 8 : 10
 
             Rectangle {
-                id: languageButton
                 visible: hud.readyControlsVisible || hud.recording || hud.busy
                 width: 20
                 height: 20
-                radius: 11
-                color: "#0b1219"
+                radius: 10
+                color: "#0C1622"
                 border.width: 1
-                border.color: "#294059"
+                border.color: "#243446"
 
                 Label {
                     anchors.centerIn: parent
                     text: hud.languageCode()
-                    color: "#f6f7fb"
-                    font.family: "Bahnschrift SemiBold"
-                    font.pixelSize: 8
+                    color: "#F7FAFC"
+                    font.family: theme.fontUi
+                    font.pixelSize: 9
+                    font.weight: Font.DemiBold
                 }
 
                 MouseArea {
@@ -231,49 +231,79 @@ Window {
             }
 
             Rectangle {
-                width: hud.compact ? 64 : 86
-                height: hud.compact ? 18 : 22
+                width: hud.compact ? 70 : 92
+                height: hud.compact ? 20 : 24
                 radius: height / 2
-                color: "#04080c"
+                color: "#04080C"
                 border.width: 1
-                border.color: hud.recording ? "#5a3b2e" : (hud.errorState ? "#7c2d2d" : (hud.busy ? "#294159" : "#203446"))
+                border.color: hud.recording
+                    ? theme.tint(theme.warm, 0.4)
+                    : (hud.errorState
+                        ? theme.tint(theme.error, 0.4)
+                        : (hud.busy
+                            ? theme.tint(theme.primary, 0.32)
+                            : "#1C2A38"))
 
                 WaveStrip {
                     anchors.centerIn: parent
                     bars: hud.compact ? 7 : 9
-                    barWidth: hud.compact ? 3 : 4
-                    gap: 3
-                    minimumBarHeight: 3
-                    maximumBarHeight: hud.compact ? 11 : 14
+                    barWidth: hud.compact ? 4 : 4
+                    gap: 4
+                    minimumBarHeight: 4
+                    maximumBarHeight: hud.compact ? 12 : 16
                     level: hud.displayedLevel
                     mode: hud.recording ? "recording" : (hud.errorState ? "error" : (hud.busy ? "busy" : "idle"))
                 }
             }
 
             Rectangle {
-                visible: hud.busy || hud.errorState
-                width: 20
+                width: 18
                 height: 18
-                radius: 10
-                color: "#0b1219"
+                radius: 9
+                color: "#0C1622"
                 border.width: 1
-                border.color: hud.errorState ? "#7c2d2d" : "#294059"
+                border.color: hud.errorState
+                    ? theme.tint(theme.error, 0.42)
+                    : (hud.recording
+                        ? theme.tint(theme.warm, 0.42)
+                        : theme.tint(theme.primary, 0.28))
+                visible: hud.recording || hud.busy || hud.errorState
 
-                Row {
+                Loader {
                     anchors.centerIn: parent
-                    spacing: 4
+                    sourceComponent: hud.busy ? busyDots : stateDot
+                }
+            }
+        }
+    }
 
-                    Repeater {
-                        model: 3
+    Component {
+        id: stateDot
 
-                        delegate: Rectangle {
-                            width: 4
-                            height: 4
-                            radius: 2
-                            color: hud.errorState ? "#fecaca" : "#eef4fb"
-                            opacity: 0.3 + (0.7 * ((Math.sin(hud.phase * 1.7 + (index * 0.8)) + 1) / 2))
-                        }
-                    }
+        Rectangle {
+            width: 8
+            height: 8
+            radius: 4
+            color: hud.errorState ? theme.error : (hud.recording ? theme.warm : theme.primary)
+            opacity: hud.recording ? (0.45 + (0.55 * ((Math.sin(hud.phase * 1.8) + 1) / 2))) : 1
+        }
+    }
+
+    Component {
+        id: busyDots
+
+        Row {
+            spacing: 3
+
+            Repeater {
+                model: 3
+
+                delegate: Rectangle {
+                    width: 3
+                    height: 3
+                    radius: 1.5
+                    color: "#F2F6FB"
+                    opacity: 0.3 + (0.7 * ((Math.sin(hud.phase * 1.7 + (index * 0.8)) + 1) / 2))
                 }
             }
         }
@@ -285,11 +315,11 @@ Window {
         parent: shell
         x: Math.max(10, (hud.width / 2) - (width / 2))
         y: -height - 10
-        width: 218
+        width: 212
         modal: false
         focus: false
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
-        padding: 8
+        padding: theme.space8
 
         onOpened: {
             hud.readyControlsVisible = true
@@ -303,25 +333,27 @@ Window {
         }
 
         background: Rectangle {
-            radius: 18
-            color: "#ffffff"
+            radius: theme.radiusCard
+            color: theme.surface
             border.width: 1
-            border.color: "#dce7ed"
+            border.color: theme.border
         }
 
         contentItem: Column {
-            spacing: 4
+            spacing: theme.space4
 
             Repeater {
                 model: AppController.transcriptionLanguageCards
 
                 delegate: Rectangle {
                     width: languagePopup.width - (languagePopup.padding * 2)
-                    height: 42
-                    radius: 14
-                    color: AppController.transcriptionLanguage === modelData.code ? "#eef7f6" : "transparent"
+                    height: 40
+                    radius: theme.radiusControl
+                    color: AppController.transcriptionLanguage === modelData.code
+                        ? theme.tint(theme.teal, 0.08)
+                        : "transparent"
                     border.width: AppController.transcriptionLanguage === modelData.code ? 1 : 0
-                    border.color: "#b9e6de"
+                    border.color: theme.tint(theme.teal, 0.24)
 
                     Row {
                         anchors.verticalCenter: parent.verticalCenter
@@ -330,17 +362,18 @@ Window {
                         spacing: 10
 
                         Label {
-                            text: modelData.code === "auto" ? "AUTO" : modelData.code.toUpperCase()
-                            color: "#7890a2"
-                            font.family: "Bahnschrift SemiBold"
-                            font.pixelSize: 11
+                            text: modelData.code === "auto" ? "A" : modelData.code.toUpperCase()
+                            color: theme.textTertiary
+                            font.family: theme.fontUi
+                            font.pixelSize: theme.textLabel
+                            font.weight: Font.DemiBold
                         }
 
                         Label {
                             text: modelData.label
-                            color: "#173042"
-                            font.family: "Segoe UI Variable Text"
-                            font.pixelSize: 13
+                            color: theme.textPrimary
+                            font.family: theme.fontUi
+                            font.pixelSize: theme.textBody
                             font.weight: Font.DemiBold
                         }
                     }

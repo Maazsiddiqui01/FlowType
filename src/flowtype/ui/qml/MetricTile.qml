@@ -4,30 +4,30 @@ import QtQuick.Controls
 SurfacePanel {
     id: root
 
+    Theme { id: theme }
+
     property string value: ""
     property string label: ""
     property color tone: "#7dd3fc"
 
-    prominent: true
+    prominent: false
     accent: tone
     implicitWidth: 216
-    implicitHeight: 126
+    implicitHeight: 112
     showAccentBar: false
     showOrb: false
-    borderTone: "#dfe8ef"
+    borderTone: theme.border
 
     Column {
         width: parent.width
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.margins: 16
-        spacing: 8
+        anchors.fill: parent
+        anchors.margins: theme.cardPadding
+        spacing: theme.space12
 
         Rectangle {
-            width: 36
-            height: 36
-            radius: 12
+            width: 34
+            height: 34
+            radius: 11
             color: Qt.rgba(root.tone.r, root.tone.g, root.tone.b, 0.16)
             border.width: 1
             border.color: Qt.rgba(root.tone.r, root.tone.g, root.tone.b, 0.22)
@@ -41,21 +41,28 @@ SurfacePanel {
             }
         }
 
+        Item {
+            width: 1
+            height: 4
+        }
+
         Label {
             text: root.value
-            color: "#113045"
-            font.family: "Segoe UI Variable Display"
-            font.pixelSize: 28
+            color: theme.textPrimary
+            font.family: theme.fontDisplay
+            font.pixelSize: theme.textMetric
             font.weight: Font.Black
         }
 
         Label {
             text: root.label
-            color: "#688193"
-            font.family: "Segoe UI Variable Text"
-            font.pixelSize: 12
+            color: theme.textSecondary
+            font.family: theme.fontUi
+            font.pixelSize: theme.textHelper
             width: parent.width
             wrapMode: Text.WordWrap
+            maximumLineCount: 2
+            elide: Text.ElideRight
         }
     }
 }

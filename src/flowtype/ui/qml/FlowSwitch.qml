@@ -3,28 +3,30 @@ import QtQuick
 Item {
     id: root
 
+    Theme { id: theme }
+
     property bool checked: false
     signal toggled(bool checked)
 
-    implicitWidth: 50
-    implicitHeight: 30
+    implicitWidth: 44
+    implicitHeight: 26
 
     Rectangle {
         anchors.fill: parent
         radius: height / 2
-        color: root.checked ? "#c8f3ee" : "#edf3f6"
+        color: root.checked ? theme.tint(theme.teal, 0.16) : theme.surfaceSubtle
         border.width: 1
-        border.color: root.checked ? "#67d1c5" : "#d7e2e8"
+        border.color: root.checked ? theme.tint(theme.teal, 0.34) : theme.border
 
         Rectangle {
-            width: 22
-            height: 22
-            radius: 11
+            width: 18
+            height: 18
+            radius: 9
             y: 4
             x: root.checked ? parent.width - width - 4 : 4
-            color: root.checked ? "#0d9488" : "#ffffff"
+            color: root.checked ? theme.teal : "#ffffff"
             border.width: 1
-            border.color: root.checked ? "#0d9488" : "#d0dde4"
+            border.color: root.checked ? theme.teal : theme.border
 
             Behavior on x {
                 NumberAnimation {
