@@ -30,6 +30,7 @@ RuntimeReloader = Callable[[], tuple[AppConfig, DictationPipeline]]
 class AppController(QObject):
     stateChanged = Signal()
     audioLevelChanged = Signal()
+    audioLevelReported = Signal(float)
     configChanged = Signal()
     historyChanged = Signal()
     notificationChanged = Signal()
@@ -53,6 +54,7 @@ class AppController(QObject):
         self._notification_tone = "info"
         self._history_store = HistoryStore(config.history.file_path, config.history.max_items)
         self._history_entries = self._load_history()
+        self.audioLevelReported.connect(self._apply_audio_level)
 
     def _load_history(self) -> list[HistoryEntry]:
         if not self._config.history.persist:
@@ -100,10 +102,19 @@ class AppController(QObject):
             self._set_notification(str(exc), "error")
 
     def pipeline_status_callback(self, status: str, detail: str) -> None:
+        if status != "recording" and self._audio_level != 0.0:
+            self._apply_audio_level(0.0)
         self._set_status(status, detail)
 
     def pipeline_audio_level_callback(self, level: float) -> None:
-        self._audio_level = level
+        self.audioLevelReported.emit(float(level))
+
+    @Slot(float)
+    def _apply_audio_level(self, level: float) -> None:
+        clamped = max(0.0, min(1.0, float(level)))
+        if abs(clamped - self._audio_level) < 0.003:
+            return
+        self._audio_level = clamped
         self.audioLevelChanged.emit()
 
     def pipeline_result_callback(self, result: DictationResult) -> None:
@@ -471,6 +482,16 @@ class AppController(QObject):
             data["output"]["paste_delay_ms"] = int(paste_delay_ms)
 
         self._persist_config(mutate, "Recording experience updated.")
+
+    @Slot(str, str, bool)
+    def saveHudPresentation(self, hud_style: str, hud_position: str, show_idle_hud: bool) -> None:
+        def mutate(data: dict) -> None:
+            data.setdefault("experience", {})
+            data["experience"]["hud_style"] = hud_style.strip().lower() or "mini"
+            data["experience"]["hud_position"] = hud_position.strip().lower() or "bottom"
+            data["experience"]["show_idle_hud"] = bool(show_idle_hud)
+
+        self._persist_config(mutate, "HUD placement updated.")
 
     @Slot(bool, bool, bool)
     def saveStartupSettings(self, launch_at_login: bool, start_minimized: bool, close_to_tray: bool) -> None:

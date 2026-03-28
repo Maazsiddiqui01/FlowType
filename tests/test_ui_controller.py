@@ -86,6 +86,11 @@ def test_controller_saves_and_reloads_runtime_settings(tmp_path: Path) -> None:
     assert controller.pasteDelayMs == 240
     assert controller.closeToTray is True
 
+    controller.saveHudPresentation("classic", "bottom", True)
+    assert controller.hudStyle == "classic"
+    assert controller.hudPosition == "bottom"
+    assert controller.showIdleHud is True
+
     controller.saveStartupSettings(False, False, False)
     assert controller.launchAtLogin is False
     assert controller.startMinimized is False

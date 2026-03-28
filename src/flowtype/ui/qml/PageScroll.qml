@@ -6,6 +6,7 @@ ScrollView {
 
     property int maxContentWidth: 1160
     property int contentSpacing: 18
+    property int contentLeftMargin: 0
     default property alias pageChildren: contentColumn.data
 
     clip: true
@@ -14,14 +15,15 @@ ScrollView {
 
     Item {
         id: container
-        width: Math.max(root.availableWidth, contentColumn.width)
+        width: root.availableWidth
         height: contentColumn.implicitHeight
 
         Column {
             id: contentColumn
-            width: Math.min(root.availableWidth, root.maxContentWidth)
+            width: Math.min(Math.max(0, root.availableWidth - root.contentLeftMargin), root.maxContentWidth)
             anchors.top: parent.top
-            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.left: parent.left
+            anchors.leftMargin: root.contentLeftMargin
             spacing: root.contentSpacing
         }
     }

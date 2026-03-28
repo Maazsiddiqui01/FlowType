@@ -11,13 +11,17 @@ SurfacePanel {
     prominent: true
     accent: tone
     implicitWidth: 216
-    implicitHeight: 110
+    implicitHeight: 126
     showAccentBar: false
     showOrb: false
     borderTone: "#dfe8ef"
 
     Column {
         width: parent.width
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.margins: 16
         spacing: 8
 
         Rectangle {
@@ -50,6 +54,8 @@ SurfacePanel {
             color: "#688193"
             font.family: "Segoe UI Variable Text"
             font.pixelSize: 12
+            width: parent.width
+            wrapMode: Text.WordWrap
         }
     }
 }

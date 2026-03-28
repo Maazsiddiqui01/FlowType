@@ -77,8 +77,12 @@ class AudioRecorder:
                     cb = self.audio_level_callback
                     if cb is not None:
                         float_data = clipped.astype(np.float32) / 32768.0
+                        peak = float(np.max(np.abs(float_data)))
                         rms = float(np.sqrt(np.mean(float_data**2)))
-                        cb(rms)
+                        # Compress and boost mic energy so the HUD reacts visibly to normal speech.
+                        boosted = max(rms * 10.5, peak * 3.2)
+                        normalized = max(0.0, min(1.0, (boosted - 0.015) / 0.75))
+                        cb(normalized)
 
                     if len(clipped) < len(indata):
                         self._was_truncated = True
@@ -91,12 +95,29 @@ class AudioRecorder:
                     dtype=self.settings.dtype,
                     callback=callback,
                 )
+                self._actual_sample_rate = self.settings.sample_rate
                 self._is_recording = True
                 self._stream.start()
             except Exception as exc:  # pragma: no cover - depends on local audio stack
-                self._stream = None
-                self._is_recording = False
-                raise AudioRecorderError(f"failed to start audio capture: {exc}") from exc
+                try:
+                    device_info = sounddevice.query_devices(None, 'input')
+                    native_rate = int(device_info['default_samplerate'])
+                    self._max_frames = int(native_rate * self.settings.max_duration_seconds)
+                    
+                    self._stream = sounddevice.InputStream(
+                        samplerate=native_rate,
+                        channels=self.settings.channels,
+                        dtype=self.settings.dtype,
+                        callback=callback,
+                    )
+                    self._actual_sample_rate = native_rate
+                    self._is_recording = True
+                    self._stream.start()
+                    self.logger.info("Fell back to native sample rate %dHz instead of requested %dHz", native_rate, self.settings.sample_rate)
+                except Exception as fallback_exc:
+                    self._stream = None
+                    self._is_recording = False
+                    raise AudioRecorderError(f"failed to start audio capture even with native rate fallback: {fallback_exc}") from fallback_exc
 
     def stop(self) -> CapturedAudio:
         with self._lock:
@@ -137,6 +158,15 @@ class AudioRecorder:
         audio_array = np.concatenate(chunks, axis=0)
         if audio_array.ndim > 1:
             audio_array = audio_array.mean(axis=1)
+
+        if hasattr(self, '_actual_sample_rate') and self._actual_sample_rate != self.settings.sample_rate:
+            duration = len(audio_array) / self._actual_sample_rate
+            new_length = int(duration * self.settings.sample_rate)
+            x_old = np.linspace(0, duration, len(audio_array))
+            x_new = np.linspace(0, duration, new_length)
+            audio_array = np.interp(x_new, x_old, audio_array)
+            recorded_frames = new_length
+
         float_audio = audio_array.astype(np.float32) / 32768.0
         duration_seconds = recorded_frames / float(self.settings.sample_rate)
 

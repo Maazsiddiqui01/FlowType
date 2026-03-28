@@ -43,8 +43,12 @@ Item {
             model: root.bars
 
             delegate: Rectangle {
-                property real baseLevel: root.mode === "recording" ? Math.max(root.level * 1.6, 0.06) : (root.mode === "busy" ? 0.28 : (root.mode === "error" ? 0.16 : 0.04))
-                property real wobble: 0.55 + (0.45 * Math.sin(root.phase + (index * 0.45)))
+                property real baseLevel: root.mode === "recording"
+                    ? Math.max(0.12 + (root.level * 0.88), 0.12)
+                    : (root.mode === "busy" ? 0.28 : (root.mode === "error" ? 0.16 : 0.04))
+                property real wobble: root.mode === "recording"
+                    ? (0.42 + (0.58 * Math.sin(root.phase + (index * 0.48))))
+                    : (0.55 + (0.45 * Math.sin(root.phase + (index * 0.45))))
 
                 width: root.barWidth
                 height: Math.max(root.minimumBarHeight, root.minimumBarHeight + (baseLevel * wobble * (root.maximumBarHeight - root.minimumBarHeight)))

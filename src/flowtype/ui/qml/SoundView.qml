@@ -60,7 +60,7 @@ Item {
                     }
 
                     Label {
-                        text: "Mini keeps the overlay subtle. Classic gives a slightly fuller pill. Both stay tiny while idle and only expand when needed."
+                        text: "Style, position, and idle visibility apply immediately. Use Save Timing only for tap length, safety limit, and paste delay."
                         color: "#627b8e"
                         font.family: "Segoe UI Variable Text"
                         font.pixelSize: 13
@@ -70,7 +70,7 @@ Item {
                 }
 
                 FlowButton {
-                    label: "Save Recording"
+                    label: "Save Timing"
                     variant: "warm"
                     onClicked: AppController.saveExperienceSettings(
                         root.hudStyleDraft,
@@ -149,7 +149,14 @@ Item {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: root.hudStyleDraft = modelData.id
+                        onClicked: {
+                            root.hudStyleDraft = modelData.id
+                            AppController.saveHudPresentation(
+                                root.hudStyleDraft,
+                                root.hudPositionDraft,
+                                root.showIdleHudDraft
+                            )
+                        }
                     }
                 }
             }
@@ -180,7 +187,14 @@ Item {
 
                     FlowSwitch {
                         checked: root.showIdleHudDraft
-                        onToggled: root.showIdleHudDraft = checked
+                        onToggled: {
+                            root.showIdleHudDraft = checked
+                            AppController.saveHudPresentation(
+                                root.hudStyleDraft,
+                                root.hudPositionDraft,
+                                root.showIdleHudDraft
+                            )
+                        }
                     }
                 }
 
@@ -288,7 +302,14 @@ Item {
                                         anchors.fill: parent
                                         hoverEnabled: true
                                         cursorShape: Qt.PointingHandCursor
-                                        onClicked: root.hudPositionDraft = modelData.id
+                                        onClicked: {
+                                            root.hudPositionDraft = modelData.id
+                                            AppController.saveHudPresentation(
+                                                root.hudStyleDraft,
+                                                root.hudPositionDraft,
+                                                root.showIdleHudDraft
+                                            )
+                                        }
                                     }
                                 }
                             }

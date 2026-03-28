@@ -6,7 +6,7 @@ import threading
 from pathlib import Path
 from typing import Any, Callable
 
-from PySide6.QtCore import QEvent, QObject
+from PySide6.QtCore import QEvent, QObject, QTimer
 from PySide6.QtGui import QIcon
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuickControls2 import QQuickStyle
@@ -193,6 +193,25 @@ def run_ui_mode(
         if app_icon and hasattr(hud_window, "setIcon"):
             hud_window.setIcon(app_icon)
 
+        def reposition_hud() -> None:
+            try:
+                target_screen = hud_window.screen() or window.screen() or app.primaryScreen()
+            except Exception:
+                target_screen = app.primaryScreen()
+            if target_screen is None:
+                return
+
+            rect = target_screen.availableGeometry()
+            width = int(hud_window.width())
+            height = int(hud_window.height())
+            idle = bool(hud_window.property("lineIdle"))
+            margin = 10 if idle else 18
+            centered_x = rect.x() + max(0, round((rect.width() - width) / 2))
+            top_docked = str(controller.hudPosition).strip().lower() == "top"
+            y = rect.y() + margin if top_docked else rect.y() + rect.height() - height - margin
+            hud_window.setX(centered_x)
+            hud_window.setY(y)
+
         def show_main_window(page_index: int | None = None) -> None:
             if page_index is not None:
                 window.setProperty("currentPage", page_index)
@@ -243,6 +262,16 @@ def run_ui_mode(
                 set_native_window_icon(hud_hwnd, str(icon_path))
 
         apply_window_branding()
+        reposition_hud()
+        QTimer.singleShot(0, reposition_hud)
+        controller.stateChanged.connect(reposition_hud)
+        controller.configChanged.connect(reposition_hud)
+        hud_window.widthChanged.connect(reposition_hud)
+        hud_window.heightChanged.connect(reposition_hud)
+        hud_window.screenChanged.connect(lambda *_: reposition_hud())
+        primary_screen = app.primaryScreen()
+        if primary_screen is not None and hasattr(primary_screen, "availableGeometryChanged"):
+            primary_screen.availableGeometryChanged.connect(lambda *_: reposition_hud())
 
         def handle_activation(message: str) -> None:
             normalized = message.strip().lower()
@@ -263,6 +292,7 @@ def run_ui_mode(
                 show_main_window(4)
             else:
                 show_main_window()
+        QTimer.singleShot(0, reposition_hud)
 
         ret = app.exec()
         return int(ret)
