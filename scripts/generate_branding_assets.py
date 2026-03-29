@@ -47,10 +47,12 @@ def main() -> int:
     base_logo.save(logo_mark_path)
     base_logo.save(BUILD_BRANDING_DIR / "logo-mark.png")
 
-    _build_icon(base_logo, PACKAGE_BRANDING_DIR / "app-icon.ico")
-    _build_icon(base_logo, BUILD_BRANDING_DIR / "app-icon.ico")
+    icon_master = _build_windows_icon_master(CANVAS)
+
+    _build_icon(icon_master, PACKAGE_BRANDING_DIR / "app-icon.ico")
+    _build_icon(icon_master, BUILD_BRANDING_DIR / "app-icon.ico")
     _build_wordmark(base_logo)
-    _build_tray_icons(base_logo)
+    _build_tray_icons(icon_master)
     _build_installer_art(base_logo)
     _build_release_preview(base_logo)
     return 0
@@ -142,6 +144,86 @@ def _build_icon(base_logo: Image.Image, destination: Path) -> None:
     sizes = [(256, 256), (128, 128), (64, 64), (48, 48), (32, 32), (16, 16)]
     destination.parent.mkdir(parents=True, exist_ok=True)
     base_logo.save(destination, sizes=sizes)
+
+
+def _build_windows_icon_master(size: int) -> Image.Image:
+    canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    tile_margin = int(size * 0.115)
+    tile_radius = int(size * 0.185)
+    tile_rect = (tile_margin, tile_margin, size - tile_margin, size - tile_margin)
+
+    tile_gradient = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    gradient_draw = ImageDraw.Draw(tile_gradient)
+    _draw_vertical_gradient(gradient_draw, size, size, "#15173F", "#2E2773")
+
+    tile_mask = Image.new("L", (size, size), 0)
+    mask_draw = ImageDraw.Draw(tile_mask)
+    mask_draw.rounded_rectangle(tile_rect, radius=tile_radius, fill=255)
+    canvas.paste(tile_gradient, (0, 0), tile_mask)
+
+    ambient_glow = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    _draw_radial_glow(ambient_glow, size, (int(size * 0.34), int(size * 0.38)), int(size * 0.18), "#73C8FF", 52)
+    _draw_radial_glow(ambient_glow, size, (int(size * 0.70), int(size * 0.64)), int(size * 0.21), "#A769FF", 64)
+    ambient_glow = ambient_glow.filter(ImageFilter.GaussianBlur(radius=max(6, int(size * 0.02))))
+    canvas.paste(ambient_glow, (0, 0), tile_mask)
+
+    tile_details = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    details_draw = ImageDraw.Draw(tile_details)
+    details_draw.rounded_rectangle(tile_rect, radius=tile_radius, outline=(255, 255, 255, 28), width=max(2, size // 160))
+    details_draw.rounded_rectangle(
+        (tile_rect[0] + 2, tile_rect[1] + 2, tile_rect[2] - 2, tile_rect[3] - 2),
+        radius=max(0, tile_radius - 2),
+        outline=(255, 255, 255, 10),
+        width=max(1, size // 256),
+    )
+    canvas.alpha_composite(tile_details)
+
+    highlight = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    highlight_draw = ImageDraw.Draw(highlight)
+    highlight_draw.ellipse(
+        (
+            int(size * 0.18),
+            int(size * 0.12),
+            int(size * 0.58),
+            int(size * 0.44),
+        ),
+        fill=(255, 255, 255, 18),
+    )
+    highlight = highlight.filter(ImageFilter.GaussianBlur(radius=max(8, int(size * 0.03))))
+    canvas.paste(highlight, (0, 0), tile_mask)
+
+    usable_left = tile_rect[0] + int(size * 0.10)
+    usable_top = tile_rect[1] + int(size * 0.14)
+    usable_width = (tile_rect[2] - tile_rect[0]) - int(size * 0.20)
+    usable_height = (tile_rect[3] - tile_rect[1]) - int(size * 0.28)
+
+    bar_specs = (
+        (0.00, 0.00, 0.13, 1.00),
+        (0.22, 0.12, 0.13, 0.76),
+        (0.44, 0.34, 0.13, 0.32),
+        (0.66, 0.22, 0.13, 0.56),
+        (0.87, 0.00, 0.13, 1.00),
+    )
+
+    shadow = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    shadow_draw = ImageDraw.Draw(shadow)
+    bars = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    bars_draw = ImageDraw.Draw(bars)
+
+    for left_ratio, top_ratio, width_ratio, height_ratio in bar_specs:
+        left = int(usable_left + usable_width * left_ratio)
+        top = int(usable_top + usable_height * top_ratio)
+        width = int(usable_width * width_ratio)
+        height = int(usable_height * height_ratio)
+        rect = (left, top, left + width, top + height)
+        radius = max(3, width // 2)
+        shadow_draw.rounded_rectangle(rect, radius=radius, fill=(255, 255, 255, 78))
+        bars_draw.rounded_rectangle(rect, radius=radius, fill=(249, 252, 255, 255))
+
+    shadow = shadow.filter(ImageFilter.GaussianBlur(radius=max(6, int(size * 0.018))))
+    canvas.alpha_composite(shadow)
+    canvas.alpha_composite(bars)
+    return canvas
 
 
 def _build_wordmark(base_logo: Image.Image) -> None:

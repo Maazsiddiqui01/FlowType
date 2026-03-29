@@ -19,6 +19,9 @@ ui-ux-pro-max/
 *.log
 config.toml
 tmp_qml_capture.toml
+download_logos.py
+scripts/generate_tray_icons.py
+uv.lock
 
 # Local runtime data
 .flowtype/
