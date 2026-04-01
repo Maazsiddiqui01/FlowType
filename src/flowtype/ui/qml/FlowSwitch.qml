@@ -8,6 +8,7 @@ Item {
     
     property bool checked: false
     signal clicked()
+    signal toggled(bool checked)
     
     width: 44
     height: 24
@@ -53,6 +54,7 @@ Item {
         cursorShape: Qt.PointingHandCursor
         onClicked: {
             root.checked = !root.checked
+            root.toggled(root.checked)
             root.clicked()
         }
     }

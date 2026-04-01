@@ -288,6 +288,14 @@ class AppController(QObject):
         return self._config.startup.prompt_completed
 
     @Property(bool, notify=configChanged)
+    def historyPersist(self) -> bool:
+        return self._config.history.persist
+
+    @Property(int, notify=configChanged)
+    def historyMaxItems(self) -> int:
+        return self._config.history.max_items
+
+    @Property(bool, notify=configChanged)
     def onboardingVisible(self) -> bool:
         if not self._config.startup.prompt_completed:
             return True
@@ -508,6 +516,17 @@ class AppController(QObject):
             data["experience"]["close_to_tray"] = bool(close_to_tray)
 
         self._persist_config(mutate, "Background launch preferences updated.")
+
+    @Slot(int, bool)
+    def saveHistorySettings(self, max_items: int, persist: bool) -> None:
+        normalized_max_items = max(1, int(max_items))
+
+        def mutate(data: dict) -> None:
+            data.setdefault("history", {})
+            data["history"]["max_items"] = normalized_max_items
+            data["history"]["persist"] = bool(persist)
+
+        self._persist_config(mutate, "History settings updated.")
 
     @Slot()
     def toggleDarkMode(self) -> None:

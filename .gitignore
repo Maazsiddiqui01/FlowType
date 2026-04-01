@@ -22,6 +22,7 @@ tmp_qml_capture.toml
 download_logos.py
 scripts/generate_tray_icons.py
 uv.lock
+UI_Redesign_implementation_plan*
 
 # Local runtime data
 .flowtype/

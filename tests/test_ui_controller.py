@@ -97,6 +97,10 @@ def test_controller_saves_and_reloads_runtime_settings(tmp_path: Path) -> None:
     assert controller.closeToTray is False
     assert controller.startupPromptCompleted is True
 
+    controller.saveHistorySettings(25, False)
+    assert controller.historyMaxItems == 25
+    assert controller.historyPersist is False
+
     controller.saveShortcut("hold_to_talk", "ctrl+alt+d")
     assert controller.holdToTalk == "ctrl+alt+d"
 

@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 
 RowLayout {
@@ -8,6 +9,7 @@ RowLayout {
     
     property string title: ""
     property string subtitle: ""
+    property string detail: ""
     default property alias content: controlContainer.data
     
     spacing: theme.space16
@@ -27,8 +29,8 @@ RowLayout {
         }
         
         Label {
-            visible: root.subtitle.length > 0
-            text: root.subtitle
+            visible: (root.subtitle.length > 0) || (root.detail.length > 0)
+            text: root.subtitle.length > 0 ? root.subtitle : root.detail
             color: theme.textSecondary
             font.family: theme.fontText
             font.pixelSize: theme.sizeHelper

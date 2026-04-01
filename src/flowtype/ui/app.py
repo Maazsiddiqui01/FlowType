@@ -28,6 +28,13 @@ from flowtype.windows import set_app_user_model_id, set_native_title_bar_colors,
 logger = logging.getLogger("flowtype.ui.app")
 
 
+def _font_asset_path() -> Path | None:
+    candidate = Path(__file__).resolve().parent.parent / "assets" / "fonts" / "Inter.ttf"
+    if candidate.exists():
+        return candidate
+    return None
+
+
 class WindowCloseInterceptor(QObject):
     def __init__(
         self,
@@ -74,13 +81,16 @@ def run_ui_mode(
     app.setQuitOnLastWindowClosed(False)
     app.setApplicationName(APP_DISPLAY_NAME)
     app.setOrganizationName(APP_PUBLISHER)
-    app.setFont(QFont("Segoe UI Variable Text", 10))
     set_app_user_model_id()
 
-    # Load Inter font dynamically
-    font_path = Path(__file__).resolve().parent / "assets" / "fonts" / "InterVariable.ttf"
-    if font_path.exists():
-        QFontDatabase.addApplicationFont(str(font_path))
+    font_family = "Segoe UI Variable Text"
+    font_path = _font_asset_path()
+    if font_path is not None:
+        font_id = QFontDatabase.addApplicationFont(str(font_path))
+        families = QFontDatabase.applicationFontFamilies(font_id) if font_id >= 0 else []
+        if families:
+            font_family = families[0]
+    app.setFont(QFont(font_family, 10))
 
     icon_path = app_icon_path()
     if icon_path.exists():
@@ -251,12 +261,16 @@ def run_ui_mode(
         window.installEventFilter(interceptor)
 
         def apply_window_branding() -> None:
+            dark_mode = bool(controller.darkMode)
+            caption_color = "#0c0e14" if dark_mode else "#eef4ff"
+            text_color = "#f0f4f8" if dark_mode else "#10243a"
+            border_color = "#1a2030" if dark_mode else "#c7d7eb"
             try:
                 hwnd = int(window.winId())
             except Exception:
                 hwnd = 0
             if hwnd:
-                set_native_title_bar_colors(hwnd, "#eef4ff", "#10243a", "#c7d7eb")
+                set_native_title_bar_colors(hwnd, caption_color, text_color, border_color)
                 if icon_path.exists():
                     set_native_window_icon(hwnd, str(icon_path))
             try:

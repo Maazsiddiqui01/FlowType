@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "flowtype"
-version = "0.1.6"
+version = "0.1.7"
 description = "Windows-ready desktop dictation app with local Faster-Whisper transcription and optional LLM cleanup."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -42,7 +42,7 @@ package-dir = { "" = "src" }
 where = ["src"]
 
 [tool.setuptools.package-data]
-flowtype = ["ui/qml/*.qml", "assets/branding/*"]
+flowtype = ["ui/qml/*.qml", "assets/branding/*", "assets/fonts/*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

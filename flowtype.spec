@@ -40,7 +40,7 @@ binaries += collect_dynamic_libs("sounddevice")
 
 datas = []
 datas += collect_data_files("faster_whisper")
-datas += collect_data_files("flowtype", includes=["ui/qml/*.qml", "assets/branding/*"])
+datas += collect_data_files("flowtype", includes=["ui/qml/*.qml", "assets/branding/*", "assets/fonts/*"])
 datas += collect_data_files("pystray")
 datas += collect_data_files("_sounddevice_data")
 datas += collect_data_files("certifi")

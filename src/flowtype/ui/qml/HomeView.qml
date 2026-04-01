@@ -6,6 +6,8 @@ Item {
     id: root
 
     Theme { id: theme }
+    readonly property var homeStatsData: AppController.homeStats
+    readonly property var latestHistoryItem: AppController.historyItems.length > 0 ? AppController.historyItems[0] : null
 
     PageScroll {
         anchors.fill: parent
@@ -115,22 +117,22 @@ Item {
 
             MetricTile {
                 Layout.fillWidth: true
-                value: AppController.totalDictations
+                value: root.homeStatsData.length > 0 ? root.homeStatsData[0].value : "0"
                 label: "Total dictations"
                 tone: theme.primary
             }
 
             MetricTile {
                 Layout.fillWidth: true
-                value: AppController.totalWords
+                value: root.homeStatsData.length > 1 ? root.homeStatsData[1].value : "0"
                 label: "Words generated"
                 tone: theme.teal
             }
 
             MetricTile {
                 Layout.fillWidth: true
-                value: AppController.avgLatency
-                label: "Avg. latency"
+                value: root.homeStatsData.length > 2 ? root.homeStatsData[2].value : "0"
+                label: "Auto-pasted"
                 tone: theme.warm
             }
 
@@ -145,7 +147,7 @@ Item {
         // ── Recent output ────────────────────────────────
         SectionCard {
             width: parent.width
-            visible: AppController.historyItems.length > 0
+            visible: root.latestHistoryItem !== null
 
             SectionHeader {
                 anchors.left: parent.left
@@ -165,7 +167,7 @@ Item {
                 Label {
                     width: parent.width
                     text: AppController.historyItems.length > 0
-                        ? AppController.historyItems[0].finalText
+                        ? root.latestHistoryItem.finalText
                         : ""
                     color: theme.textPrimary
                     font.family: theme.fontText
@@ -177,15 +179,15 @@ Item {
 
                 Row {
                     spacing: theme.space8
-                    visible: AppController.historyItems.length > 0
+                    visible: root.latestHistoryItem !== null
 
                     TokenChip {
-                        label: AppController.historyItems[0].createdAt
+                        label: root.latestHistoryItem !== null ? root.latestHistoryItem.createdAt : ""
                         tone: theme.textTertiary
                     }
 
                     TokenChip {
-                        label: AppController.historyItems[0].wordCount + " words"
+                        label: root.latestHistoryItem !== null ? (root.latestHistoryItem.wordCount + " words") : ""
                         tone: theme.textTertiary
                     }
                 }
