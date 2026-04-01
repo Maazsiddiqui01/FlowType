@@ -9,122 +9,135 @@ Item {
 
     PageScroll {
         anchors.fill: parent
-        maxContentWidth: 900
-        contentSpacing: theme.space24
+        maxContentWidth: 1180
+        contentSpacing: theme.sectionGap
 
-        // ── Header Actions ───────────────────────────────
-        Item {
-            width: parent.width
-            height: headLabel.implicitHeight
-
-            Label {
-                id: headLabel
-                text: "Session History"
-                color: theme.textPrimary
-                font.family: theme.fontDisplay
-                font.pixelSize: theme.sizePageTitle
-                font.weight: Font.Bold
-                anchors.left: parent.left
-                anchors.verticalCenter: parent.verticalCenter
-            }
-
-            FlowButton {
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                label: "Clear History"
-                variant: "danger"
-                compact: true
-                visible: AppController.historyItems.length > 0
-                onClicked: AppController.clearHistory()
-            }
-        }
-
-        // ── Settings ─────────────────────────────────────
         SectionCard {
             width: parent.width
 
-            FormRow {
+            RowLayout {
                 width: parent.width
-                title: "Keep history between restarts"
-                subtitle: "Locally save your dictations to disk so they persist when FlowType closes."
+                spacing: theme.space16
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 2
+
+                    Label {
+                        text: "Session history"
+                        color: theme.textPrimary
+                        font.family: theme.fontDisplay
+                        font.pixelSize: theme.sizeSectionTitle
+                        font.weight: 700
+                    }
+
+                    Label {
+                        text: "Recent dictations stay on this device. Keep history on if you want them across restarts."
+                        color: theme.textSecondary
+                        font.family: theme.fontText
+                        font.pixelSize: theme.sizeHelper
+                    }
+                }
 
                 FlowSwitch {
                     checked: AppController.historyPersist
-                    onToggled: (checked) => AppController.saveHistorySettings(AppController.historyMaxItems, checked)
+                    onToggled: function(checked) { AppController.saveHistorySettings(AppController.historyMaxItems, checked) }
+                }
+
+                FlowButton {
+                    label: "Clear History"
+                    variant: "danger"
+                    buttonEnabled: AppController.historyItems.length > 0
+                    onClicked: AppController.clearHistory()
                 }
             }
         }
 
-        // ── History List ─────────────────────────────────
-        Item {
+        EmptyState {
+            visible: AppController.historyItems.length === 0
             width: parent.width
-            height: Math.max(200, historyCol.implicitHeight)
+            title: "No history yet"
+            message: "Once you dictate something, FlowType will show the cleaned result and the raw fallback text here."
+        }
 
-            EmptyState {
-                visible: AppController.historyItems.length === 0
-                title: "No history yet"
-                message: "Your transcribed texts will appear here. Dictate something to get started."
-            }
+        Column {
+            width: parent.width
+            spacing: theme.space12
+            visible: AppController.historyItems.length > 0
 
-            Column {
-                id: historyCol
-                width: parent.width
-                spacing: theme.space12
-                visible: AppController.historyItems.length > 0
+            Repeater {
+                model: AppController.historyItems
 
-                Repeater {
-                    model: AppController.historyItems
+                delegate: SectionCard {
+                    width: parent.width
 
-                    delegate: SurfacePanel {
+                    ColumnLayout {
                         width: parent.width
-                        baseColor: theme.surface
+                        spacing: theme.space12
 
-                        Column {
-                            width: parent.width
+                        RowLayout {
+                            Layout.fillWidth: true
                             spacing: theme.space12
 
-                            RowLayout {
-                                width: parent.width
-
-                                Label {
-                                    text: modelData.createdAt
-                                    color: theme.textTertiary
-                                    font.family: theme.fontMono
-                                    font.pixelSize: theme.sizeHelper
-                                    Layout.fillWidth: true
-                                }
-                                
-                                Label {
-                                    text: modelData.wordCount + " words"
-                                    color: theme.textSecondary
-                                    font.family: theme.fontUi
-                                    font.pixelSize: theme.sizeHelper
-                                }
-                            }
-
                             Label {
-                                width: parent.width
-                                text: modelData.finalText
-                                color: theme.textPrimary
-                                font.family: theme.fontText
-                                font.pixelSize: theme.sizeBody
-                                wrapMode: Text.WordWrap
-                                textFormat: Text.PlainText
-                                lineHeight: 1.4
-                            }
-                            
-                            Rectangle { width: parent.width; height: 1; color: theme.divider; visible: modelData.originalText.length > 0 && modelData.originalText !== modelData.finalText }
-                            
-                            Label {
-                                visible: modelData.originalText.length > 0 && modelData.originalText !== modelData.finalText
-                                width: parent.width
-                                text: "Raw: " + modelData.originalText
+                                text: modelData.createdAt
                                 color: theme.textTertiary
-                                font.family: theme.fontText
+                                font.family: theme.fontMono
                                 font.pixelSize: theme.sizeHelper
-                                wrapMode: Text.WordWrap
-                                textFormat: Text.PlainText
                             }
+
+                            TokenChip {
+                                label: modelData.provider
+                                tone: theme.primary
+                            }
+
+                            TokenChip {
+                                label: modelData.mode
+                                tone: theme.teal
+                            }
+
+                            TokenChip {
+                                visible: modelData.usedFallback
+                                label: "Fallback"
+                                tone: theme.warm
+                            }
+
+                            Item { Layout.fillWidth: true }
+
+                            Label {
+                                text: modelData.wordCount + " words"
+                                color: theme.textSecondary
+                                font.family: theme.fontUi
+                                font.pixelSize: theme.sizeHelper
+                            }
+                        }
+
+                        Label {
+                            Layout.fillWidth: true
+                            text: modelData.finalText
+                            color: theme.textPrimary
+                            font.family: theme.fontText
+                            font.pixelSize: 14
+                            wrapMode: Text.WordWrap
+                            textFormat: Text.PlainText
+                        }
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 1
+                            color: theme.divider
+                            visible: modelData.rawText.length > 0 && modelData.rawText !== modelData.finalText
+                        }
+
+                        Label {
+                            visible: modelData.rawText.length > 0 && modelData.rawText !== modelData.finalText
+                            Layout.fillWidth: true
+                            text: modelData.rawText
+                            color: theme.textSecondary
+                            font.family: theme.fontText
+                            font.pixelSize: theme.sizeHelper
+                            wrapMode: Text.WordWrap
+                            textFormat: Text.PlainText
                         }
                     }
                 }

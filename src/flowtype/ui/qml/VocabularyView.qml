@@ -9,8 +9,20 @@ Item {
 
     property string textDraft: AppController.vocabularyText
 
+    function vocabularyEntries() {
+        var lines = root.textDraft.split(/\r?\n/)
+        var items = []
+        for (var i = 0; i < lines.length; i += 1) {
+            var value = lines[i].trim()
+            if (value.length > 0)
+                items.push(value)
+        }
+        return items
+    }
+
     Connections {
         target: AppController
+
         function onConfigChanged() {
             root.textDraft = AppController.vocabularyText
         }
@@ -18,68 +30,132 @@ Item {
 
     PageScroll {
         anchors.fill: parent
-        maxContentWidth: 900
-        contentSpacing: theme.space24
+        maxContentWidth: 1180
+        contentSpacing: theme.sectionGap
 
-        // ── Header Actions ───────────────────────────────
-        Item {
+        RowLayout {
             width: parent.width
-            height: headLabel.implicitHeight
+            spacing: theme.space12
 
-            Label {
-                id: headLabel
-                text: "Vocabulary"
-                color: theme.textPrimary
-                font.family: theme.fontDisplay
-                font.pixelSize: theme.sizePageTitle
-                font.weight: Font.Bold
-                anchors.left: parent.left
-                anchors.verticalCenter: parent.verticalCenter
-            }
+            SectionCard {
+                Layout.fillWidth: true
+                Layout.preferredWidth: 1.6
 
-            FlowButton {
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                label: "Save Vocabulary"
-                variant: "primary"
-                accent: theme.primary
-                onClicked: AppController.saveVocabulary(root.textDraft)
-            }
-        }
-
-        // ── Vocabulary Input ─────────────────────────────
-        SectionCard {
-            width: parent.width
-
-            Column {
-                width: parent.width
-                spacing: theme.space16
-
-                SectionHeader {
-                    title: "Custom Words & Phrases"
-                    subtitle: "Teach FlowType specific spellings, names, punctuation macros, or product jargon. Enter one per line."
-                }
-
-                Rectangle {
+                ColumnLayout {
                     width: parent.width
-                    height: 380
-                    radius: theme.radiusControl
-                    color: theme.surfaceSubtle
-                    border.width: 1
-                    border.color: theme.border
+                    spacing: theme.space16
 
-                    TextArea {
-                        anchors.fill: parent
-                        anchors.margins: 16
-                        text: root.textDraft
-                        color: theme.textPrimary
-                        wrapMode: TextEdit.Wrap
-                        font.family: theme.fontMono
-                        font.pixelSize: theme.sizeBody
-                        background: null
-                        placeholderText: "Example entries:\nFlowType (not flow type)\nLaTeX\nCEO\njohn.doe@example.com"
-                        placeholderTextColor: theme.textTertiary
-                        onTextChanged: root.textDraft = text
+                    SectionHeader {
+                        title: "Protected words and phrases"
+                        subtitle: "Enter one item per line. Use this for names, brands, acronyms, punctuation macros, and exact spellings."
+
+                        trailing: FlowButton {
+                            label: "Save Vocabulary"
+                            variant: "primary"
+                            onClicked: AppController.saveVocabulary(root.textDraft)
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 420
+                        radius: theme.radiusCard
+                        color: theme.surfaceSubtle
+                        border.width: 1
+                        border.color: theme.border
+
+                        TextArea {
+                            anchors.fill: parent
+                            anchors.margins: theme.space16
+                            text: root.textDraft
+                            color: theme.textPrimary
+                            wrapMode: TextEdit.Wrap
+                            font.family: theme.fontMono
+                            font.pixelSize: theme.sizeBody
+                            background: null
+                            placeholderText: "FlowType\nGPT-5.4 mini\nRiyadh\njohn.doe@example.com"
+                            placeholderTextColor: theme.textTertiary
+                            onTextChanged: root.textDraft = text
+                        }
+                    }
+                }
+            }
+
+            SectionCard {
+                Layout.preferredWidth: 320
+                Layout.alignment: Qt.AlignTop
+
+                ColumnLayout {
+                    width: parent.width
+                    spacing: theme.space16
+
+                    SectionHeader {
+                        title: "Preview"
+                        subtitle: "A quick view of the entries that will be injected into the cleanup prompt."
+                    }
+
+                    Loader {
+                        Layout.fillWidth: true
+                        active: root.vocabularyEntries().length > 0
+                        sourceComponent: ColumnLayout {
+                            width: parent.width
+                            spacing: theme.space8
+
+                            Repeater {
+                                model: root.vocabularyEntries().slice(0, 8)
+
+                                delegate: Rectangle {
+                                    Layout.fillWidth: true
+                                    implicitHeight: 38
+                                    radius: theme.radiusControl
+                                    color: theme.surfaceSubtle
+                                    border.width: 1
+                                    border.color: theme.border
+
+                                    Label {
+                                        anchors.left: parent.left
+                                        anchors.leftMargin: theme.space12
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        anchors.right: parent.right
+                                        anchors.rightMargin: theme.space12
+                                        text: modelData
+                                        color: theme.textPrimary
+                                        font.family: theme.fontText
+                                        font.pixelSize: theme.sizeBody
+                                        elide: Text.ElideRight
+                                    }
+                                }
+                            }
+
+                            Label {
+                                visible: root.vocabularyEntries().length > 8
+                                text: "+" + (root.vocabularyEntries().length - 8) + " more"
+                                color: theme.textSecondary
+                                font.family: theme.fontUi
+                                font.pixelSize: theme.sizeHelper
+                            }
+                        }
+                    }
+
+                    EmptyState {
+                        visible: root.vocabularyEntries().length === 0
+                        title: "No vocabulary entries yet"
+                        message: "Add a few names or product terms and they will show up here."
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 1
+                        color: theme.divider
+                    }
+
+                    Label {
+                        Layout.fillWidth: true
+                        text: "Best results come from short, exact entries. Use one line per item instead of writing long guidance paragraphs here."
+                        color: theme.textSecondary
+                        font.family: theme.fontText
+                        font.pixelSize: theme.sizeHelper
+                        wrapMode: Text.WordWrap
                     }
                 }
             }

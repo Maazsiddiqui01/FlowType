@@ -2,7 +2,7 @@ import QtQuick
 
 SurfacePanel {
     id: root
-    
+
     Theme { id: theme }
 
     property color baseColor: theme.surface
@@ -10,5 +10,5 @@ SurfacePanel {
 
     color: root.baseColor
     border.color: root.borderTone
-    radius: theme.radiusGlass || theme.radiusCard
+    radius: theme.radiusCard
 }

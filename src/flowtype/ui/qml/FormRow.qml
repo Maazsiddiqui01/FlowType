@@ -41,7 +41,8 @@ RowLayout {
     
     Item {
         id: controlContainer
-        Layout.minimumWidth: Math.max(160, childrenRect.width)
+        Layout.minimumWidth: childrenRect.width
+        Layout.preferredWidth: childrenRect.width
         Layout.preferredHeight: childrenRect.height
         Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
     }

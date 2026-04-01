@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Layouts
 
 Rectangle {
     id: root
@@ -10,19 +9,12 @@ Rectangle {
     property string label: ""
     property color tone: theme.textSecondary
 
-    height: theme.chipHeight
-    width: chipText.implicitWidth + 24
-    radius: height / 2
-    color: "transparent"
+    implicitWidth: chipText.implicitWidth + 22
+    implicitHeight: theme.chipHeight
+    radius: theme.radiusPill
+    color: theme.tint(root.tone, theme.darkMode ? 0.12 : 0.08)
     border.width: 1
-    border.color: theme.tint(root.tone, 0.4)
-
-    Rectangle {
-        anchors.fill: parent
-        radius: parent.radius
-        color: root.tone
-        opacity: theme.darkMode ? 0.12 : 0.08
-    }
+    border.color: theme.tint(root.tone, theme.darkMode ? 0.32 : 0.18)
 
     Label {
         id: chipText
@@ -31,6 +23,6 @@ Rectangle {
         color: root.tone
         font.family: theme.fontUi
         font.pixelSize: theme.sizeLabel
-        font.weight: Font.DemiBold
+        font.weight: 600
     }
 }

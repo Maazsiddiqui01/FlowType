@@ -40,61 +40,42 @@ Item {
 
     PageScroll {
         anchors.fill: parent
-        maxContentWidth: 1060
+        maxContentWidth: 1180
         contentSpacing: theme.sectionGap
 
-        // ── Header Actions ───────────────────────────────
-        Item {
-            width: parent.width
-            height: headLabel.implicitHeight
-
-            Label {
-                id: headLabel
-                text: "Recording Experience"
-                color: theme.textPrimary
-                font.family: theme.fontDisplay
-                font.pixelSize: theme.sizePageTitle
-                font.weight: Font.Bold
-                anchors.left: parent.left
-                anchors.verticalCenter: parent.verticalCenter
-            }
-        }
-
-        // ── HUD Presentation ─────────────────────────────
         RowLayout {
             width: parent.width
-            spacing: theme.space16
+            spacing: theme.space12
 
             SectionCard {
-                Layout.fillWidth: true
-                Layout.minimumWidth: 0
+                Layout.preferredWidth: 420
                 Layout.alignment: Qt.AlignTop
 
-                Column {
+                ColumnLayout {
                     width: parent.width
                     spacing: theme.space16
 
                     SectionHeader {
-                        title: "HUD Preview"
-                        subtitle: "See how the recording indicator will look when you dictate. Changes apply immediately."
+                        title: "Recording HUD"
+                        subtitle: "A small floating indicator appears only while dictation is active unless you keep the idle line enabled."
                     }
 
                     Rectangle {
-                        width: parent.width
-                        height: 140
-                        radius: theme.radiusControl
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 140
+                        radius: theme.radiusCard
                         color: theme.surfaceSubtle
                         border.width: 1
                         border.color: theme.border
 
                         Rectangle {
                             anchors.centerIn: parent
-                            width: root.hudStyleDraft === "mini" ? 136 : 176
-                            height: root.hudStyleDraft === "mini" ? 40 : 48
+                            width: root.hudStyleDraft === "mini" ? 138 : 178
+                            height: root.hudStyleDraft === "mini" ? 38 : 46
                             radius: height / 2
-                            color: theme.darkMode ? "#0A0E16" : "#0C1622"
+                            color: theme.darkMode ? "#0A0E16" : "#0B1622"
                             border.width: 1
-                            border.color: theme.darkMode ? "#1A2538" : "#243446"
+                            border.color: theme.darkMode ? "#1D2737" : "#243446"
 
                             Row {
                                 anchors.centerIn: parent
@@ -102,23 +83,22 @@ Item {
 
                                 Rectangle {
                                     visible: root.showIdleHudDraft || AppController.status !== "ready"
-                                    width: 20
-                                    height: 20
-                                    radius: 10
-                                    color: theme.darkMode ? "#0C1622" : "#0A0E16"
+                                    width: 22
+                                    height: 22
+                                    radius: 11
+                                    color: theme.darkMode ? "#101723" : "#0D1825"
                                     border.width: 1
-                                    border.color: theme.darkMode ? "#1E3048" : "#233447"
-                                    anchors.verticalCenter: parent.verticalCenter
+                                    border.color: theme.darkMode ? "#213042" : "#25384C"
 
                                     Label {
                                         anchors.centerIn: parent
                                         text: AppController.transcriptionLanguage === "auto"
                                             ? "A"
                                             : AppController.transcriptionLanguage.toUpperCase().slice(0, 2)
-                                        color: "#F0F4F8"
+                                        color: "#EEF4FA"
                                         font.family: theme.fontUi
                                         font.pixelSize: 9
-                                        font.weight: Font.DemiBold
+                                        font.weight: 700
                                     }
                                 }
 
@@ -128,105 +108,110 @@ Item {
                                     barWidth: 4
                                     gap: 4
                                     minimumBarHeight: 3
-                                    maximumBarHeight: root.hudStyleDraft === "mini" ? 14 : 20
-                                    level: Math.max(AppController.audioLevel, 0.34)
+                                    maximumBarHeight: root.hudStyleDraft === "mini" ? 14 : 18
+                                    level: Math.max(AppController.audioLevel, 0.25)
                                     mode: root.previewWaveMode()
                                 }
                             }
                         }
+                    }
+
+                    Label {
+                        Layout.fillWidth: true
+                        text: "Style and position apply immediately. Timing values save together below."
+                        color: theme.textSecondary
+                        font.family: theme.fontText
+                        font.pixelSize: theme.sizeHelper
+                        wrapMode: Text.WordWrap
                     }
                 }
             }
 
             SectionCard {
                 Layout.fillWidth: true
-                Layout.minimumWidth: 0
                 Layout.alignment: Qt.AlignTop
 
-                Column {
+                ColumnLayout {
                     width: parent.width
                     spacing: theme.space16
 
                     SectionHeader {
-                        title: "HUD Appearance"
-                        subtitle: "Control the style and positioning of the floating dictation indicator."
+                        title: "Appearance"
+                        subtitle: "Keep the HUD compact and easy to trust while you are speaking."
                     }
 
-                    Column {
-                        width: parent.width
+                    RowLayout {
+                        Layout.fillWidth: true
                         spacing: theme.space12
 
-                        Row {
-                            spacing: theme.space8
-
-                            ChoiceCard {
-                                width: 140
-                                compact: true
-                                hideChevron: true
-                                title: "Mini"
-                                subtitle: "Compact pill"
-                                selected: root.hudStyleDraft === "mini"
-                                onClicked: {
-                                    root.hudStyleDraft = "mini"
-                                    AppController.saveHudPresentation(root.hudStyleDraft, root.hudPositionDraft, root.showIdleHudDraft)
-                                }
-                            }
-
-                            ChoiceCard {
-                                width: 140
-                                compact: true
-                                hideChevron: true
-                                title: "Classic"
-                                subtitle: "Wider pill"
-                                selected: root.hudStyleDraft === "classic"
-                                onClicked: {
-                                    root.hudStyleDraft = "classic"
-                                    AppController.saveHudPresentation(root.hudStyleDraft, root.hudPositionDraft, root.showIdleHudDraft)
-                                }
+                        ChoiceCard {
+                            Layout.fillWidth: true
+                            compact: true
+                            hideChevron: true
+                            title: "Mini"
+                            subtitle: "Compact pill"
+                            selected: root.hudStyleDraft === "mini"
+                            onClicked: {
+                                root.hudStyleDraft = "mini"
+                                AppController.saveHudPresentation(root.hudStyleDraft, root.hudPositionDraft, root.showIdleHudDraft)
                             }
                         }
 
-                        Row {
-                            spacing: theme.space8
-
-                            ChoiceCard {
-                                width: 140
-                                compact: true
-                                hideChevron: true
-                                title: "Bottom"
-                                subtitle: "Bottom-center"
-                                selected: root.hudPositionDraft === "bottom"
-                                onClicked: {
-                                    root.hudPositionDraft = "bottom"
-                                    AppController.saveHudPresentation(root.hudStyleDraft, root.hudPositionDraft, root.showIdleHudDraft)
-                                }
+                        ChoiceCard {
+                            Layout.fillWidth: true
+                            compact: true
+                            hideChevron: true
+                            title: "Classic"
+                            subtitle: "Wider pill"
+                            selected: root.hudStyleDraft === "classic"
+                            onClicked: {
+                                root.hudStyleDraft = "classic"
+                                AppController.saveHudPresentation(root.hudStyleDraft, root.hudPositionDraft, root.showIdleHudDraft)
                             }
+                        }
+                    }
 
-                            ChoiceCard {
-                                width: 140
-                                compact: true
-                                hideChevron: true
-                                title: "Top"
-                                subtitle: "Top-center"
-                                selected: root.hudPositionDraft === "top"
-                                onClicked: {
-                                    root.hudPositionDraft = "top"
-                                    AppController.saveHudPresentation(root.hudStyleDraft, root.hudPositionDraft, root.showIdleHudDraft)
-                                }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: theme.space12
+
+                        ChoiceCard {
+                            Layout.fillWidth: true
+                            compact: true
+                            hideChevron: true
+                            title: "Bottom"
+                            subtitle: "Bottom-center"
+                            selected: root.hudPositionDraft === "bottom"
+                            onClicked: {
+                                root.hudPositionDraft = "bottom"
+                                AppController.saveHudPresentation(root.hudStyleDraft, root.hudPositionDraft, root.showIdleHudDraft)
                             }
                         }
 
-                        FormRow {
-                            width: parent.width
-                            title: "Show subtle line while idle"
-                            subtitle: "Keep a minimal indicator visible when FlowType is waiting."
+                        ChoiceCard {
+                            Layout.fillWidth: true
+                            compact: true
+                            hideChevron: true
+                            title: "Top"
+                            subtitle: "Top-center"
+                            selected: root.hudPositionDraft === "top"
+                            onClicked: {
+                                root.hudPositionDraft = "top"
+                                AppController.saveHudPresentation(root.hudStyleDraft, root.hudPositionDraft, root.showIdleHudDraft)
+                            }
+                        }
+                    }
 
-                            FlowSwitch {
-                                checked: root.showIdleHudDraft
-                                onClicked: {
-                                    root.showIdleHudDraft = checked
-                                    AppController.saveHudPresentation(root.hudStyleDraft, root.hudPositionDraft, root.showIdleHudDraft)
-                                }
+                    FormRow {
+                        width: parent.width
+                        title: "Show idle line"
+                        subtitle: "Keep a minimal waiting indicator visible even when FlowType is not recording."
+
+                        FlowSwitch {
+                            checked: root.showIdleHudDraft
+                            onClicked: {
+                                root.showIdleHudDraft = checked
+                                AppController.saveHudPresentation(root.hudStyleDraft, root.hudPositionDraft, root.showIdleHudDraft)
                             }
                         }
                     }
@@ -234,22 +219,20 @@ Item {
             }
         }
 
-        // ── Recording Timing ─────────────────────────────
         SectionCard {
             width: parent.width
 
-            Column {
+            ColumnLayout {
                 width: parent.width
                 spacing: theme.space16
 
                 SectionHeader {
-                    title: "Recording Timing"
-                    subtitle: "Fine-tune latency and bounds for audio capture."
+                    title: "Capture timing"
+                    subtitle: "Fine-tune recording bounds and paste delay without touching the audio pipeline."
 
                     trailing: FlowButton {
                         label: "Save Timing"
                         variant: "primary"
-                        accent: theme.primary
                         onClicked: AppController.saveExperienceSettings(
                             root.hudStyleDraft,
                             root.hudPositionDraft,
@@ -274,13 +257,17 @@ Item {
                             { "label": "Paste delay (ms)", "kind": "paste", "placeholder": "80" }
                         ]
 
-                        delegate: InputSurface {
+                        delegate: Rectangle {
                             Layout.fillWidth: true
-                            Layout.minimumWidth: 0
-                            height: 64
+                            implicitHeight: 78
+                            radius: theme.radiusCard
+                            color: theme.surfaceSubtle
+                            border.width: 1
+                            border.color: theme.border
 
                             Column {
-                                width: parent.width
+                                anchors.fill: parent
+                                anchors.margins: theme.space12
                                 spacing: 4
 
                                 Label {
@@ -294,12 +281,13 @@ Item {
                                     width: parent.width
                                     text: modelData.kind === "min" ? root.minDurationDraft : (modelData.kind === "max" ? root.maxDurationDraft : root.pasteDelayDraft)
                                     color: theme.textPrimary
-                                    font.family: theme.fontText
+                                    font.family: theme.fontUi
                                     font.pixelSize: theme.sizeBody
-                                    font.weight: Font.DemiBold
+                                    font.weight: 650
                                     validator: IntValidator { bottom: 0 }
                                     background: null
                                     placeholderText: modelData.placeholder
+                                    placeholderTextColor: theme.textTertiary
                                     onTextChanged: {
                                         if (modelData.kind === "min") root.minDurationDraft = text
                                         else if (modelData.kind === "max") root.maxDurationDraft = text

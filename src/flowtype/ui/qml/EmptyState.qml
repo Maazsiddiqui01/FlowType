@@ -1,58 +1,54 @@
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Layouts
 
 Item {
     id: root
 
     Theme { id: theme }
 
-    property string icon: "ℹ️"
     property string title: ""
     property string message: ""
     property string buttonText: ""
-    
+
     signal actionClicked()
 
-    width: parent.width
-    height: Math.max(220, mainCol.implicitHeight + 40)
+    implicitWidth: parent ? parent.width : 360
+    implicitHeight: Math.max(180, contentColumn.implicitHeight + 32)
 
     Column {
-        id: mainCol
+        id: contentColumn
         anchors.centerIn: parent
-        spacing: theme.space16
+        width: Math.min(root.width, 420)
+        spacing: theme.space12
+
+        Rectangle {
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: 36
+            height: 36
+            radius: 18
+            color: theme.surfaceMuted
+            border.width: 1
+            border.color: theme.border
+        }
 
         Label {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: root.icon
-            font.pixelSize: 42
-            color: theme.textTertiary
-            opacity: 0.6
+            text: root.title
+            color: theme.textPrimary
+            font.family: theme.fontDisplay
+            font.pixelSize: theme.sizeSectionTitle
+            font.weight: 700
         }
 
-        Column {
+        Label {
             anchors.horizontalCenter: parent.horizontalCenter
-            spacing: theme.space4
-            
-            Label {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: root.title
-                color: theme.textSecondary
-                font.family: theme.fontDisplay
-                font.pixelSize: theme.sizeSectionTitle
-                font.weight: Font.DemiBold
-            }
-
-            Label {
-                anchors.horizontalCenter: parent.horizontalCenter
-                width: Math.min(360, root.width - 40)
-                text: root.message
-                color: theme.textTertiary
-                font.family: theme.fontText
-                font.pixelSize: theme.sizeBody
-                wrapMode: Text.WordWrap
-                horizontalAlignment: Text.AlignHCenter
-            }
+            width: Math.min(380, root.width - 24)
+            text: root.message
+            color: theme.textSecondary
+            font.family: theme.fontText
+            font.pixelSize: theme.sizeBody
+            wrapMode: Text.WordWrap
+            horizontalAlignment: Text.AlignHCenter
         }
 
         FlowButton {

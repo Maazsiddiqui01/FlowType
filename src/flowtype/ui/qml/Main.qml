@@ -9,16 +9,48 @@ ApplicationWindow {
 
     visible: typeof StartHidden !== "undefined" ? !StartHidden : true
     title: "FlowType"
-    width: 1180
-    height: 760
-    minimumWidth: 860
-    minimumHeight: 600
+    width: 1220
+    height: 820
+    minimumWidth: 980
+    minimumHeight: 680
     color: theme.appBackground
 
     property int currentPage: 0
     property string notificationMessage: ""
     property string notificationTone: "info"
     property bool notificationVisible: false
+
+    readonly property var pages: [
+        { "label": "Home", "title": "Home", "subtitle": "Dictate, clean, and paste with less friction." },
+        { "label": "Cleanup", "title": "Cleanup", "subtitle": "Choose the provider, model, and cleanup behavior." },
+        { "label": "Modes", "title": "Modes", "subtitle": "Tune the cleanup style for the way you work." },
+        { "label": "Vocabulary", "title": "Vocabulary", "subtitle": "Protect names, brands, acronyms, and spellings." },
+        { "label": "History", "title": "History", "subtitle": "Review recent output and fallback behavior." },
+        { "label": "Recording", "title": "Recording", "subtitle": "Adjust the HUD and capture timing." },
+        { "label": "Settings", "title": "Settings", "subtitle": "Shortcuts, startup behavior, and app support." }
+    ]
+
+    function currentPageMeta() {
+        return pages[Math.max(0, Math.min(pages.length - 1, currentPage))]
+    }
+
+    function statusTone() {
+        if (AppController.status === "ready") return theme.success
+        if (AppController.status === "recording") return theme.warm
+        if (AppController.status === "transcribing" || AppController.status === "cleaning" || AppController.status === "pasting") return theme.primary
+        if (AppController.status === "error") return theme.error
+        return theme.textTertiary
+    }
+
+    function statusLabel() {
+        if (AppController.status === "recording") return "Recording"
+        if (AppController.status === "transcribing") return "Transcribing"
+        if (AppController.status === "cleaning") return "Cleaning"
+        if (AppController.status === "pasting") return "Pasting"
+        if (AppController.status === "error") return "Error"
+        if (AppController.status === "starting") return "Starting"
+        return "Ready"
+    }
 
     Connections {
         target: AppController
@@ -35,208 +67,169 @@ ApplicationWindow {
 
     Timer {
         id: notificationTimer
-        interval: 3200
+        interval: 2800
         onTriggered: window.notificationVisible = false
     }
 
-    // ── App Shell ────────────────────────────────────────
     RowLayout {
         anchors.fill: parent
         spacing: 0
 
-        // ── Sidebar ──────────────────────────────────────
         Rectangle {
-            id: sidebar
+            id: rail
             Layout.preferredWidth: theme.railWidth
             Layout.fillHeight: true
-            color: theme.darkMode ? "#0E1119" : "#FFFFFF"
-            z: 1
+            color: theme.darkMode ? "#0D121B" : "#FBFCFE"
 
             Rectangle {
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
                 anchors.right: parent.right
                 width: 1
-                height: parent.height
                 color: theme.border
             }
 
             ColumnLayout {
                 anchors.fill: parent
-                anchors.margins: theme.space12
-                spacing: 0
+                anchors.margins: theme.space16
+                spacing: theme.space8
 
-                // ── Logo / Brand ─────────────────────────
-                Item {
+                Rectangle {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 56
+                    Layout.preferredHeight: 64
+                    radius: theme.radiusCard
+                    color: theme.surface
+                    border.width: 1
+                    border.color: theme.border
 
-                    Row {
-                        anchors.left: parent.left
-                        anchors.leftMargin: theme.space12
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: theme.space8
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: theme.space12
+                        spacing: theme.space12
 
                         Rectangle {
-                            width: 28
-                            height: 28
-                            radius: 8
+                            Layout.preferredWidth: 36
+                            Layout.preferredHeight: 36
+                            radius: 12
                             color: theme.primary
-                            anchors.verticalCenter: parent.verticalCenter
 
                             Label {
                                 anchors.centerIn: parent
                                 text: "F"
-                                color: "#ffffff"
+                                color: "#FFFFFF"
                                 font.family: theme.fontDisplay
-                                font.pixelSize: 15
-                                font.weight: Font.Bold
+                                font.pixelSize: 16
+                                font.weight: 760
                             }
                         }
 
-                        Label {
-                            text: "FlowType"
-                            color: theme.textPrimary
-                            font.family: theme.fontDisplay
-                            font.pixelSize: 16
-                            font.weight: Font.Bold
-                            anchors.verticalCenter: parent.verticalCenter
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 1
+
+                            Label {
+                                text: "FlowType"
+                                color: theme.textPrimary
+                                font.family: theme.fontDisplay
+                                font.pixelSize: theme.sizeAppTitle
+                                font.weight: 760
+                            }
+
+                            Label {
+                                text: "Desktop dictation, cleaned locally first."
+                                color: theme.textSecondary
+                                font.family: theme.fontText
+                                font.pixelSize: theme.sizeHelper
+                                elide: Text.ElideRight
+                            }
                         }
                     }
                 }
 
-                Item { Layout.preferredHeight: theme.space8 }
+                Item { Layout.preferredHeight: theme.space12 }
 
-                // ── Navigation ───────────────────────────
                 Repeater {
-                    model: [
-                        { label: "Home",       icon: "⌂", page: 0 },
-                        { label: "Cleanup",    icon: "⚗", page: 1 },
-                        { label: "Modes",      icon: "◉", page: 2 },
-                        { label: "Vocabulary",  icon: "✦", page: 3 },
-                        { label: "History",    icon: "↻", page: 4 },
-                        { label: "Recording",  icon: "◎", page: 5 },
-                        { label: "Settings",   icon: "⚙", page: 6 }
-                    ]
+                    model: window.pages
 
                     delegate: Rectangle {
-                        id: navItem
                         Layout.fillWidth: true
                         Layout.preferredHeight: theme.railItemHeight
                         radius: theme.radiusControl
-                        color: window.currentPage === modelData.page
-                            ? (theme.darkMode ? Qt.rgba(1, 1, 1, 0.06) : Qt.rgba(0, 0, 0, 0.04))
-                            : (navMouseArea.containsMouse
-                                ? (theme.darkMode ? Qt.rgba(1, 1, 1, 0.03) : Qt.rgba(0, 0, 0, 0.02))
-                                : "transparent")
+                        color: window.currentPage === index
+                            ? theme.tint(theme.primary, theme.darkMode ? 0.18 : 0.09)
+                            : (navArea.containsMouse ? theme.surfaceHover : "transparent")
+                        border.width: 1
+                        border.color: window.currentPage === index
+                            ? theme.tint(theme.primary, theme.darkMode ? 0.38 : 0.22)
+                            : "transparent"
 
-                        // Active indicator bar
                         Rectangle {
-                            visible: window.currentPage === modelData.page
+                            visible: window.currentPage === index
                             anchors.left: parent.left
+                            anchors.leftMargin: 8
                             anchors.verticalCenter: parent.verticalCenter
-                            width: 3
-                            height: 20
+                            width: 4
+                            height: 18
                             radius: 2
                             color: theme.primary
                         }
 
-                        Row {
+                        Label {
                             anchors.left: parent.left
-                            anchors.leftMargin: 14
+                            anchors.leftMargin: 20
                             anchors.verticalCenter: parent.verticalCenter
-                            spacing: theme.space12
-
-                            Label {
-                                text: modelData.icon
-                                color: window.currentPage === modelData.page ? theme.primary : theme.textSecondary
-                                font.pixelSize: 16
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: 20
-                                horizontalAlignment: Text.AlignHCenter
-                            }
-
-                            Label {
-                                text: modelData.label
-                                color: window.currentPage === modelData.page ? theme.textPrimary : theme.textSecondary
-                                font.family: theme.fontText
-                                font.pixelSize: theme.sizeBody
-                                font.weight: window.currentPage === modelData.page ? Font.DemiBold : Font.Normal
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
+                            text: modelData.label
+                            color: window.currentPage === index ? theme.textPrimary : theme.textSecondary
+                            font.family: theme.fontUi
+                            font.pixelSize: theme.sizeBody
+                            font.weight: window.currentPage === index ? 650 : 500
                         }
 
                         MouseArea {
-                            id: navMouseArea
+                            id: navArea
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: window.currentPage = modelData.page
+                            onClicked: window.currentPage = index
                         }
-
-                        Behavior on color { ColorAnimation { duration: 150 } }
                     }
                 }
 
                 Item { Layout.fillHeight: true }
 
-                // ── Bottom controls ──────────────────────
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 1
-                    color: theme.border
+                    color: theme.divider
                 }
 
-                Item { Layout.preferredHeight: theme.space8 }
-
-                // Dark mode toggle
-                Rectangle {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: theme.railItemHeight
-                    radius: theme.radiusControl
-                    color: darkToggleArea.containsMouse
-                        ? (theme.darkMode ? Qt.rgba(1, 1, 1, 0.03) : Qt.rgba(0, 0, 0, 0.02))
-                        : "transparent"
-
-                    Row {
-                        anchors.left: parent.left
-                        anchors.leftMargin: 14
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: theme.space12
-
-                        Label {
-                            text: theme.darkMode ? "☾" : "☀"
-                            color: theme.textSecondary
-                            font.pixelSize: 16
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 20
-                            horizontalAlignment: Text.AlignHCenter
-                        }
-
-                        Label {
-                            text: theme.darkMode ? "Dark" : "Light"
-                            color: theme.textSecondary
-                            font.family: theme.fontText
-                            font.pixelSize: theme.sizeBody
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-                    }
-
-                    MouseArea {
-                        id: darkToggleArea
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: AppController.toggleDarkMode()
-                    }
-
-                    Behavior on color { ColorAnimation { duration: 150 } }
-                }
-
-                // Status pill
-                Rectangle {
+                RowLayout {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 36
+                    spacing: theme.space12
+
+                    Label {
+                        text: theme.darkMode ? "Dark" : "Light"
+                        color: theme.textSecondary
+                        font.family: theme.fontUi
+                        font.pixelSize: theme.sizeHelper
+                    }
+
+                    Item { Layout.fillWidth: true }
+
+                    FlowSwitch {
+                        checked: theme.darkMode
+                        onClicked: AppController.toggleDarkMode()
+                    }
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 38
                     radius: theme.radiusPill
-                    color: theme.darkMode ? Qt.rgba(1, 1, 1, 0.04) : Qt.rgba(0, 0, 0, 0.03)
+                    color: theme.surface
+                    border.width: 1
+                    border.color: theme.border
 
                     Row {
                         anchors.centerIn: parent
@@ -246,82 +239,116 @@ ApplicationWindow {
                             width: 8
                             height: 8
                             radius: 4
-                            anchors.verticalCenter: parent.verticalCenter
-                            color: {
-                                var s = AppController.status
-                                if (s === "ready") return theme.success
-                                if (s === "recording") return theme.warm
-                                if (s === "error") return theme.error
-                                return theme.textTertiary
-                            }
-
-                            SequentialAnimation on opacity {
-                                running: AppController.status === "recording"
-                                loops: Animation.Infinite
-                                NumberAnimation { to: 0.4; duration: 600; easing.type: Easing.InOutSine }
-                                NumberAnimation { to: 1.0; duration: 600; easing.type: Easing.InOutSine }
-                            }
+                            color: window.statusTone()
                         }
 
                         Label {
-                            text: {
-                                var s = AppController.status
-                                if (s === "ready") return "Ready"
-                                if (s === "recording") return "Recording"
-                                if (s === "transcribing") return "Transcribing"
-                                if (s === "cleaning") return "Cleaning"
-                                if (s === "pasting") return "Pasting"
-                                if (s === "starting") return "Starting"
-                                if (s === "error") return "Error"
-                                return s
-                            }
+                            text: window.statusLabel()
                             color: theme.textSecondary
                             font.family: theme.fontUi
                             font.pixelSize: theme.sizeLabel
-                            font.weight: Font.Medium
-                            anchors.verticalCenter: parent.verticalCenter
+                            font.weight: 650
                         }
                     }
                 }
             }
         }
 
-        // ── Content area ─────────────────────────────────
         Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            StackLayout {
+            ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: theme.shellPadding
-                currentIndex: window.currentPage
+                spacing: theme.space20
 
-                HomeView        { Layout.fillWidth: true; Layout.fillHeight: true }
-                ConfigurationView { Layout.fillWidth: true; Layout.fillHeight: true }
-                ModesView       { Layout.fillWidth: true; Layout.fillHeight: true }
-                VocabularyView  { Layout.fillWidth: true; Layout.fillHeight: true }
-                HistoryView     { Layout.fillWidth: true; Layout.fillHeight: true }
-                SoundView       { Layout.fillWidth: true; Layout.fillHeight: true }
-                SettingsView    { Layout.fillWidth: true; Layout.fillHeight: true }
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 76
+                    radius: theme.radiusShell
+                    color: theme.surface
+                    border.width: 1
+                    border.color: theme.border
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: theme.space20
+                        spacing: theme.space16
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 2
+
+                            Label {
+                                text: window.currentPageMeta().title
+                                color: theme.textPrimary
+                                font.family: theme.fontDisplay
+                                font.pixelSize: theme.sizePageTitle
+                                font.weight: 760
+                            }
+
+                            Label {
+                                text: window.currentPageMeta().subtitle
+                                color: theme.textSecondary
+                                font.family: theme.fontText
+                                font.pixelSize: theme.sizeHelper
+                                elide: Text.ElideRight
+                            }
+                        }
+
+                        StatusPill {
+                            text: window.statusLabel()
+                            tone: window.statusTone()
+                        }
+
+                        FlowButton {
+                            label: "Re-paste"
+                            variant: "secondary"
+                            buttonEnabled: AppController.historyItems.length > 0
+                            onClicked: AppController.repasteLastText()
+                        }
+
+                        FlowButton {
+                            label: AppController.status === "recording" ? "Stop Dictation" : "Start Dictation"
+                            variant: "primary"
+                            buttonEnabled: AppController.status !== "starting"
+                            onClicked: AppController.toggleRecording()
+                        }
+                    }
+                }
+
+                StackLayout {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    currentIndex: window.currentPage
+
+                    HomeView { Layout.fillWidth: true; Layout.fillHeight: true }
+                    ConfigurationView { Layout.fillWidth: true; Layout.fillHeight: true }
+                    ModesView { Layout.fillWidth: true; Layout.fillHeight: true }
+                    VocabularyView { Layout.fillWidth: true; Layout.fillHeight: true }
+                    HistoryView { Layout.fillWidth: true; Layout.fillHeight: true }
+                    SoundView { Layout.fillWidth: true; Layout.fillHeight: true }
+                    SettingsView { Layout.fillWidth: true; Layout.fillHeight: true }
+                }
             }
 
-            // ── Toast notification ───────────────────────
             Rectangle {
                 id: toastBanner
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.top
-                anchors.topMargin: window.notificationVisible ? theme.space12 : -60
-                width: Math.min(400, toastLabel.implicitWidth + 40)
-                height: 42
+                anchors.topMargin: window.notificationVisible ? theme.space16 : -72
+                width: Math.min(460, toastLabel.implicitWidth + 42)
+                height: 40
                 radius: theme.radiusPill
                 color: theme.surface
                 border.width: 1
-                border.color: theme.border
+                border.color: window.notificationTone === "error" ? theme.tint(theme.error, 0.28) : theme.border
                 opacity: window.notificationVisible ? 1.0 : 0.0
                 z: 100
 
-                Behavior on anchors.topMargin { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
-                Behavior on opacity { NumberAnimation { duration: 200 } }
+                Behavior on anchors.topMargin { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+                Behavior on opacity { NumberAnimation { duration: 160 } }
 
                 Label {
                     id: toastLabel
@@ -330,13 +357,12 @@ ApplicationWindow {
                     color: theme.textPrimary
                     font.family: theme.fontUi
                     font.pixelSize: theme.sizeBody
-                    font.weight: Font.Medium
+                    font.weight: 600
                 }
             }
         }
     }
 
-    // ── Onboarding modal ─────────────────────────────────
     OnboardingModal {
         anchors.fill: parent
         z: 200

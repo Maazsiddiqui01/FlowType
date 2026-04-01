@@ -9,17 +9,17 @@ Item {
 
     property string title: ""
     property string subtitle: ""
-    property alias trailing: trailingContainer.data
+    property alias trailing: trailingSlot.data
 
-    implicitWidth: parent ? parent.width : headerRow.implicitWidth
-    implicitHeight: headerRow.implicitHeight
+    implicitWidth: headerLayout.implicitWidth
+    implicitHeight: headerLayout.implicitHeight
 
     RowLayout {
-        id: headerRow
+        id: headerLayout
         anchors.fill: parent
         spacing: theme.space16
 
-        Column {
+        ColumnLayout {
             Layout.fillWidth: true
             spacing: theme.space4
 
@@ -28,25 +28,25 @@ Item {
                 color: theme.textPrimary
                 font.family: theme.fontDisplay
                 font.pixelSize: theme.sizeSectionTitle
-                font.weight: Font.DemiBold
+                font.weight: 700
             }
 
             Label {
                 visible: root.subtitle.length > 0
+                Layout.fillWidth: true
                 text: root.subtitle
                 color: theme.textSecondary
                 font.family: theme.fontText
-                font.pixelSize: theme.sizeBody
+                font.pixelSize: theme.sizeHelper
                 wrapMode: Text.WordWrap
-                width: parent.width
             }
         }
 
         Item {
-            id: trailingContainer
-            Layout.alignment: Qt.AlignTop | Qt.AlignRight
-            Layout.preferredHeight: childrenRect.height
+            id: trailingSlot
+            Layout.alignment: Qt.AlignRight | Qt.AlignTop
             Layout.preferredWidth: childrenRect.width
+            Layout.preferredHeight: childrenRect.height
         }
     }
 }

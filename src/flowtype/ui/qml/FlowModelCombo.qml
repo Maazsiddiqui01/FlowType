@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
 
 ComboBox {
     id: root
@@ -7,118 +8,121 @@ ComboBox {
     Theme { id: theme }
 
     property var modelCards: []
-    
-    // Convert cards to strings for the native ComboBox model
+
     model: {
-        var a = []
-        for (var i = 0; i < modelCards.length; i++) {
-            a.push(modelCards[i].label)
-        }
-        return a
+        var items = []
+        for (var i = 0; i < root.modelCards.length; i += 1)
+            items.push(root.modelCards[i].label)
+        return items
     }
 
-    // Helper to get selected ID
-    function selectedIdentifier() {
-        if (root.currentIndex >= 0 && root.currentIndex < modelCards.length) {
-            return modelCards[root.currentIndex].identifier
-        }
-        return ""
-    }
+    width: 280
+    height: theme.controlHeight
 
-    // Helper to set by ID
-    function selectByIdentifier(identifier) {
-        for (var i = 0; i < modelCards.length; i++) {
-            if (modelCards[i].identifier === identifier) {
-                root.currentIndex = i
-                return
+    delegate: ItemDelegate {
+        width: ListView.view ? ListView.view.width : root.width
+        height: 38
+
+        contentItem: RowLayout {
+            anchors.fill: parent
+            anchors.leftMargin: 12
+            anchors.rightMargin: 12
+            spacing: theme.space8
+
+            ProviderBadge {
+                providerId: root.modelCards[index] ? root.modelCards[index].providerId || "" : ""
+                badgeText: root.modelCards[index] ? root.modelCards[index].badge || "" : ""
+                accentColor: theme.textSecondary
+                width: 24
+                height: 24
+                visible: root.modelCards[index] ? ((root.modelCards[index].badge || "").length > 0 || (root.modelCards[index].providerId || "").length > 0) : false
+            }
+
+            Label {
+                Layout.fillWidth: true
+                text: modelData
+                color: root.highlightedIndex === index ? theme.textPrimary : theme.textPrimary
+                font.family: theme.fontUi
+                font.pixelSize: theme.sizeBody
+                elide: Text.ElideRight
+                verticalAlignment: Text.AlignVCenter
             }
         }
-        root.currentIndex = -1
-    }
 
-    width: 240
-    height: theme.controlHeightCompact
-    
-    delegate: ItemDelegate {
-        width: root.width
-        height: 36
-        contentItem: Label {
-            text: modelData
-            color: root.highlightedIndex === index ? theme.primary : theme.textPrimary
-            font.family: theme.fontUi
-            font.pixelSize: theme.sizeBody
-            verticalAlignment: Text.AlignVCenter
-        }
         background: Rectangle {
             color: root.highlightedIndex === index ? theme.surfaceHover : "transparent"
+            radius: theme.radiusControl
         }
     }
 
-    contentItem: Label {
-        text: root.displayText
-        color: theme.textPrimary
-        font.family: theme.fontUi
-        font.pixelSize: theme.sizeBody
-        verticalAlignment: Text.AlignVCenter
-        anchors.left: parent.left
+    contentItem: RowLayout {
+        anchors.fill: parent
         anchors.leftMargin: 12
+        anchors.rightMargin: 34
+        spacing: theme.space8
+
+        ProviderBadge {
+            providerId: root.currentIndex >= 0 && root.currentIndex < root.modelCards.length ? root.modelCards[root.currentIndex].providerId || "" : ""
+            badgeText: root.currentIndex >= 0 && root.currentIndex < root.modelCards.length ? root.modelCards[root.currentIndex].badge || "" : ""
+            accentColor: theme.textSecondary
+            width: 24
+            height: 24
+            visible: root.currentIndex >= 0 && root.currentIndex < root.modelCards.length
+                ? ((root.modelCards[root.currentIndex].badge || "").length > 0 || (root.modelCards[root.currentIndex].providerId || "").length > 0)
+                : false
+        }
+
+        Label {
+            Layout.fillWidth: true
+            text: root.displayText
+            color: theme.textPrimary
+            font.family: theme.fontUi
+            font.pixelSize: theme.sizeBody
+            elide: Text.ElideRight
+            verticalAlignment: Text.AlignVCenter
+        }
+    }
+
+    indicator: Label {
         anchors.right: parent.right
-        anchors.rightMargin: 30
-        elide: Text.ElideRight
+        anchors.rightMargin: 12
+        anchors.verticalCenter: parent.verticalCenter
+        text: popup.visible ? "\u25B4" : "\u25BE"
+        color: theme.textSecondary
+        font.pixelSize: 12
     }
 
     background: Rectangle {
         radius: theme.radiusControl
-        color: mouseArea.containsMouse ? theme.surfaceHover : theme.appBackground
-        border.width: root.popup.visible ? 2 : 1
-        border.color: root.popup.visible ? theme.primary : theme.border
-        
-        Label {
-            anchors.right: parent.right
-            anchors.rightMargin: 12
-            anchors.verticalCenter: parent.verticalCenter
-            text: "▾"
-            color: theme.textSecondary
-            font.pixelSize: 14
-        }
+        color: hoverArea.containsMouse ? theme.surfaceHover : theme.surface
+        border.width: root.popup.visible ? 1 : 1
+        border.color: root.popup.visible ? theme.borderSelected : theme.border
     }
 
     popup: Popup {
-        y: root.height - 1
+        y: root.height + 4
         width: root.width
-        implicitHeight: contentItem.implicitHeight
-        padding: 4
+        padding: 6
 
         contentItem: ListView {
+            implicitHeight: Math.min(contentHeight, 280)
             clip: true
-            implicitHeight: contentHeight
             model: root.popup.visible ? root.delegateModel : null
             currentIndex: root.highlightedIndex
         }
 
         background: Rectangle {
-            color: theme.surface
-            border.color: theme.border
-            border.width: 1
             radius: theme.radiusControl
-            
-            // Drop shadow emulation
-            Rectangle {
-                anchors.fill: parent
-                anchors.margins: -1
-                z: -1
-                color: "transparent"
-                border.width: 1
-                border.color: Qt.rgba(0,0,0,0.1)
-                radius: parent.radius
-            }
+            color: theme.surface
+            border.width: 1
+            border.color: theme.border
         }
     }
-    
+
     MouseArea {
-        id: mouseArea
+        id: hoverArea
         anchors.fill: parent
-        hoverEnabled: true
         acceptedButtons: Qt.NoButton
+        hoverEnabled: true
     }
 }

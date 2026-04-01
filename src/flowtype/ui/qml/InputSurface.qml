@@ -9,9 +9,9 @@ Rectangle {
     property bool errorState: false
 
     radius: theme.radiusControl
-    color: theme.appBackground
-    border.width: root.errorState ? 1 : 1
-    border.color: root.errorState ? theme.error : (inputMouseArea.containsMouse ? theme.borderSelected : theme.border)
+    color: theme.surfaceSubtle
+    border.width: 1
+    border.color: root.errorState ? theme.error : (hoverArea.containsMouse ? theme.borderSelected : theme.border)
 
     Item {
         id: contentRect
@@ -20,11 +20,11 @@ Rectangle {
     }
 
     MouseArea {
-        id: inputMouseArea
+        id: hoverArea
         anchors.fill: parent
-        hoverEnabled: true
         acceptedButtons: Qt.NoButton
+        hoverEnabled: true
     }
 
-    Behavior on border.color { ColorAnimation { duration: 150 } }
+    Behavior on border.color { ColorAnimation { duration: 120 } }
 }

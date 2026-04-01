@@ -85,7 +85,7 @@ def run_ui_mode(
 
     font_family = "Segoe UI Variable Text"
     font_path = _font_asset_path()
-    if font_path is not None:
+    if not QFontDatabase.hasFamily(font_family) and font_path is not None:
         font_id = QFontDatabase.addApplicationFont(str(font_path))
         families = QFontDatabase.applicationFontFamilies(font_id) if font_id >= 0 else []
         if families:
@@ -295,7 +295,7 @@ def run_ui_mode(
         def handle_activation(message: str) -> None:
             normalized = message.strip().lower()
             if normalized == "settings":
-                show_main_window(4)
+                show_main_window(6)
                 return
             if normalized == "show":
                 show_main_window()
@@ -308,7 +308,7 @@ def run_ui_mode(
 
         if not start_hidden:
             if activation_message == "settings":
-                show_main_window(4)
+                show_main_window(6)
             else:
                 show_main_window()
         QTimer.singleShot(0, reposition_hud)

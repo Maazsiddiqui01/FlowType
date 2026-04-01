@@ -6,11 +6,8 @@ Rectangle {
     Theme { id: theme }
 
     property color baseColor: theme.surface
-    property bool prominent: false
-    property color accent: theme.primary
-    property bool showAccentBar: false
-    property bool showOrb: false
     property color borderTone: theme.border
+    property int panelPadding: theme.cardPadding
 
     default property alias panelChildren: contentItem.data
 
@@ -18,25 +15,14 @@ Rectangle {
     color: root.baseColor
     border.width: 1
     border.color: root.borderTone
-    implicitHeight: contentItem.implicitHeight + 2 * theme.cardPadding
-    implicitWidth: 200
-
-    // Top edge highlight for glass effect
-    Rectangle {
-        anchors.top: parent.top
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.topMargin: 1
-        anchors.leftMargin: 1
-        anchors.rightMargin: 1
-        height: 1
-        radius: parent.radius
-        color: theme.glassHighlight
-    }
+    implicitWidth: 240
+    implicitHeight: Math.max(contentItem.childrenRect.height + root.panelPadding * 2, 64)
 
     Item {
         id: contentItem
-        anchors.fill: parent
-        anchors.margins: theme.cardPadding
+        x: root.panelPadding
+        y: root.panelPadding
+        width: root.width - root.panelPadding * 2
+        height: childrenRect.height
     }
 }

@@ -15,6 +15,7 @@ from flowtype.catalog import (
     provider_display_name,
     transcription_language_cards,
 )
+from flowtype import __version__
 from flowtype.config import AppConfig, RECOMMENDED_SHORTCUTS, load_config_data, save_config_data
 from flowtype.history import HistoryEntry, HistoryStore, build_history_entry
 from flowtype.pipeline import DictationPipeline, DictationResult
@@ -295,6 +296,10 @@ class AppController(QObject):
     def historyMaxItems(self) -> int:
         return self._config.history.max_items
 
+    @Property(str, notify=configChanged)
+    def appVersion(self) -> str:
+        return __version__
+
     @Property(bool, notify=configChanged)
     def onboardingVisible(self) -> bool:
         if not self._config.startup.prompt_completed:
@@ -541,6 +546,31 @@ class AppController(QObject):
             data["experience"]["dark_mode"] = new_value
 
         self._persist_config(mutate, "")
+
+    @Slot()
+    def resetOnboarding(self) -> None:
+        def mutate(data: dict) -> None:
+            data.setdefault("startup", {})
+            data.setdefault("experience", {})
+            data["startup"]["prompt_completed"] = False
+            data["experience"]["onboarding_dismissed"] = False
+
+        self._persist_config(mutate, "Setup wizard reset.")
+
+    @Slot()
+    def resetConfig(self) -> None:
+        backup_path: Path | None = self._config.config_path.with_suffix(".backup.toml")
+        try:
+            backup_path.write_text(self._config.config_path.read_text(encoding="utf-8"), encoding="utf-8")
+        except Exception:
+            backup_path = None
+
+        self._persist_config(lambda data: data.clear(), "Configuration restored to defaults.")
+        if backup_path is not None:
+            self._set_notification(
+                f"Configuration restored. Backup saved to {backup_path.name}.",
+                "success",
+            )
 
     @Slot(str)
     def openProviderKeyPage(self, provider: str) -> None:

@@ -10,15 +10,15 @@ Rectangle {
     property string badgeText: ""
     property color accentColor: theme.textSecondary
 
-    width: 40
-    height: 40
+    width: 38
+    height: 38
     radius: 12
-    color: theme.darkMode ? "#161B22" : "#F4F6FB"
+    color: theme.surfaceMuted
     border.width: 1
     border.color: theme.border
 
     function displayText() {
-        if (root.badgeText && root.badgeText.length > 0)
+        if (root.badgeText.length > 0)
             return root.badgeText
         if (root.providerId === "openrouter")
             return "OR"
@@ -41,9 +41,9 @@ Rectangle {
         anchors.centerIn: parent
         text: root.displayText()
         color: root.accentColor
-        font.family: theme.fontDisplay
-        font.pixelSize: 14
-        font.weight: Font.Bold
+        font.family: theme.fontUi
+        font.pixelSize: 11
+        font.weight: 700
         opacity: root.providerId === "none" ? 0.5 : 1.0
     }
 }

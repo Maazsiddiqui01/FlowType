@@ -11,57 +11,39 @@ Rectangle {
     property string value: ""
     property color tone: theme.primary
 
-    height: 96
+    implicitHeight: 116
     radius: theme.radiusCard
-    color: theme.darkMode ? "#0F1219" : "#F8F9FC"
+    color: theme.surface
     border.width: 1
     border.color: theme.border
 
-    // Top highlight
-    Rectangle {
-        anchors.top: parent.top
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.topMargin: 1
-        anchors.leftMargin: 1
-        anchors.rightMargin: 1
-        height: 1
-        radius: parent.radius
-        color: theme.glassHighlight
-    }
-
-    Column {
-        anchors.left: parent.left
-        anchors.top: parent.top
+    ColumnLayout {
+        anchors.fill: parent
         anchors.margins: theme.space16
-        spacing: theme.space4
+        spacing: theme.space12
 
-        Row {
-            spacing: theme.space8
-            
-            Rectangle {
-                width: 8
-                height: 8
-                radius: 4
-                color: root.tone
-                anchors.verticalCenter: parent.verticalCenter
-            }
-            
-            Label {
-                text: root.label
-                color: theme.textSecondary
-                font.family: theme.fontText
-                font.pixelSize: theme.sizeHelper
-                anchors.verticalCenter: parent.verticalCenter
-            }
+        Rectangle {
+            Layout.preferredWidth: 12
+            Layout.preferredHeight: 12
+            radius: 6
+            color: root.tone
         }
 
         Label {
             text: root.value
             color: theme.textPrimary
             font.family: theme.fontDisplay
-            font.pixelSize: 28
-            font.weight: Font.Bold
+            font.pixelSize: theme.sizeMetric
+            font.weight: 760
+        }
+
+        Label {
+            Layout.fillWidth: true
+            text: root.label
+            color: theme.textSecondary
+            font.family: theme.fontText
+            font.pixelSize: theme.sizeHelper
+            wrapMode: Text.WordWrap
         }
     }
 }
