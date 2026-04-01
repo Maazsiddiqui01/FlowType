@@ -21,6 +21,7 @@ def test_load_config_creates_default_file(tmp_path: Path, monkeypatch: pytest.Mo
     assert config.experience.onboarding_dismissed is False
     assert config.experience.close_to_tray is True
     assert config.experience.hud_position == "bottom"
+    assert config.experience.show_idle_hud is False
     assert config.startup.launch_at_login is True
     assert config.startup.start_minimized is True
     assert config.startup.prompt_completed is False

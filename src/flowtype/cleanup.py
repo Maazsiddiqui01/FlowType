@@ -45,10 +45,12 @@ class TextCleaner:
         url = self._endpoint_for_provider()
         headers = self._headers_for_provider()
         payload = self._build_payload(stripped)
+        timeout_seconds = self._effective_timeout_seconds()
+        max_retries = self._effective_max_retries()
 
         attempts = 0
-        with httpx.Client(timeout=self.settings.timeout_seconds) as client:
-            for attempt in range(1, self.settings.max_retries + 1):
+        with httpx.Client(timeout=timeout_seconds) as client:
+            for attempt in range(1, max_retries + 1):
                 attempts = attempt
                 try:
                     response = client.post(url, headers=headers, json=payload)
@@ -67,10 +69,10 @@ class TextCleaner:
                     self.logger.warning(
                         "Cleanup attempt %s/%s failed: %s",
                         attempt,
-                        self.settings.max_retries,
+                        max_retries,
                         exc,
                     )
-                    if attempt >= self.settings.max_retries or not should_retry:
+                    if attempt >= max_retries or not should_retry:
                         break
                     delay = self.settings.retry_backoff_seconds * (2 ** (attempt - 1))
                     time.sleep(delay)
@@ -215,3 +217,13 @@ class TextCleaner:
         if model.startswith("gpt-5"):
             return False
         return True
+
+    def _effective_timeout_seconds(self) -> int:
+        if self.settings.provider == "ollama":
+            return self.settings.timeout_seconds
+        return min(self.settings.timeout_seconds, 8)
+
+    def _effective_max_retries(self) -> int:
+        if self.settings.provider == "ollama":
+            return self.settings.max_retries
+        return max(1, min(self.settings.max_retries, 1))

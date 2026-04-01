@@ -62,8 +62,8 @@ api_key = ""
 model = "openai/gpt-5.4-mini"
 temperature = 0.1
 max_tokens = 1024
-timeout_seconds = 20
-max_retries = 3
+timeout_seconds = 8
+max_retries = 1
 retry_backoff_seconds = 1.0
 min_word_count = 3
 prompt = \"\"\"You clean dictated text.
@@ -81,7 +81,7 @@ restore_clipboard = false
 [experience]
 hud_style = "mini"
 hud_position = "bottom"
-show_idle_hud = true
+show_idle_hud = false
 onboarding_dismissed = false
 close_to_tray = true
 dark_mode = true
@@ -135,8 +135,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "model": "openai/gpt-5.4-mini",
         "temperature": 0.1,
         "max_tokens": 1024,
-        "timeout_seconds": 20,
-        "max_retries": 3,
+        "timeout_seconds": 8,
+        "max_retries": 1,
         "retry_backoff_seconds": 1.0,
         "min_word_count": 3,
         "prompt": (
@@ -156,7 +156,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "experience": {
         "hud_style": "mini",
         "hud_position": "bottom",
-        "show_idle_hud": True,
+        "show_idle_hud": False,
         "onboarding_dismissed": False,
         "close_to_tray": True,
         "dark_mode": True,
@@ -413,7 +413,7 @@ def load_config(explicit_path: str | Path | None = None) -> AppConfig:
     experience = ExperienceConfig(
         hud_style=str(merged.get("experience", {}).get("hud_style", "mini")).strip().lower(),
         hud_position=str(merged.get("experience", {}).get("hud_position", "bottom")).strip().lower(),
-        show_idle_hud=bool(merged.get("experience", {}).get("show_idle_hud", True)),
+        show_idle_hud=bool(merged.get("experience", {}).get("show_idle_hud", False)),
         onboarding_dismissed=bool(merged.get("experience", {}).get("onboarding_dismissed", False)),
         close_to_tray=bool(merged.get("experience", {}).get("close_to_tray", True)),
         dark_mode=bool(merged.get("experience", {}).get("dark_mode", True)),
@@ -601,7 +601,7 @@ def render_config(values: dict[str, Any]) -> str:
         "[experience]",
         f'hud_style = "{_escape_basic_string(str(values.get("experience", {}).get("hud_style", "mini")))}"',
         f'hud_position = "{_escape_basic_string(str(values.get("experience", {}).get("hud_position", "bottom")))}"',
-        f'show_idle_hud = {_toml_bool(values.get("experience", {}).get("show_idle_hud", True))}',
+        f'show_idle_hud = {_toml_bool(values.get("experience", {}).get("show_idle_hud", False))}',
         f'onboarding_dismissed = {_toml_bool(values.get("experience", {}).get("onboarding_dismissed", False))}',
         f'close_to_tray = {_toml_bool(values.get("experience", {}).get("close_to_tray", True))}',
         f'dark_mode = {_toml_bool(values.get("experience", {}).get("dark_mode", True))}',

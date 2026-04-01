@@ -8,7 +8,7 @@ Rectangle {
     Theme { id: theme }
 
     color: Qt.rgba(0, 0, 0, 0.7)
-    visible: !AppController.onboardingDismissed
+    visible: AppController.onboardingVisible
 
     property int step: 0
     property string providerDraft: "openrouter"
@@ -25,6 +25,15 @@ Rectangle {
         modelDraft = providerModels.length > 0 ? providerModels[0].identifier : ""
     }
     onProviderDraftChanged: syncModel()
+    Component.onCompleted: syncModel()
+
+    function modelIndex() {
+        for (var i = 0; i < providerModels.length; i += 1) {
+            if (providerModels[i].identifier === modelDraft)
+                return i
+        }
+        return providerModels.length > 0 ? 0 : -1
+    }
 
     // Block clicks behind
     MouseArea { anchors.fill: parent; onClicked: {} }
@@ -235,6 +244,27 @@ Rectangle {
                     }
                 }
 
+                Column {
+                    width: parent.width
+                    spacing: theme.space8
+                    visible: root.providerDraft !== "none" && root.providerModels.length > 0
+
+                    Label {
+                        text: "Cleanup model"
+                        color: theme.textSecondary
+                        font.family: theme.fontText
+                        font.pixelSize: theme.sizeHelper
+                        font.weight: Font.Medium
+                    }
+
+                    FlowModelCombo {
+                        width: parent.width
+                        modelCards: root.providerModels
+                        currentIndex: root.modelIndex()
+                        onActivated: (index) => root.modelDraft = root.providerModels[index].identifier
+                    }
+                }
+
                 // Language selection
                 Label {
                     text: "Transcription language"
@@ -346,6 +376,7 @@ Rectangle {
                     Repeater {
                         model: [
                             { key: "Provider", val: root.providerDraft === "none" ? "None (local only)" : root.providerDraft },
+                            { key: "Model", val: root.providerDraft === "none" ? "Raw transcript" : (root.modelDraft.length > 0 ? root.modelDraft : "Default") },
                             { key: "Language", val: root.languageDraft === "auto" ? "Auto-detect" : root.languageDraft.toUpperCase() },
                             { key: "API Key", val: root.providerDraft === "none" || root.providerDraft === "ollama" ? "Not required" : (root.apiKeyDraft.length > 0 ? "Configured ✓" : "Not set") }
                         ]
@@ -405,7 +436,7 @@ Rectangle {
                             AppController.completeOnboarding(
                                 root.providerDraft,
                                 root.apiKeyDraft,
-                                root.providerModels.length > 0 ? root.providerModels[0].identifier : root.modelDraft,
+                                root.modelDraft,
                                 root.languageDraft,
                                 true
                             )

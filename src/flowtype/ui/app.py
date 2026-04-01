@@ -247,7 +247,7 @@ def run_ui_mode(
 
         tray = UiTrayController(
             show_window_callback=lambda: show_main_window(),
-            open_settings_callback=lambda: show_main_window(4),
+            open_settings_callback=lambda: show_main_window(6),
             open_app_folder_callback=controller.openAppDirectory,
             open_logs_callback=controller.openLogsDirectory,
             quit_callback=lambda: quit_app(),

@@ -340,6 +340,6 @@ ApplicationWindow {
     OnboardingModal {
         anchors.fill: parent
         z: 200
-        visible: !AppController.onboardingDismissed
+        visible: AppController.onboardingVisible
     }
 }

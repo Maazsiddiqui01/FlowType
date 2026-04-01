@@ -46,9 +46,10 @@ class FakeHttpxModule:
     def __init__(self, responses):
         self._responses = responses
         self.client = None
+        self.timeout = None
 
     def Client(self, timeout):
-        del timeout
+        self.timeout = timeout
         self.client = FakeClient(self._responses)
         return self.client
 
@@ -99,7 +100,7 @@ def test_clean_falls_back_after_failures(monkeypatch) -> None:
 
     assert result.text == "This should fall back to raw text"
     assert result.used_fallback is True
-    assert result.attempts == 3
+    assert result.attempts == 1
 
 
 def test_clean_skips_short_inputs() -> None:
@@ -162,3 +163,17 @@ def test_cleanup_falls_back_when_httpx_runtime_is_missing(monkeypatch) -> None:
     assert result.text == "This should still be returned"
     assert result.used_fallback is True
     assert result.attempts == 0
+
+
+def test_cleanup_caps_cloud_timeout_and_retries(monkeypatch) -> None:
+    settings = replace(build_settings(), timeout_seconds=20, max_retries=3, model="openrouter/free")
+    module = FakeHttpxModule([RuntimeError("boom")])
+    cleaner = TextCleaner(settings, logger=logging.getLogger("test.cleanup"))
+    monkeypatch.setattr(cleaner, "_load_httpx", lambda: module)
+
+    result = cleaner.clean("This should fall back quickly")
+
+    assert module.client is not None
+    assert module.timeout == 8
+    assert module.client.calls == 1
+    assert result.used_fallback is True

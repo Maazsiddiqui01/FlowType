@@ -301,6 +301,10 @@ class AppController(QObject):
             return True
         return (not self._config.experience.onboarding_dismissed) and (not self.cleanupEnabled)
 
+    @Property(bool, notify=configChanged)
+    def onboardingDismissed(self) -> bool:
+        return self._config.experience.onboarding_dismissed
+
     @Property("QVariantList", notify=configChanged)
     def modeCards(self) -> list[dict]:
         cards = []
@@ -584,7 +588,7 @@ class AppController(QObject):
             data["cleanup"]["model"] = model_normalized
             data["transcription"]["language"] = language_normalized
             data["experience"]["hud_style"] = "mini"
-            data["experience"]["show_idle_hud"] = True
+            data["experience"]["show_idle_hud"] = False
             data["experience"]["onboarding_dismissed"] = True
             data["experience"]["close_to_tray"] = True
             data["startup"]["launch_at_login"] = bool(launch_at_login)
@@ -612,7 +616,7 @@ class AppController(QObject):
             data["cleanup"]["api_key"] = ""
             data["cleanup"]["model"] = ""
             data["experience"]["hud_style"] = "mini"
-            data["experience"]["show_idle_hud"] = True
+            data["experience"]["show_idle_hud"] = False
             data["experience"]["onboarding_dismissed"] = True
             data["experience"]["close_to_tray"] = True
             data["startup"]["launch_at_login"] = bool(launch_at_login)

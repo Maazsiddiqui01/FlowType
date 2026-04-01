@@ -9,7 +9,7 @@ Window {
 
     flags: Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowTransparentForInput
     color: "transparent"
-    visible: true
+    visible: shouldShow
 
     property string hudStyle: AppController.hudStyle
     property string hudPosition: AppController.hudPosition

@@ -839,17 +839,32 @@ def cleanup_model_cards(provider: str) -> list[dict[str, object]]:
         return []
 
     cards = []
-    for option in CURATED_MODELS:
+    for index, option in enumerate(CURATED_MODELS):
         if option.provider != provider:
             continue
         family = MODEL_FAMILY_META.get(option.family)
         option_dict = asdict(option)
+        option_dict["_sortIndex"] = index
         option_dict["familyLabel"] = family["label"] if family else option.family.title()
         option_dict["familyBadge"] = family["badge"] if family else option.family[:2].upper()
         option_dict["familyAccent"] = family["accent"] if family else "#5b6b80"
         option_dict["familyBadgeBackground"] = family["badgeBackground"] if family else "#17202a"
         option_dict["familyBadgeForeground"] = family["badgeForeground"] if family else "#e5edf7"
         cards.append(option_dict)
+
+    if provider == "openrouter":
+        preferred_order = {
+            "openai/gpt-5.4-mini": 0,
+            "deepseek/deepseek-v3.2": 1,
+            "google/gemini-3.1-flash-lite-preview": 2,
+            "anthropic/claude-haiku-4.5": 3,
+            "openai/gpt-5.4": 4,
+            "openrouter/free": 99,
+        }
+        cards.sort(key=lambda card: (preferred_order.get(card["identifier"], 50 + card["_sortIndex"]), card["_sortIndex"]))
+
+    for card in cards:
+        card.pop("_sortIndex", None)
     return cards
 
 
