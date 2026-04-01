@@ -245,6 +245,10 @@ class AppController(QObject):
     def closeToTray(self) -> bool:
         return self._config.experience.close_to_tray
 
+    @Property(bool, notify=configChanged)
+    def darkMode(self) -> bool:
+        return self._config.experience.dark_mode
+
     @Property(str, notify=configChanged)
     def whisperModel(self) -> str:
         return self._config.transcription.model_size
@@ -504,6 +508,32 @@ class AppController(QObject):
             data["experience"]["close_to_tray"] = bool(close_to_tray)
 
         self._persist_config(mutate, "Background launch preferences updated.")
+
+    @Slot()
+    def toggleDarkMode(self) -> None:
+        new_value = not self._config.experience.dark_mode
+
+        def mutate(data: dict) -> None:
+            data.setdefault("experience", {})
+            data["experience"]["dark_mode"] = new_value
+
+        self._persist_config(mutate, "")
+
+    @Slot(str)
+    def openProviderKeyPage(self, provider: str) -> None:
+        import webbrowser
+
+        urls = {
+            "openrouter": "https://openrouter.ai/keys",
+            "openai": "https://platform.openai.com/api-keys",
+            "anthropic": "https://console.anthropic.com/settings/keys",
+            "gemini": "https://aistudio.google.com/apikey",
+            "xai": "https://console.x.ai/",
+            "groq": "https://console.groq.com/keys",
+        }
+        url = urls.get(provider.strip().lower(), "")
+        if url:
+            webbrowser.open(url)
 
     @Slot(str, str, str, str, bool)
     def completeOnboarding(

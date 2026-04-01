@@ -84,6 +84,7 @@ hud_position = "bottom"
 show_idle_hud = true
 onboarding_dismissed = false
 close_to_tray = true
+dark_mode = true
 
 [startup]
 launch_at_login = true
@@ -158,6 +159,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "show_idle_hud": True,
         "onboarding_dismissed": False,
         "close_to_tray": True,
+        "dark_mode": True,
     },
     "startup": {
         "launch_at_login": True,
@@ -253,6 +255,7 @@ class ExperienceConfig:
     show_idle_hud: bool
     onboarding_dismissed: bool
     close_to_tray: bool
+    dark_mode: bool
 
 
 @dataclass(slots=True, frozen=True)
@@ -413,6 +416,7 @@ def load_config(explicit_path: str | Path | None = None) -> AppConfig:
         show_idle_hud=bool(merged.get("experience", {}).get("show_idle_hud", True)),
         onboarding_dismissed=bool(merged.get("experience", {}).get("onboarding_dismissed", False)),
         close_to_tray=bool(merged.get("experience", {}).get("close_to_tray", True)),
+        dark_mode=bool(merged.get("experience", {}).get("dark_mode", True)),
     )
     startup = StartupConfig(
         launch_at_login=bool(merged.get("startup", {}).get("launch_at_login", True)),
@@ -600,6 +604,7 @@ def render_config(values: dict[str, Any]) -> str:
         f'show_idle_hud = {_toml_bool(values.get("experience", {}).get("show_idle_hud", True))}',
         f'onboarding_dismissed = {_toml_bool(values.get("experience", {}).get("onboarding_dismissed", False))}',
         f'close_to_tray = {_toml_bool(values.get("experience", {}).get("close_to_tray", True))}',
+        f'dark_mode = {_toml_bool(values.get("experience", {}).get("dark_mode", True))}',
         "",
         "[startup]",
         f'launch_at_login = {_toml_bool(values.get("startup", {}).get("launch_at_login", True))}',

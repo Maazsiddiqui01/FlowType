@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Controls
 import QtQuick.Layouts
 
 Item {
@@ -7,34 +6,60 @@ Item {
 
     Theme { id: theme }
 
+    property string icon: "ℹ️"
     property string title: ""
     property string message: ""
+    property string buttonText: ""
+    
+    signal actionClicked()
 
-    implicitHeight: 84
+    width: parent.width
+    height: Math.max(220, mainCol.implicitHeight + 40)
 
-    ColumnLayout {
+    Column {
+        id: mainCol
         anchors.centerIn: parent
-        width: Math.min(parent.width, 420)
-        spacing: theme.space8
+        spacing: theme.space16
 
         Label {
-            Layout.alignment: Qt.AlignHCenter
-            text: root.title
-            color: theme.textPrimary
-            font.family: theme.fontText
-            font.pixelSize: theme.sizeCardTitle
-            font.weight: 650
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: root.icon
+            font.pixelSize: 42
+            color: theme.textTertiary
+            opacity: 0.6
         }
 
-        Label {
-            Layout.alignment: Qt.AlignHCenter
-            Layout.fillWidth: true
-            horizontalAlignment: Text.AlignHCenter
-            text: root.message
-            color: theme.textSecondary
-            font.family: theme.fontText
-            font.pixelSize: theme.sizeBody
-            wrapMode: Text.WordWrap
+        Column {
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: theme.space4
+            
+            Label {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: root.title
+                color: theme.textSecondary
+                font.family: theme.fontDisplay
+                font.pixelSize: theme.sizeSectionTitle
+                font.weight: Font.DemiBold
+            }
+
+            Label {
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: Math.min(360, root.width - 40)
+                text: root.message
+                color: theme.textTertiary
+                font.family: theme.fontText
+                font.pixelSize: theme.sizeBody
+                wrapMode: Text.WordWrap
+                horizontalAlignment: Text.AlignHCenter
+            }
+        }
+
+        FlowButton {
+            visible: root.buttonText.length > 0
+            anchors.horizontalCenter: parent.horizontalCenter
+            label: root.buttonText
+            variant: "secondary"
+            onClicked: root.actionClicked()
         }
     }
 }

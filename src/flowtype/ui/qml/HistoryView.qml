@@ -9,148 +9,122 @@ Item {
 
     PageScroll {
         anchors.fill: parent
-        maxContentWidth: 1160
-        contentSpacing: theme.sectionGap
+        maxContentWidth: 900
+        contentSpacing: theme.space24
 
+        // ── Header Actions ───────────────────────────────
+        Item {
+            width: parent.width
+            height: headLabel.implicitHeight
+
+            Label {
+                id: headLabel
+                text: "Session History"
+                color: theme.textPrimary
+                font.family: theme.fontDisplay
+                font.pixelSize: theme.sizePageTitle
+                font.weight: Font.Bold
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+            }
+
+            FlowButton {
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                label: "Clear History"
+                variant: "danger"
+                compact: true
+                visible: AppController.historyItems.length > 0
+                onClicked: AppController.clearHistory()
+            }
+        }
+
+        // ── Settings ─────────────────────────────────────
         SectionCard {
             width: parent.width
 
-            SectionHeader {
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: parent.top
-                title: "Recent dictation history"
-                subtitle: "History stays local to this device so you can compare the cleaned output with the raw transcript."
+            FormRow {
+                width: parent.width
+                title: "Keep history between restarts"
+                subtitle: "Locally save your dictations to disk so they persist when FlowType closes."
 
-                trailing: Row {
-                    spacing: theme.space8
-
-                    FlowButton {
-                        label: "Open Config"
-                        variant: "secondary"
-                        onClicked: AppController.openConfigFile()
-                    }
-
-                    FlowButton {
-                        label: "Clear History"
-                        variant: "danger"
-                        onClicked: AppController.clearHistory()
-                    }
+                FlowSwitch {
+                    checked: AppController.historyPersist
+                    onToggled: (checked) => AppController.saveHistorySettings(AppController.historyMaxItems, checked)
                 }
             }
+        }
 
-            Row {
-                anchors.left: parent.left
-                anchors.top: parent.top
-                anchors.topMargin: 74
-                spacing: theme.space8
+        // ── History List ─────────────────────────────────
+        Item {
+            width: parent.width
+            height: Math.max(200, historyCol.implicitHeight)
+
+            EmptyState {
+                visible: AppController.historyItems.length === 0
+                title: "No history yet"
+                message: "Your transcribed texts will appear here. Dictate something to get started."
+            }
+
+            Column {
+                id: historyCol
+                width: parent.width
+                spacing: theme.space12
+                visible: AppController.historyItems.length > 0
 
                 Repeater {
-                    model: [
-                        { "label": "Stored locally", "value": "Yes" },
-                        { "label": "Cleanup provider", "value": AppController.cleanupEnabled ? AppController.providerLabel : "Local only" },
-                        { "label": "Fallback safe", "value": "Enabled" }
-                    ]
+                    model: AppController.historyItems
 
-                    delegate: TokenChip {
-                        label: modelData.label + ": " + modelData.value
-                    }
-                }
-            }
-        }
-
-        EmptyState {
-            visible: AppController.historyItems.length === 0
-            width: parent.width
-            title: "Nothing stored yet"
-            message: "Run one full dictation and the result will appear here."
-        }
-
-        Repeater {
-            model: AppController.historyItems
-
-            delegate: SectionCard {
-                width: parent.width
-                baseColor: theme.surface
-
-                Column {
-                    width: parent.width
-                    spacing: theme.space12
-
-                    RowLayout {
+                    delegate: SurfacePanel {
                         width: parent.width
-                        spacing: theme.space8
+                        baseColor: theme.surface
 
-                        Label {
-                            text: modelData.createdAt
-                            color: theme.textTertiary
-                            font.family: theme.fontUi
-                            font.pixelSize: theme.textLabel
-                        }
+                        Column {
+                            width: parent.width
+                            spacing: theme.space12
 
-                        Item { Layout.fillWidth: true }
+                            RowLayout {
+                                width: parent.width
 
-                        ProviderBadge {
-                            compact: true
-                            providerId: modelData.providerId
-                            badgeBackground: theme.surfaceSubtle
-                        }
+                                Label {
+                                    text: modelData.createdAt
+                                    color: theme.textTertiary
+                                    font.family: theme.fontMono
+                                    font.pixelSize: theme.sizeHelper
+                                    Layout.fillWidth: true
+                                }
+                                
+                                Label {
+                                    text: modelData.wordCount + " words"
+                                    color: theme.textSecondary
+                                    font.family: theme.fontUi
+                                    font.pixelSize: theme.sizeHelper
+                                }
+                            }
 
-                        Label {
-                            text: modelData.provider + " • " + modelData.model
-                            color: theme.textSecondary
-                            font.family: theme.fontUi
-                            font.pixelSize: theme.textLabel
-                        }
-
-                        Label {
-                            text: modelData.wordCount + " words"
-                            color: theme.textTertiary
-                            font.family: theme.fontUi
-                            font.pixelSize: theme.textLabel
-                        }
-                    }
-
-                    Flow {
-                        width: parent.width
-                        spacing: theme.space8
-
-                        TokenChip {
-                            label: modelData.pasted ? "Pasted" : "Clipboard only"
-                        }
-
-                        TokenChip {
-                            label: modelData.usedFallback ? "Raw fallback" : "Cleanup applied"
-                        }
-                    }
-
-                    Label {
-                        width: parent.width
-                        text: modelData.finalText
-                        color: theme.textPrimary
-                        font.family: theme.fontUi
-                        font.pixelSize: theme.textBody
-                        wrapMode: Text.WordWrap
-                    }
-
-                    Rectangle {
-                        visible: modelData.rawText.length > 0 && modelData.rawText !== modelData.finalText
-                        width: parent.width
-                        radius: theme.radiusControl
-                        color: theme.surfaceSubtle
-                        border.width: 1
-                        border.color: theme.divider
-                        implicitHeight: rawLabel.implicitHeight + 24
-
-                        Label {
-                            id: rawLabel
-                            anchors.fill: parent
-                            anchors.margins: 12
-                            text: "Raw transcript: " + modelData.rawText
-                            color: theme.textSecondary
-                            font.family: theme.fontUi
-                            font.pixelSize: theme.textHelper
-                            wrapMode: Text.WordWrap
+                            Label {
+                                width: parent.width
+                                text: modelData.finalText
+                                color: theme.textPrimary
+                                font.family: theme.fontText
+                                font.pixelSize: theme.sizeBody
+                                wrapMode: Text.WordWrap
+                                textFormat: Text.PlainText
+                                lineHeight: 1.4
+                            }
+                            
+                            Rectangle { width: parent.width; height: 1; color: theme.divider; visible: modelData.originalText.length > 0 && modelData.originalText !== modelData.finalText }
+                            
+                            Label {
+                                visible: modelData.originalText.length > 0 && modelData.originalText !== modelData.finalText
+                                width: parent.width
+                                text: "Raw: " + modelData.originalText
+                                color: theme.textTertiary
+                                font.family: theme.fontText
+                                font.pixelSize: theme.sizeHelper
+                                wrapMode: Text.WordWrap
+                                textFormat: Text.PlainText
+                            }
                         }
                     }
                 }

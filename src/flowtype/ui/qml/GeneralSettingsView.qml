@@ -14,7 +14,6 @@ Item {
 
     Connections {
         target: AppController
-
         function onConfigChanged() {
             root.languageDraft = AppController.transcriptionLanguage
             root.launchAtLoginDraft = AppController.launchAtLogin
@@ -25,165 +24,77 @@ Item {
 
     PageScroll {
         anchors.fill: parent
-        maxContentWidth: 1240
+        maxContentWidth: 1060
         contentSpacing: theme.sectionGap
 
-        SectionCard {
+        // ── Header Actions ───────────────────────────────
+        Item {
             width: parent.width
+            height: headLabel.implicitHeight
 
-            SectionHeader {
+            Label {
+                id: headLabel
+                text: "General Settings"
+                color: theme.textPrimary
+                font.family: theme.fontDisplay
+                font.pixelSize: theme.sizePageTitle
+                font.weight: Font.Bold
                 anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: parent.top
-                title: "Shortcuts"
-                subtitle: "Click a row, press the full combination, and FlowType reloads the runtime immediately."
-
-                trailing: FlowButton {
-                    label: "Use Recommended Defaults"
-                    variant: "secondary"
-                    compact: true
-                    onClicked: AppController.restoreRecommendedShortcuts()
-                }
-            }
-
-            Column {
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: parent.top
-                anchors.topMargin: 74
-                spacing: theme.space12
-
-                Repeater {
-                    model: [
-                        { "title": "Push to talk", "detail": "Hold to record and release when done.", "key": "hold_to_talk", "shortcut": AppController.holdToTalk, "requireModifier": true, "idleText": "Click, then press Ctrl + Shift + Space" },
-                        { "title": "Toggle recording", "detail": "Tap once to start and again to stop.", "key": "toggle_recording", "shortcut": AppController.toggleRecordingShortcut, "requireModifier": true, "idleText": "Click, then press a modified shortcut" },
-                        { "title": "Cancel recording", "detail": "Discard the current take immediately.", "key": "cancel_recording", "shortcut": AppController.cancelRecording, "requireModifier": false, "idleText": "Click, then press Esc or a modified key" },
-                        { "title": "Re-paste last", "detail": "Send the most recent cleaned text again.", "key": "repaste_last", "shortcut": AppController.repasteLast, "requireModifier": true, "idleText": "Click, then press a safe modified shortcut" }
-                    ]
-
-                    delegate: FormRow {
-                        width: parent.width
-                        title: modelData.title
-                        detail: modelData.detail
-
-                        ShortcutRecorder {
-                            Layout.preferredWidth: 304
-                            currentShortcut: modelData.shortcut
-                            requireModifier: modelData.requireModifier
-                            idleText: modelData.idleText
-                            onShortcutRecorded: (newShortcut) => AppController.saveShortcut(modelData.key, newShortcut)
-                        }
-
-                        FlowButton {
-                            label: "Clear"
-                            variant: "secondary"
-                            compact: true
-                            buttonEnabled: modelData.shortcut.length > 0
-                            onClicked: AppController.saveShortcut(modelData.key, "")
-                        }
-                    }
-                }
+                anchors.verticalCenter: parent.verticalCenter
             }
         }
 
+        // ── Shortcuts ────────────────────────────────────
         SectionCard {
             width: parent.width
-
-            SectionHeader {
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: parent.top
-                title: "Transcription language"
-                subtitle: "Lock Whisper to one language for better speed and fewer bad guesses."
-
-                trailing: FlowButton {
-                    label: "Save Language"
-                    variant: "success"
-                    onClicked: AppController.saveTranscriptionLanguage(root.languageDraft)
-                }
-            }
-
-            GridLayout {
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: parent.top
-                anchors.topMargin: 74
-                columns: 4
-                columnSpacing: theme.space12
-                rowSpacing: theme.space12
-
-                Repeater {
-                    model: AppController.transcriptionLanguageCards
-
-                    delegate: ChoiceCard {
-                        Layout.fillWidth: true
-                        Layout.minimumWidth: 0
-                        title: modelData.label
-                        subtitle: modelData.summary
-                        selected: root.languageDraft === modelData.code
-                        accent: theme.teal
-                        onClicked: root.languageDraft = modelData.code
-                    }
-                }
-            }
-        }
-
-        SectionCard {
-            width: parent.width
-
-            SectionHeader {
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: parent.top
-                title: "Background behavior"
-                subtitle: "These settings control how FlowType behaves like a normal Windows utility."
-
-                trailing: FlowButton {
-                    label: "Save Background Behavior"
-                    variant: "secondary"
-                    onClicked: AppController.saveStartupSettings(root.launchAtLoginDraft, root.startMinimizedDraft, root.closeToTrayDraft)
-                }
-            }
 
             Column {
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: parent.top
-                anchors.topMargin: 74
-                spacing: theme.space12
+                width: parent.width
+                spacing: theme.space16
+
+                SectionHeader {
+                    title: "Shortcuts"
+                    subtitle: "Click a row, press the full combination to record it. Applies immediately."
+                    
+                    FlowButton {
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        label: "Load Defaults"
+                        variant: "secondary"
+                        compact: true
+                        onClicked: AppController.restoreRecommendedShortcuts()
+                    }
+                }
 
                 Repeater {
                     model: [
-                        {
-                            "title": "Launch at login",
-                            "detail": "Recommended for daily use so global hotkeys are ready right after Windows signs in."
-                        },
-                        {
-                            "title": "Start minimized to tray",
-                            "detail": "When login startup is enabled, open in the tray instead of dropping the full window on screen."
-                        },
-                        {
-                            "title": "Close window to tray",
-                            "detail": "The close button keeps FlowType alive in the background until you quit from the tray menu."
-                        }
+                        { "title": "Push to talk",     "detail": "Hold to record, release to stop.", "key": "hold_to_talk",     "shortcut": AppController.holdToTalk,             "requireModifier": true,  "idleText": "Click here, then press Ctrl + Shift + Space" },
+                        { "title": "Toggle recording", "detail": "Tap once to start, tap again to stop.", "key": "toggle_recording", "shortcut": AppController.toggleRecordingShortcut, "requireModifier": true,  "idleText": "Click here, then press a modifier shortcut" },
+                        { "title": "Cancel recording", "detail": "Discard the current dictation immediately.", "key": "cancel_recording", "shortcut": AppController.cancelRecording,       "requireModifier": false, "idleText": "Click here, then press Esc" },
+                        { "title": "Re-paste last",    "detail": "Send the most recent cleaned text again.", "key": "repaste_last",     "shortcut": AppController.repasteLast,             "requireModifier": true,  "idleText": "Click here..." }
                     ]
 
-                    delegate: FormRow {
+                    delegate: Column {
                         width: parent.width
-                        title: modelData.title
-                        detail: modelData.detail
+                        spacing: theme.space8
 
-                        FlowSwitch {
-                            checked: index === 0
-                                ? root.launchAtLoginDraft
-                                : (index === 1 ? root.startMinimizedDraft : root.closeToTrayDraft)
-                            onToggled: (checked) => {
-                                if (index === 0)
-                                    root.launchAtLoginDraft = checked
-                                else if (index === 1)
-                                    root.startMinimizedDraft = checked
-                                else
-                                    root.closeToTrayDraft = checked
+                        Rectangle { width: parent.width; height: 1; color: theme.divider; visible: index > 0 }
+
+                        FormRow {
+                            width: parent.width
+                            title: modelData.title
+                            subtitle: modelData.detail
+
+                            RowLayout {
+                                spacing: theme.space8
+
+                                ShortcutRecorder {
+                                    Layout.preferredWidth: 320
+                                    shortcut: modelData.shortcut
+                                    actionName: modelData.key
+                                    isRecording: AppController.isRecordingShortcut && AppController.recordingShortcutAction === modelData.key
+                                    onShortcutRecorded: (newShortcut) => AppController.saveShortcut(modelData.key, newShortcut)
+                                }
                             }
                         }
                     }
@@ -191,39 +102,132 @@ Item {
             }
         }
 
+        // ── Transcription Language ───────────────────────
         SectionCard {
             width: parent.width
 
-            SectionHeader {
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: parent.top
-                title: "Local actions"
-                subtitle: "Open the app folder, logs, or config file without leaving FlowType."
+            Column {
+                width: parent.width
+                spacing: theme.space16
+
+                SectionHeader {
+                    title: "Transcription Language"
+                    subtitle: "Locking the model to one language improves transcription speed and reduces hallucinations."
+                }
+
+                GridLayout {
+                    width: parent.width
+                    columns: 4
+                    columnSpacing: theme.space12
+                    rowSpacing: theme.space12
+
+                    Repeater {
+                        model: AppController.transcriptionLanguageCards
+
+                        delegate: ChoiceCard {
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            title: modelData.label
+                            subtitle: modelData.summary
+                            selected: root.languageDraft === modelData.code
+                            accent: theme.teal
+                            onClicked: {
+                                root.languageDraft = modelData.code
+                                AppController.saveTranscriptionLanguage(modelData.code)
+                            }
+                        }
+                    }
+                }
             }
+        }
 
-            Row {
-                anchors.left: parent.left
-                anchors.top: parent.top
-                anchors.topMargin: 74
-                spacing: theme.space8
+        // ── System Behavior ──────────────────────────────
+        SectionCard {
+            width: parent.width
 
-                FlowButton {
-                    label: "Open App Folder"
-                    variant: "secondary"
-                    onClicked: AppController.openAppDirectory()
+            Column {
+                width: parent.width
+                spacing: theme.space16
+
+                SectionHeader {
+                    title: "System Behavior"
+                    subtitle: "Control how FlowType runs in the background."
+                    
+                    FlowButton {
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        label: "Apply"
+                        variant: "secondary"
+                        compact: true
+                        onClicked: AppController.saveStartupSettings(root.launchAtLoginDraft, root.startMinimizedDraft, root.closeToTrayDraft)
+                    }
                 }
 
-                FlowButton {
-                    label: "Open Logs"
-                    variant: "secondary"
-                    onClicked: AppController.openLogsDirectory()
+                Repeater {
+                    model: [
+                        { "title": "Launch at login",       "detail": "Automatically start FlowType when Windows boots up." },
+                        { "title": "Start minimized", "detail": "Open in the system tray instead of showing the main window on launch." },
+                        { "title": "Close to tray",         "detail": "Clicking the window close button minimizes exactly like a system utility." }
+                    ]
+
+                    delegate: Column {
+                        width: parent.width
+                        spacing: theme.space8
+
+                        Rectangle { width: parent.width; height: 1; color: theme.divider; visible: index > 0 }
+
+                        FormRow {
+                            width: parent.width
+                            title: modelData.title
+                            subtitle: modelData.detail
+
+                            FlowSwitch {
+                                checked: index === 0 ? root.launchAtLoginDraft : (index === 1 ? root.startMinimizedDraft : root.closeToTrayDraft)
+                                onClicked: {
+                                    if (index === 0) root.launchAtLoginDraft = checked
+                                    else if (index === 1) root.startMinimizedDraft = checked
+                                    else root.closeToTrayDraft = checked
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── Developer / Data ─────────────────────────────
+        SectionCard {
+            width: parent.width
+
+            Column {
+                width: parent.width
+                spacing: theme.space16
+
+                SectionHeader {
+                    title: "Local Application Data"
+                    subtitle: "Quickly access underlying directories and logs for debugging."
                 }
 
-                FlowButton {
-                    label: "Open Config"
-                    variant: "secondary"
-                    onClicked: AppController.openConfigFile()
+                Row {
+                    spacing: theme.space12
+
+                    FlowButton {
+                        label: "App Data Folder"
+                        variant: "secondary"
+                        onClicked: AppController.openAppDirectory()
+                    }
+
+                    FlowButton {
+                        label: "Log Directory"
+                        variant: "secondary"
+                        onClicked: AppController.openLogsDirectory()
+                    }
+
+                    FlowButton {
+                        label: "Raw Config File"
+                        variant: "secondary"
+                        onClicked: AppController.openConfigFile()
+                    }
                 }
             }
         }

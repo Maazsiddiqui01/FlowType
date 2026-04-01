@@ -5,24 +5,26 @@ Rectangle {
 
     Theme { id: theme }
 
-    property int padding: 12
-    property color borderTone: theme.border
-    property color fill: theme.surface
-    default property alias contentData: contentHost.data
+    default property alias content: contentRect.data
+    property bool errorState: false
 
     radius: theme.radiusControl
-    color: root.fill
-    border.width: 1
-    border.color: root.borderTone
-    implicitHeight: Math.max(theme.controlHeight, contentHost.implicitHeight + (padding * 2))
+    color: theme.appBackground
+    border.width: root.errorState ? 1 : 1
+    border.color: root.errorState ? theme.error : (inputMouseArea.containsMouse ? theme.borderSelected : theme.border)
 
     Item {
-        id: contentHost
-        x: root.padding
-        y: root.padding
-        width: root.width - (root.padding * 2)
-        implicitWidth: childrenRect.width
-        implicitHeight: childrenRect.height
-        height: root.height - (root.padding * 2)
+        id: contentRect
+        anchors.fill: parent
+        anchors.margins: 12
     }
+
+    MouseArea {
+        id: inputMouseArea
+        anchors.fill: parent
+        hoverEnabled: true
+        acceptedButtons: Qt.NoButton
+    }
+
+    Behavior on border.color { ColorAnimation { duration: 150 } }
 }

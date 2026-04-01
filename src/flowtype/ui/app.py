@@ -7,8 +7,8 @@ from pathlib import Path
 from typing import Any, Callable
 
 from PySide6.QtCore import QEvent, QObject, QTimer
-from PySide6.QtGui import QFont, QIcon
 from PySide6.QtQml import QQmlApplicationEngine
+from PySide6.QtGui import QFont, QFontDatabase, QIcon
 from PySide6.QtQuickControls2 import QQuickStyle
 from PySide6.QtWidgets import QApplication
 
@@ -76,6 +76,11 @@ def run_ui_mode(
     app.setOrganizationName(APP_PUBLISHER)
     app.setFont(QFont("Segoe UI Variable Text", 10))
     set_app_user_model_id()
+
+    # Load Inter font dynamically
+    font_path = Path(__file__).resolve().parent / "assets" / "fonts" / "InterVariable.ttf"
+    if font_path.exists():
+        QFontDatabase.addApplicationFont(str(font_path))
 
     icon_path = app_icon_path()
     if icon_path.exists():

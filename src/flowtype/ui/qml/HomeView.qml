@@ -7,365 +7,227 @@ Item {
 
     Theme { id: theme }
 
-    signal navigateRequested(int index)
-
-    function statusTone(value) {
-        if (value === "recording")
-            return theme.warm
-        if (value === "transcribing" || value === "cleaning" || value === "pasting")
-            return theme.primary
-        if (value === "error")
-            return theme.error
-        if (value === "ready")
-            return theme.success
-        return theme.textTertiary
-    }
-
-    function currentWaveMode() {
-        if (AppController.status === "recording")
-            return "recording"
-        if (AppController.status === "transcribing" || AppController.status === "cleaning" || AppController.status === "pasting")
-            return "busy"
-        if (AppController.status === "error")
-            return "error"
-        return "idle"
-    }
-
     PageScroll {
         anchors.fill: parent
-        maxContentWidth: 1240
+        maxContentWidth: 1060
         contentSpacing: theme.sectionGap
 
+        // ── Hero section ─────────────────────────────────
         SectionCard {
             width: parent.width
-            padding: theme.cardPaddingLarge
-            cornerRadius: theme.radiusShell
 
-            RowLayout {
+            Column {
                 width: parent.width
-                spacing: theme.space24
+                spacing: theme.space20
 
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: theme.space16
+                Item { width: 1; height: theme.space8 }
 
-                    Flow {
-                        width: parent.width
-                        spacing: theme.space8
-
-                        Repeater {
-                            model: [
-                                "Local Whisper first",
-                                AppController.cleanupEnabled ? "Cleanup active" : "Cleanup optional",
-                                "Auto paste when ready"
-                            ]
-
-                            delegate: TokenChip {
-                                label: modelData
-                            }
-                        }
-                    }
-
-                    Label {
-                        text: "Dictate, clean, and paste without babysitting the app"
-                        color: theme.textPrimary
-                        font.family: theme.fontDisplay
-                        font.pixelSize: 46
-                        font.weight: Font.Black
-                        wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
-                    }
-
-                    Label {
-                        text: "FlowType keeps transcription local, then uses your selected cleanup provider only when you want punctuation polish, filler removal, and smarter sentence shaping."
-                        color: theme.textSecondary
-                        font.family: theme.fontUi
-                        font.pixelSize: theme.textBody
-                        wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
-                    }
-
-                    RowLayout {
-                        spacing: theme.space8
-
-                        FlowButton {
-                            label: AppController.status === "recording" ? "Finish Dictation" : "Start Dictation"
-                            variant: AppController.status === "recording" ? "danger" : "primary"
-                            accent: theme.primary
-                            onClicked: AppController.toggleRecording()
-                        }
-
-                        FlowButton {
-                            label: "Open Settings"
-                            variant: "secondary"
-                            onClicked: root.navigateRequested(4)
-                        }
-
-                        FlowButton {
-                            label: "Re-paste Last"
-                            variant: "secondary"
-                            onClicked: AppController.repasteLastText()
-                        }
-                    }
-                }
-
-                SectionCard {
-                    Layout.preferredWidth: 330
-                    Layout.alignment: Qt.AlignTop
-                    baseColor: theme.surfaceSubtle
-                    padding: theme.cardPadding
-
-                    Column {
-                        width: parent.width
-                        spacing: theme.space12
-
-                        Label {
-                            text: "Current loop"
-                            color: theme.textPrimary
-                            font.family: theme.fontDisplay
-                            font.pixelSize: theme.sizeSectionTitle
-                            font.weight: Font.Bold
-                        }
-
-                        InfoRow {
-                            width: parent.width
-                            label: "Cleanup"
-                            value: AppController.cleanupEnabled ? AppController.providerLabel : "Local only"
-                        }
-
-                        InfoRow {
-                            width: parent.width
-                            label: "Model"
-                            value: AppController.cleanupEnabled ? AppController.model : "Not active"
-                        }
-
-                        InfoRow {
-                            width: parent.width
-                            label: "Language"
-                            value: AppController.transcriptionLanguageLabel
-                        }
-
-                        InfoRow {
-                            width: parent.width
-                            label: "Shortcut"
-                            value: AppController.holdToTalk.toUpperCase().split("+").join(" + ")
-                        }
-
-                        Rectangle {
-                            width: parent.width
-                            height: 1
-                            color: theme.divider
-                        }
-
-                        RowLayout {
-                            width: parent.width
-                            spacing: theme.space8
-
-                            Rectangle {
-                                width: 8
-                                height: 8
-                                radius: 4
-                                color: root.statusTone(AppController.status)
-                            }
-
-                            Label {
-                                Layout.fillWidth: true
-                                text: AppController.status === "ready" ? "Standing by for your next take" : AppController.detail
-                                color: theme.textPrimary
-                                font.family: theme.fontUi
-                                font.pixelSize: theme.textBody
-                                font.weight: Font.DemiBold
-                                wrapMode: Text.WordWrap
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        RowLayout {
-            width: parent.width
-            spacing: theme.space16
-
-            Repeater {
-                model: AppController.homeStats
-
-                delegate: MetricTile {
-                    Layout.fillWidth: true
-                    Layout.minimumWidth: 0
-                    value: modelData.value
-                    label: modelData.label
-                    tone: modelData.tone
-                }
-            }
-        }
-
-        RowLayout {
-            width: parent.width
-            spacing: theme.space16
-
-            SectionCard {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 220
-
-                SectionHeader {
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    title: "Use it daily without hunting through menus"
-                    subtitle: "The product loop stays simple: dictate, let FlowType clean it if you want, and paste it back exactly where you were working."
-                }
-
+                // Status + greeting
                 Column {
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.topMargin: 76
+                    anchors.horizontalCenter: parent.horizontalCenter
                     spacing: theme.space12
 
-                    Repeater {
-                        model: [
-                            { "tone": theme.primary, "text": "Hold your shortcut for quick dictation, or use a toggle shortcut for longer takes." },
-                            { "tone": theme.teal, "text": "If cleanup is off or fails, FlowType still pastes the raw local transcript immediately." },
-                            { "tone": theme.warm, "text": "Vocabulary and mode rules feed directly into the cleanup prompt when a provider is active." }
-                        ]
-
-                        delegate: RowLayout {
-                            width: parent.width
-                            spacing: theme.space8
-
-                            Rectangle {
-                                width: 8
-                                height: 8
-                                radius: 4
-                                color: modelData.tone
-                                Layout.alignment: Qt.AlignTop
-                                Layout.topMargin: 5
-                            }
-
-                            Label {
-                                Layout.fillWidth: true
-                                text: modelData.text
-                                color: theme.textSecondary
-                                font.family: theme.fontUi
-                                font.pixelSize: theme.textBody
-                                wrapMode: Text.WordWrap
-                            }
+                    Label {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: {
+                            var s = AppController.status
+                            if (s === "recording") return "Listening..."
+                            if (s === "transcribing") return "Transcribing your voice..."
+                            if (s === "cleaning") return "Polishing your text..."
+                            if (s === "pasting") return "Delivering..."
+                            if (s === "error") return "Something went wrong"
+                            return "Ready to dictate"
                         }
+                        color: theme.textPrimary
+                        font.family: theme.fontDisplay
+                        font.pixelSize: theme.sizePageTitle
+                        font.weight: Font.Bold
+                    }
+
+                    Label {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: {
+                            if (AppController.status === "error") return AppController.detail
+                            if (!AppController.cleanupEnabled) return "Local transcription only — no cleanup provider configured"
+                            return "Hold " + (AppController.holdToTalk.length > 0 ? AppController.holdToTalk : "your shortcut") + " to start recording"
+                        }
+                        color: theme.textSecondary
+                        font.family: theme.fontText
+                        font.pixelSize: theme.sizeBody
                     }
                 }
-            }
 
-            SectionCard {
-                Layout.preferredWidth: 328
-                Layout.preferredHeight: 220
-
-                SectionHeader {
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    title: "Live audio preview"
-                    subtitle: "The floating HUD reacts to your microphone while dictation is active."
-                }
-
-                Rectangle {
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.bottom: parent.bottom
-                    height: 88
-                    radius: 24
-                    color: theme.inkDark
-                    border.width: 1
-                    border.color: Qt.rgba(1, 1, 1, 0.08)
+                // Waveform preview
+                Item {
+                    width: parent.width
+                    height: 44
+                    anchors.horizontalCenter: parent.horizontalCenter
 
                     WaveStrip {
                         anchors.centerIn: parent
-                        bars: 14
+                        bars: 16
                         barWidth: 4
                         gap: 4
                         minimumBarHeight: 4
-                        maximumBarHeight: 26
-                        mode: root.currentWaveMode()
+                        maximumBarHeight: 28
                         level: AppController.audioLevel
+                        mode: {
+                            var s = AppController.status
+                            if (s === "recording") return "recording"
+                            if (s === "error") return "error"
+                            if (s === "transcribing" || s === "cleaning" || s === "pasting") return "busy"
+                            return "idle"
+                        }
                     }
                 }
+
+                // Quick info chips
+                Row {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: theme.space8
+
+                    TokenChip {
+                        label: AppController.cleanupEnabled
+                            ? (AppController.providerLabel + " · " + AppController.model)
+                            : "Local only"
+                        tone: AppController.cleanupEnabled ? theme.primary : theme.textTertiary
+                    }
+
+                    TokenChip {
+                        label: AppController.transcriptionLanguageLabel
+                        tone: theme.teal
+                    }
+
+                    TokenChip {
+                        label: AppController.whisperModel
+                        tone: theme.warm
+                    }
+                }
+
+                Item { width: 1; height: theme.space4 }
             }
         }
 
+        // ── Metric tiles ─────────────────────────────────
+        RowLayout {
+            width: parent.width
+            spacing: theme.space12
+
+            MetricTile {
+                Layout.fillWidth: true
+                value: AppController.totalDictations
+                label: "Total dictations"
+                tone: theme.primary
+            }
+
+            MetricTile {
+                Layout.fillWidth: true
+                value: AppController.totalWords
+                label: "Words generated"
+                tone: theme.teal
+            }
+
+            MetricTile {
+                Layout.fillWidth: true
+                value: AppController.avgLatency
+                label: "Avg. latency"
+                tone: theme.warm
+            }
+
+            MetricTile {
+                Layout.fillWidth: true
+                value: AppController.cleanupEnabled ? "On" : "Off"
+                label: "Cleanup status"
+                tone: AppController.cleanupEnabled ? theme.success : theme.textTertiary
+            }
+        }
+
+        // ── Recent output ────────────────────────────────
         SectionCard {
             width: parent.width
+            visible: AppController.historyItems.length > 0
 
             SectionHeader {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: parent.top
-                title: "Recent output"
-                subtitle: "The most recent cleaned or raw dictations appear here so you can sanity-check the output quickly."
-
-                trailing: FlowButton {
-                    label: "Open Full History"
-                    variant: "secondary"
-                    onClicked: root.navigateRequested(3)
-                }
+                title: "Latest output"
+                subtitle: "Your most recent dictation result."
             }
 
             Column {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: parent.top
-                anchors.topMargin: 78
+                anchors.topMargin: 72
                 spacing: theme.space12
 
-                EmptyState {
-                    visible: AppController.historyItems.length === 0
+                Label {
                     width: parent.width
-                    title: "No dictations stored yet"
-                    message: "Start one take and the most recent result will appear here."
+                    text: AppController.historyItems.length > 0
+                        ? AppController.historyItems[0].finalText
+                        : ""
+                    color: theme.textPrimary
+                    font.family: theme.fontText
+                    font.pixelSize: theme.sizeBody
+                    wrapMode: Text.WordWrap
+                    maximumLineCount: 4
+                    elide: Text.ElideRight
                 }
 
-                Repeater {
-                    model: AppController.historyItems
+                Row {
+                    spacing: theme.space8
+                    visible: AppController.historyItems.length > 0
 
-                    delegate: SectionCard {
-                        visible: index < 3
+                    TokenChip {
+                        label: AppController.historyItems[0].createdAt
+                        tone: theme.textTertiary
+                    }
+
+                    TokenChip {
+                        label: AppController.historyItems[0].wordCount + " words"
+                        tone: theme.textTertiary
+                    }
+                }
+            }
+        }
+
+        // ── Alert cards ──────────────────────────────────
+        SectionCard {
+            width: parent.width
+            visible: AppController.needsApiKey
+            baseColor: theme.darkMode ? "#1A1520" : "#FFF8F0"
+
+            RowLayout {
+                width: parent.width
+                spacing: theme.space12
+
+                Rectangle {
+                    width: 6
+                    Layout.fillHeight: true
+                    radius: 3
+                    color: theme.warm
+                }
+
+                Column {
+                    Layout.fillWidth: true
+                    spacing: theme.space4
+
+                    Label {
+                        text: "No API key configured"
+                        color: theme.textPrimary
+                        font.family: theme.fontText
+                        font.pixelSize: theme.sizeCardTitle
+                        font.weight: Font.DemiBold
+                    }
+
+                    Label {
+                        text: "Add your " + AppController.providerLabel + " API key in Cleanup settings to enable text cleanup."
                         width: parent.width
-                        baseColor: theme.surfaceSubtle
-                        padding: theme.cardPadding
-
-                        Column {
-                            width: parent.width
-                            spacing: theme.space8
-
-                            RowLayout {
-                                width: parent.width
-                                spacing: theme.space8
-
-                                Label {
-                                    text: modelData.createdAt
-                                    color: theme.textTertiary
-                                    font.family: theme.fontUi
-                                    font.pixelSize: theme.textLabel
-                                }
-
-                                Item { Layout.fillWidth: true }
-
-                                Label {
-                                    text: modelData.wordCount + " words"
-                                    color: theme.textTertiary
-                                    font.family: theme.fontUi
-                                    font.pixelSize: theme.textLabel
-                                }
-                            }
-
-                            Label {
-                                width: parent.width
-                                text: modelData.finalText
-                                color: theme.textPrimary
-                                font.family: theme.fontUi
-                                font.pixelSize: theme.textBody
-                                wrapMode: Text.WordWrap
-                            }
-                        }
+                        color: theme.textSecondary
+                        font.family: theme.fontText
+                        font.pixelSize: theme.sizeHelper
+                        wrapMode: Text.WordWrap
                     }
                 }
             }

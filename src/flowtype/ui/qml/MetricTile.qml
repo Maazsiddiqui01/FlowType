@@ -1,68 +1,66 @@
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Layouts
 
-SurfacePanel {
+Rectangle {
     id: root
 
     Theme { id: theme }
 
-    property string value: ""
     property string label: ""
-    property color tone: "#7dd3fc"
+    property string value: ""
+    property color tone: theme.primary
 
-    prominent: false
-    accent: tone
-    implicitWidth: 216
-    implicitHeight: 112
-    showAccentBar: false
-    showOrb: false
-    borderTone: theme.border
+    height: 96
+    radius: theme.radiusCard
+    color: theme.darkMode ? "#0F1219" : "#F8F9FC"
+    border.width: 1
+    border.color: theme.border
+
+    // Top highlight
+    Rectangle {
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.topMargin: 1
+        anchors.leftMargin: 1
+        anchors.rightMargin: 1
+        height: 1
+        radius: parent.radius
+        color: theme.glassHighlight
+    }
 
     Column {
-        width: parent.width
-        anchors.fill: parent
-        anchors.margins: theme.cardPadding
-        spacing: theme.space12
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.margins: theme.space16
+        spacing: theme.space4
 
-        Rectangle {
-            width: 34
-            height: 34
-            radius: 11
-            color: Qt.rgba(root.tone.r, root.tone.g, root.tone.b, 0.16)
-            border.width: 1
-            border.color: Qt.rgba(root.tone.r, root.tone.g, root.tone.b, 0.22)
-
+        Row {
+            spacing: theme.space8
+            
             Rectangle {
-                anchors.centerIn: parent
-                width: 12
-                height: 12
-                radius: 6
+                width: 8
+                height: 8
+                radius: 4
                 color: root.tone
+                anchors.verticalCenter: parent.verticalCenter
             }
-        }
-
-        Item {
-            width: 1
-            height: 4
+            
+            Label {
+                text: root.label
+                color: theme.textSecondary
+                font.family: theme.fontText
+                font.pixelSize: theme.sizeHelper
+                anchors.verticalCenter: parent.verticalCenter
+            }
         }
 
         Label {
             text: root.value
             color: theme.textPrimary
             font.family: theme.fontDisplay
-            font.pixelSize: theme.textMetric
-            font.weight: Font.Black
-        }
-
-        Label {
-            text: root.label
-            color: theme.textSecondary
-            font.family: theme.fontUi
-            font.pixelSize: theme.textHelper
-            width: parent.width
-            wrapMode: Text.WordWrap
-            maximumLineCount: 2
-            elide: Text.ElideRight
+            font.pixelSize: 28
+            font.weight: Font.Bold
         }
     }
 }

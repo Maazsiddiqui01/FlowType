@@ -1,122 +1,134 @@
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Layouts
 
 Item {
     id: root
 
     Theme { id: theme }
 
-    property int currentSection: 0
-
-    readonly property var sections: [
-        { "title": "General", "subtitle": "Shortcuts and local behavior" },
-        { "title": "Cleanup", "subtitle": "Providers, models, and paste behavior" },
-        { "title": "Recording", "subtitle": "HUD presentation and timing" }
-    ]
-
-    ColumnLayout {
+    PageScroll {
         anchors.fill: parent
-        spacing: theme.sectionGap
+        maxContentWidth: 900
+        contentSpacing: theme.space24
 
-        SectionCard {
-            Layout.fillWidth: true
-            padding: theme.cardPadding
-
-            RowLayout {
-                width: parent.width
-                spacing: theme.space24
-
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 4
-
-                    Label {
-                        text: "Settings that actually affect daily dictation"
-                        color: theme.textPrimary
-                        font.family: theme.fontDisplay
-                        font.pixelSize: theme.sizeSectionTitle + 8
-                        font.weight: Font.Black
-                    }
-
-                    Label {
-                        text: "Keep the setup lean: shortcuts, cleanup provider, model selection, paste behavior, and recording feel."
-                        color: theme.textSecondary
-                        font.family: theme.fontUi
-                        font.pixelSize: theme.textBody
-                        wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
-                    }
-                }
-
-                StatusPill {
-                    statusText: AppController.status === "ready" ? "Ready" : AppController.status.toUpperCase()
-                    tone: AppController.status === "error"
-                        ? theme.error
-                        : (AppController.status === "recording"
-                            ? theme.warm
-                            : (AppController.status === "ready" ? theme.success : theme.primary))
-                }
-            }
-        }
-
-        Row {
-            Layout.fillWidth: true
-            spacing: theme.space8
-
-            Repeater {
-                model: root.sections
-
-                delegate: Rectangle {
-                    radius: theme.radiusControl
-                    color: root.currentSection === index ? theme.tint(theme.primary, 0.08) : theme.surface
-                    border.width: 1
-                    border.color: root.currentSection === index ? theme.tint(theme.primary, 0.28) : theme.border
-                    implicitWidth: tabLabel.implicitWidth + 26
-                    implicitHeight: theme.controlHeightCompact
-
-                    Label {
-                        id: tabLabel
-                        anchors.centerIn: parent
-                        text: modelData.title
-                        color: root.currentSection === index ? theme.textPrimary : theme.textSecondary
-                        font.family: theme.fontUi
-                        font.pixelSize: theme.textBody
-                        font.weight: Font.DemiBold
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: root.currentSection = index
-                    }
-                }
-            }
-        }
-
+        // ── Header ───────────────────────────────────────
         Item {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
+            width: parent.width
+            height: headLabel.implicitHeight
 
-            StackLayout {
-                id: settingsStack
-                anchors.fill: parent
-                currentIndex: root.currentSection
+            Label {
+                id: headLabel
+                text: "Preferences & About"
+                color: theme.textPrimary
+                font.family: theme.fontDisplay
+                font.pixelSize: theme.sizePageTitle
+                font.weight: Font.Bold
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+            }
+        }
 
-                GeneralSettingsView {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
+        // ── App Settings ─────────────────────────────────
+        SectionCard {
+            width: parent.width
+
+            Column {
+                width: parent.width
+                spacing: theme.space8
+
+                FormRow {
+                    title: "Start Onboarding"
+                    subtitle: "Re-run the first setup wizard to reconfigure connection details."
+
+                    FlowButton {
+                        label: "Relaunch Setup"
+                        variant: "secondary"
+                        onClicked: AppController.resetOnboarding()
+                    }
+                }
+                
+                Rectangle { width: parent.width; height: 1; color: theme.divider }
+                
+                FormRow {
+                    title: "Reset Configuration"
+                    subtitle: "Return to default values. Backup your data first."
+
+                    FlowButton {
+                        label: "Restore Defaults"
+                        variant: "secondary"
+                        onClicked: AppController.resetConfig()
+                    }
+                }
+            }
+        }
+
+        // ── About ────────────────────────────────────────
+        SectionCard {
+            width: parent.width
+
+            Column {
+                width: parent.width
+                spacing: theme.space16
+
+                SectionHeader {
+                    title: "About FlowType"
+                    subtitle: "Open source, fast, localized voice intelligence."
                 }
 
-                ConfigurationView {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                }
+                Row {
+                    spacing: theme.space12
 
-                SoundView {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
+                    Rectangle {
+                        width: 48
+                        height: 48
+                        radius: 8
+                        color: theme.primary
+
+                        Label {
+                            anchors.centerIn: parent
+                            text: "F"
+                            color: "#ffffff"
+                            font.family: theme.fontDisplay
+                            font.pixelSize: 24
+                            font.weight: Font.Bold
+                        }
+                    }
+
+                    Column {
+                        spacing: 2
+                        anchors.verticalCenter: parent.verticalCenter
+
+                        Label {
+                            text: "FlowType v1.0.0-beta"
+                            color: theme.textPrimary
+                            font.family: theme.fontText
+                            font.pixelSize: theme.sizeSectionTitle
+                            font.weight: Font.DemiBold
+                        }
+
+                        Label {
+                            text: "Built with Faster-Whisper and PySide6."
+                            color: theme.textSecondary
+                            font.family: theme.fontText
+                            font.pixelSize: theme.sizeHelper
+                        }
+                    }
+                }
+                
+                Item { width: 1; height: theme.space8 }
+                
+                Row {
+                    spacing: theme.space8
+                    
+                    FlowButton {
+                        label: "View GitHub Source"
+                        variant: "secondary"
+                    }
+                    
+                    FlowButton {
+                        label: "Report Issue"
+                        variant: "secondary"
+                    }
                 }
             }
         }

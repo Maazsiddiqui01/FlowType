@@ -10,87 +10,57 @@ Rectangle {
     property string variant: "secondary"
     property color accent: theme.primary
     property bool compact: false
-    property bool fillWidth: false
-    property bool emphasized: false
     property bool buttonEnabled: true
     signal clicked()
 
-    implicitWidth: fillWidth ? 180 : Math.max(compact ? 92 : 112, buttonLabel.implicitWidth + (compact ? 28 : 34))
-    implicitHeight: compact ? theme.controlHeightCompact : theme.buttonHeight
-    radius: theme.radiusControl
-    scale: root.buttonEnabled && mouseArea.pressed ? 0.986 : 1.0
-    opacity: root.buttonEnabled ? 1.0 : 0.52
+    width: buttonLabel.implicitWidth + (compact ? 24 : 32)
+    height: compact ? theme.controlHeightCompact : theme.buttonHeight
+    radius: compact ? theme.radiusControl : theme.radiusControl
+    opacity: buttonEnabled ? 1.0 : 0.4
 
-    function backgroundColor() {
+    color: {
         if (variant === "primary")
-            return mouseArea.pressed ? Qt.darker(accent, 1.08) : (mouseArea.containsMouse ? Qt.lighter(accent, 1.03) : accent)
+            return buttonMouseArea.containsMouse ? Qt.lighter(root.accent, 1.12) : root.accent
         if (variant === "success")
-            return mouseArea.pressed ? Qt.darker(theme.teal, 1.08) : (mouseArea.containsMouse ? Qt.lighter(theme.teal, 1.03) : theme.teal)
-        if (variant === "warm")
-            return mouseArea.pressed ? Qt.darker(theme.warm, 1.08) : (mouseArea.containsMouse ? Qt.lighter(theme.warm, 1.03) : theme.warm)
+            return buttonMouseArea.containsMouse ? Qt.lighter(theme.teal, 1.12) : theme.teal
         if (variant === "danger")
-            return mouseArea.pressed ? Qt.darker(theme.error, 1.08) : (mouseArea.containsMouse ? Qt.lighter(theme.error, 1.03) : theme.error)
-        if (variant === "neutral")
-            return mouseArea.containsMouse ? theme.surface : theme.surfaceSubtle
-        return mouseArea.containsMouse ? theme.surfaceSubtle : theme.surface
-    }
-
-    function borderTone() {
-        if (variant === "primary")
-            return Qt.darker(accent, 1.04)
-        if (variant === "success")
-            return Qt.darker(theme.teal, 1.04)
+            return buttonMouseArea.containsMouse ? Qt.lighter(theme.error, 1.12) : theme.error
         if (variant === "warm")
-            return Qt.darker(theme.warm, 1.04)
-        if (variant === "danger")
-            return Qt.darker(theme.error, 1.04)
-        if (variant === "neutral")
-            return mouseArea.containsMouse ? theme.border : theme.divider
-        return mouseArea.containsMouse ? theme.textTertiary : theme.border
+            return buttonMouseArea.containsMouse ? Qt.lighter(theme.warm, 1.12) : theme.warm
+        // secondary
+        return buttonMouseArea.containsMouse ? theme.surfaceHover : theme.surface
     }
 
-    function textTone() {
-        return variant === "primary" || variant === "success" || variant === "warm" || variant === "danger"
-            ? "#ffffff"
-            : theme.textPrimary
-    }
-
-    color: backgroundColor()
-    border.width: 1
-    border.color: borderTone()
-
-    Rectangle {
-        visible: variant === "primary" || variant === "success" || variant === "warm" || variant === "danger"
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.margins: 1
-        height: parent.height * 0.46
-        radius: parent.radius - 1
-        color: "#ffffff"
-        opacity: emphasized ? 0.18 : 0.1
-    }
+    border.width: variant === "secondary" ? 1 : 0
+    border.color: variant === "secondary" ? theme.border : "transparent"
 
     Label {
         id: buttonLabel
         anchors.centerIn: parent
         text: root.label
-        color: root.textTone()
-        font.family: theme.fontUi
-        font.pixelSize: compact ? theme.textLabel : theme.textBody
+        color: {
+            if (variant === "secondary") return theme.textPrimary
+            if (variant === "warm") return "#1A1400"
+            return "#FFFFFF"
+        }
+        font.family: theme.fontText
+        font.pixelSize: compact ? theme.sizeLabel : theme.sizeBody
         font.weight: Font.DemiBold
     }
 
     MouseArea {
-        id: mouseArea
+        id: buttonMouseArea
         anchors.fill: parent
-        enabled: root.buttonEnabled
-        hoverEnabled: root.buttonEnabled
+        hoverEnabled: true
         cursorShape: root.buttonEnabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-        onClicked: root.clicked()
+        onClicked: {
+            if (root.buttonEnabled) root.clicked()
+        }
     }
 
-    Behavior on color { ColorAnimation { duration: 140 } }
-    Behavior on border.color { ColorAnimation { duration: 140 } }
-    Behavior on scale { NumberAnimation { duration: 110; easing.type: Easing.OutCubic } }
+    Behavior on color { ColorAnimation { duration: 120 } }
+
+    // subtle scale press effect
+    scale: buttonMouseArea.pressed && root.buttonEnabled ? 0.97 : 1.0
+    Behavior on scale { NumberAnimation { duration: 80; easing.type: Easing.OutQuad } }
 }

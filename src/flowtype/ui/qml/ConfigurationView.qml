@@ -39,23 +39,20 @@ Item {
 
     function selectedModelCard() {
         var index = modelIndex()
-        if (index < 0 || index >= providerModels.length)
-            return null
+        if (index < 0 || index >= providerModels.length) return null
         return providerModels[index]
     }
 
     function selectedProviderCard() {
         var cards = AppController.providerCards
         for (var i = 0; i < cards.length; i += 1) {
-            if (cards[i].identifier === providerDraft)
-                return cards[i]
+            if (cards[i].identifier === providerDraft) return cards[i]
         }
         return null
     }
 
     Connections {
         target: AppController
-
         function onConfigChanged() {
             root.providerDraft = AppController.provider
             root.apiKeyDraft = AppController.apiKey
@@ -71,106 +68,118 @@ Item {
 
     PageScroll {
         anchors.fill: parent
-        maxContentWidth: 1240
+        maxContentWidth: 1060
         contentSpacing: theme.sectionGap
 
-        SectionCard {
+        // ── Header Actions ───────────────────────────────
+        Item {
             width: parent.width
+            height: headLabel.implicitHeight
 
-            SectionHeader {
+            Label {
+                id: headLabel
+                text: "Cleanup Configuration"
+                color: theme.textPrimary
+                font.family: theme.fontDisplay
+                font.pixelSize: theme.sizePageTitle
+                font.weight: Font.Bold
                 anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: parent.top
-                title: "Cleanup provider and model selection"
-                subtitle: "Transcription stays local. Cleanup is optional, uses your own key, and can fall back to the raw transcript automatically."
-
-                trailing: FlowButton {
-                    label: "Save Cleanup"
-                    variant: "primary"
-                    accent: theme.primary
-                    onClicked: AppController.saveCleanupSettings(
-                        root.providerDraft,
-                        root.apiKeyDraft,
-                        root.modelDraft,
-                        root.promptDraft,
-                        root.pasteMethodDraft,
-                        root.restoreClipboardDraft
-                    )
-                }
+                anchors.verticalCenter: parent.verticalCenter
             }
 
-            GridLayout {
-                anchors.left: parent.left
+            FlowButton {
                 anchors.right: parent.right
-                anchors.top: parent.top
-                anchors.topMargin: 76
-                columns: 3
-                columnSpacing: theme.space12
-                rowSpacing: theme.space12
+                anchors.verticalCenter: parent.verticalCenter
+                label: "Save Changes"
+                variant: "primary"
+                accent: theme.primary
+                onClicked: AppController.saveCleanupSettings(
+                    root.providerDraft,
+                    root.apiKeyDraft,
+                    root.modelDraft,
+                    root.promptDraft,
+                    root.pasteMethodDraft,
+                    root.restoreClipboardDraft
+                )
+            }
+        }
 
-                Repeater {
-                    model: AppController.providerCards
+        // ── Provider Selection ───────────────────────────
+        SectionCard {
+            width: parent.width
+            
+            Column {
+                width: parent.width
+                spacing: theme.space16
 
-                    delegate: ChoiceCard {
-                        Layout.fillWidth: true
-                        Layout.minimumWidth: 0
-                        title: modelData.label
-                        subtitle: modelData.summary
-                        badge: modelData.badge
-                        providerId: modelData.identifier
-                        accent: modelData.accent
-                        selected: root.providerDraft === modelData.identifier
-                        onClicked: root.providerDraft = modelData.identifier
+                SectionHeader {
+                    title: "Provider"
+                    subtitle: "Select the API provider to clean and format transcribed text."
+                }
+
+                GridLayout {
+                    width: parent.width
+                    columns: 3
+                    columnSpacing: theme.space12
+                    rowSpacing: theme.space12
+
+                    Repeater {
+                        model: AppController.providerCards
+
+                        delegate: ChoiceCard {
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            title: modelData.label
+                            subtitle: modelData.summary
+                            providerId: modelData.identifier
+                            accent: modelData.accent
+                            selected: root.providerDraft === modelData.identifier
+                            onClicked: root.providerDraft = modelData.identifier
+                        }
                     }
                 }
             }
         }
 
+        // ── Model & API Keys ─────────────────────────────
         RowLayout {
             width: parent.width
             spacing: theme.space16
 
             SectionCard {
                 Layout.fillWidth: true
-
-                SectionHeader {
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    title: root.providerNeedsKey ? "API key" : "Connection"
-                    subtitle: root.providerDraft === "ollama"
-                        ? "FlowType will use the default local Ollama endpoint at http://localhost:11434."
-                        : "A saved key or matching environment variable enables cleanup immediately."
-                }
+                Layout.alignment: Qt.AlignTop
 
                 Column {
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.topMargin: 74
-                    spacing: theme.space12
+                    width: parent.width
+                    spacing: theme.space16
+
+                    SectionHeader {
+                        title: root.providerNeedsKey ? "API Key" : "Connection details"
+                        subtitle: root.providerDraft === "ollama" 
+                            ? "Uses default localhost:11434" 
+                            : "Enter your private key for this provider."
+                    }
 
                     InputSurface {
                         width: parent.width
-                        height: 52
+                        height: 48
 
                         RowLayout {
                             anchors.fill: parent
-                            spacing: theme.space12
+                            spacing: theme.space8
 
                             TextField {
                                 Layout.fillWidth: true
                                 text: root.apiKeyDraft
                                 color: theme.textPrimary
                                 echoMode: root.showApiKey ? TextInput.Normal : TextInput.Password
-                                placeholderText: root.providerDraft === "none"
-                                    ? "No key needed for local-only mode"
-                                    : (root.providerDraft === "ollama"
-                                        ? "No API key required for a local Ollama instance"
-                                        : "Paste your " + (root.selectedProviderCard() === null ? "provider" : root.selectedProviderCard().label) + " API key")
+                                placeholderText: root.providerDraft === "none" || root.providerDraft === "ollama"
+                                    ? "Not required"
+                                    : "Paste your API key here..."
                                 placeholderTextColor: theme.textTertiary
                                 font.family: theme.fontUi
-                                font.pixelSize: theme.textBody
+                                font.pixelSize: theme.sizeBody
                                 background: null
                                 readOnly: !root.providerNeedsKey
                                 onTextChanged: root.apiKeyDraft = text
@@ -186,169 +195,95 @@ Item {
                         }
                     }
 
-                    Label {
-                        visible: root.providerDraft === "gemini"
-                        width: parent.width
-                        text: "Gemini also supports GEMINI_API_KEY or GOOGLE_API_KEY as an environment fallback."
-                        color: theme.textSecondary
-                        font.family: theme.fontUi
-                        font.pixelSize: theme.textHelper
-                        wrapMode: Text.WordWrap
+                    Row {
+                        spacing: theme.space8
+                        visible: root.providerNeedsKey
+
+                        Label {
+                            text: "Don't have one?"
+                            color: theme.textSecondary
+                            font.family: theme.fontText
+                            font.pixelSize: theme.sizeHelper
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+
+                        Label {
+                            text: "Get a " + (root.selectedProviderCard() !== null ? root.selectedProviderCard().label : "provider") + " key"
+                            color: theme.primary
+                            font.family: theme.fontText
+                            font.pixelSize: theme.sizeHelper
+                            font.weight: Font.DemiBold
+                            anchors.verticalCenter: parent.verticalCenter
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: AppController.openProviderKeyPage(root.providerDraft)
+                            }
+                        }
                     }
                 }
             }
-
-            SectionCard {
-                Layout.preferredWidth: 360
-
-                SectionHeader {
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    title: "Cleanup model"
-                    subtitle: root.providerDraft === "openrouter"
-                        ? "Shows maintained current free and paid picks."
-                        : "Use the maintained current model list for this provider."
-                }
-
-                Column {
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.topMargin: 74
-                    spacing: theme.space12
-
-                    FlowModelCombo {
-                        width: parent.width
-                        model: root.providerModels
-                        currentIndex: root.modelIndex()
-                        selectedCard: root.selectedModelCard()
-                        placeholderText: "Select a model"
-                        onOptionPicked: (index) => root.modelDraft = root.providerModels[index].identifier
-                    }
-
-                    Label {
-                        width: parent.width
-                        visible: root.providerModels.length === 0
-                        text: "No curated model list for this provider yet. Use a manual model ID below."
-                        color: theme.textTertiary
-                        font.family: theme.fontUi
-                        font.pixelSize: theme.textHelper
-                        wrapMode: Text.WordWrap
-                    }
-
-                    Label {
-                        width: parent.width
-                        visible: root.providerModels.length > 0
-                        text: "Use Custom model ID below for any exact model not shown here."
-                        color: theme.textSecondary
-                        font.family: theme.fontUi
-                        font.pixelSize: theme.textHelper
-                        wrapMode: Text.WordWrap
-                    }
-                }
-            }
-        }
-
-        RowLayout {
-            width: parent.width
-            spacing: theme.space16
-            visible: root.providerDraft !== "none"
 
             SectionCard {
                 Layout.fillWidth: true
+                Layout.alignment: Qt.AlignTop
 
-                SectionHeader {
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    title: "Custom model ID"
-                    subtitle: "Optional override if you know the exact model identifier."
-                }
+                Column {
+                    width: parent.width
+                    spacing: theme.space16
 
-                InputSurface {
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.topMargin: 74
-                    height: 52
-
-                    TextField {
-                        anchors.fill: parent
-                        text: root.modelDraft
-                        color: theme.textPrimary
-                        placeholderText: "e.g. openai/gpt-4.1-mini or deepseek/deepseek-r1-0528"
-                        placeholderTextColor: theme.textTertiary
-                        font.family: theme.fontUi
-                        font.pixelSize: theme.textBody
-                        background: null
-                        onTextChanged: root.modelDraft = text
-                    }
-                }
-            }
-
-            SectionCard {
-                Layout.preferredWidth: 340
-
-                SectionHeader {
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    title: "Paste behavior"
-                    subtitle: "Choose whether FlowType pastes immediately or only copies to the clipboard."
-                }
-
-                Row {
-                    anchors.left: parent.left
-                    anchors.top: parent.top
-                    anchors.topMargin: 74
-                    spacing: theme.space8
-
-                    ChoiceCard {
-                        width: 148
-                        compact: true
-                        hideChevron: true
-                        title: "Paste into app"
-                        selected: root.pasteMethodDraft === "ctrl_v"
-                        accent: theme.primary
-                        onClicked: root.pasteMethodDraft = "ctrl_v"
+                    SectionHeader {
+                        title: "Cleanup Model"
+                        subtitle: "Select the specific language model version to use."
                     }
 
-                    ChoiceCard {
-                        width: 136
-                        compact: true
-                        hideChevron: true
-                        title: "Clipboard only"
-                        selected: root.pasteMethodDraft === "clipboard_only"
-                        accent: theme.primary
-                        onClicked: root.pasteMethodDraft = "clipboard_only"
+                    FlowModelCombo {
+                        width: parent.width
+                        modelCards: root.providerModels
+                        currentIndex: root.modelIndex()
+                        onActivated: (index) => root.modelDraft = root.providerModels[index].identifier
+                    }
+                    
+                    // Fallback specific custom text entry if the list is missing/empty
+                    InputSurface {
+                        width: parent.width
+                        height: 48
+                        visible: root.providerDraft !== "none" && root.providerModels.length === 0
+                        
+                        TextField {
+                            anchors.fill: parent
+                            text: root.modelDraft
+                            color: theme.textPrimary
+                            placeholderText: "e.g. gpt-4o-mini"
+                            placeholderTextColor: theme.textTertiary
+                            font.family: theme.fontUi
+                            font.pixelSize: theme.sizeBody
+                            background: null
+                            onTextChanged: root.modelDraft = text
+                        }
                     }
                 }
             }
         }
 
+        // ── Prompts and behavior ─────────────────────────
         SectionCard {
             width: parent.width
 
-            SectionHeader {
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: parent.top
-                title: "Cleanup prompt"
-                subtitle: "This prompt is combined with the active mode and your vocabulary. Keep it short and focused on cleanup behavior."
-            }
-
             Column {
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: parent.top
-                anchors.topMargin: 74
-                spacing: theme.space12
+                width: parent.width
+                spacing: theme.space16
+
+                SectionHeader {
+                    title: "Base Instructions"
+                    subtitle: "This is the core prompt applied to every dictation. Use modes (presets) for specific workflow tweaks instead of changing this often."
+                }
 
                 Rectangle {
                     width: parent.width
-                    height: 188
-                    radius: theme.radiusCard
+                    height: 180
+                    radius: theme.radiusControl
                     color: theme.surfaceSubtle
                     border.width: 1
                     border.color: theme.border
@@ -360,22 +295,53 @@ Item {
                         color: theme.textPrimary
                         wrapMode: TextEdit.Wrap
                         font.family: theme.fontUi
-                        font.pixelSize: theme.textBody
+                        font.pixelSize: theme.sizeBody
                         background: null
-                        placeholderText: "Return only the cleaned dictated text. Remove filler words when they are verbal fillers. Fix punctuation and grammar without changing meaning."
-                        placeholderTextColor: theme.textTertiary
                         onTextChanged: root.promptDraft = text
                     }
                 }
+            }
+        }
+
+        SectionCard {
+            width: parent.width
+
+            Column {
+                width: parent.width
+                spacing: theme.space8
 
                 FormRow {
-                    width: parent.width
-                    title: "Restore clipboard after paste"
-                    detail: "Turn this on if you want FlowType to restore the previous clipboard contents after auto-paste."
+                    title: "Action after cleanup"
+                    subtitle: "Choose if the app should immediately paste or only copy."
+
+                    Row {
+                        spacing: 8
+                        FlowButton {
+                            label: "Type out (Ctrl+V)"
+                            compact: true
+                            variant: root.pasteMethodDraft === "ctrl_v" ? "primary" : "secondary"
+                            // accent: theme.teal
+                            onClicked: root.pasteMethodDraft = "ctrl_v"
+                        }
+                        FlowButton {
+                            label: "Clipboard only"
+                            compact: true
+                            variant: root.pasteMethodDraft === "clipboard_only" ? "primary" : "secondary"
+                            // accent: theme.teal
+                            onClicked: root.pasteMethodDraft = "clipboard_only"
+                        }
+                    }
+                }
+                
+                Rectangle { width: parent.width; height: 1; color: theme.divider }
+
+                FormRow {
+                    title: "Restore prior clipboard"
+                    subtitle: "Revert the clipboard contents back to what it was before your dictation paste occurred."
 
                     FlowSwitch {
                         checked: root.restoreClipboardDraft
-                        onToggled: root.restoreClipboardDraft = checked
+                        onClicked: root.restoreClipboardDraft = checked
                     }
                 }
             }

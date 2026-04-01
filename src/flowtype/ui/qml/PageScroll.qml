@@ -1,34 +1,36 @@
 import QtQuick
 import QtQuick.Controls
 
-ScrollView {
+Flickable {
     id: root
-
+    
     Theme { id: theme }
-
-    property int maxContentWidth: 1160
-    property int contentSpacing: theme.sectionGap
-    property int contentLeftMargin: 0
-    default property alias pageChildren: contentColumn.data
-
+    
+    default property alias content: contentLayout.data
+    property int maxContentWidth: 900
+    property int contentSpacing: theme.space24
+    
+    contentWidth: width
+    contentHeight: contentLayout.height + theme.shellPadding * 2
     clip: true
-    contentWidth: availableWidth
-    contentHeight: container.height
+    boundsBehavior: Flickable.StopAtBounds
 
-    Item {
-        id: container
-        width: root.availableWidth
-        height: contentColumn.implicitHeight
-
-        Column {
-            id: contentColumn
-            width: Math.min(Math.max(0, root.availableWidth - root.contentLeftMargin), root.maxContentWidth)
-            anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.leftMargin: root.contentLeftMargin
-            spacing: root.contentSpacing
+    // Desktop style custom scrollbar
+    ScrollBar.vertical: ScrollBar {
+        policy: ScrollBar.AsNeeded
+        width: 8
+        contentItem: Rectangle {
+            radius: 4
+            color: theme.darkMode ? Qt.rgba(1,1,1,0.15) : Qt.rgba(0,0,0,0.15)
         }
     }
 
-    ScrollBar.vertical.policy: ScrollBar.AsNeeded
+    Column {
+        id: contentLayout
+        width: Math.min(parent.width - theme.shellPadding * 2, root.maxContentWidth)
+        anchors.top: parent.top
+        anchors.topMargin: theme.shellPadding
+        anchors.horizontalCenter: parent.horizontalCenter
+        spacing: root.contentSpacing
+    }
 }

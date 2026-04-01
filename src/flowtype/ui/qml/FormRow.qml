@@ -1,54 +1,46 @@
 import QtQuick
-import QtQuick.Controls
 import QtQuick.Layouts
 
-Rectangle {
+RowLayout {
     id: root
-
+    
     Theme { id: theme }
-
+    
     property string title: ""
-    property string detail: ""
-    default property alias controls: controlHost.data
-
-    radius: theme.radiusCard
-    color: theme.surface
-    border.width: 1
-    border.color: theme.border
-    implicitHeight: Math.max(72, row.implicitHeight + 24)
-
-    RowLayout {
-        id: row
-        anchors.fill: parent
-        anchors.margins: theme.space16
-        spacing: theme.space16
-
-        ColumnLayout {
-            Layout.fillWidth: true
-            spacing: theme.space4
-
-            Label {
-                text: root.title
-                color: theme.textPrimary
-                font.family: theme.fontText
-                font.pixelSize: theme.sizeCardTitle
-                font.weight: 650
-            }
-
-            Label {
-                visible: root.detail.length > 0
-                text: root.detail
-                color: theme.textSecondary
-                font.family: theme.fontText
-                font.pixelSize: theme.sizeHelper
-                wrapMode: Text.WordWrap
-                Layout.fillWidth: true
-            }
+    property string subtitle: ""
+    default property alias content: controlContainer.data
+    
+    spacing: theme.space16
+    
+    Column {
+        Layout.fillWidth: true
+        spacing: theme.space4
+        
+        Label {
+            text: root.title
+            color: theme.textPrimary
+            font.family: theme.fontText
+            font.pixelSize: theme.sizeCardTitle
+            font.weight: Font.DemiBold
+            elide: Text.ElideRight
+            width: parent.width
         }
-
-        RowLayout {
-            id: controlHost
-            spacing: theme.space8
+        
+        Label {
+            visible: root.subtitle.length > 0
+            text: root.subtitle
+            color: theme.textSecondary
+            font.family: theme.fontText
+            font.pixelSize: theme.sizeHelper
+            wrapMode: Text.WordWrap
+            width: parent.width
         }
+    }
+    
+    Item {
+        id: controlContainer
+        Layout.minimumWidth: Math.max(160, childrenRect.width)
+        Layout.preferredHeight: childrenRect.height
+        Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
     }
 }
