@@ -498,6 +498,7 @@ class AppController(QObject):
             data["experience"]["hud_style"] = hud_style.strip().lower() or "classic"
             data["experience"]["hud_position"] = hud_position.strip().lower() or "bottom"
             data["experience"]["show_idle_hud"] = bool(show_idle_hud)
+            data["experience"]["idle_hud_user_set"] = True
             data["audio"]["min_duration_ms"] = int(min_duration_ms)
             data["audio"]["max_duration_seconds"] = int(max_duration_seconds)
             data["output"]["paste_delay_ms"] = int(paste_delay_ms)
@@ -511,6 +512,7 @@ class AppController(QObject):
             data["experience"]["hud_style"] = hud_style.strip().lower() or "mini"
             data["experience"]["hud_position"] = hud_position.strip().lower() or "bottom"
             data["experience"]["show_idle_hud"] = bool(show_idle_hud)
+            data["experience"]["idle_hud_user_set"] = True
 
         self._persist_config(mutate, "HUD placement updated.")
 
@@ -619,6 +621,7 @@ class AppController(QObject):
             data["transcription"]["language"] = language_normalized
             data["experience"]["hud_style"] = "mini"
             data["experience"]["show_idle_hud"] = False
+            data["experience"]["idle_hud_user_set"] = False
             data["experience"]["onboarding_dismissed"] = True
             data["experience"]["close_to_tray"] = True
             data["startup"]["launch_at_login"] = bool(launch_at_login)
@@ -647,6 +650,7 @@ class AppController(QObject):
             data["cleanup"]["model"] = ""
             data["experience"]["hud_style"] = "mini"
             data["experience"]["show_idle_hud"] = False
+            data["experience"]["idle_hud_user_set"] = False
             data["experience"]["onboarding_dismissed"] = True
             data["experience"]["close_to_tray"] = True
             data["startup"]["launch_at_login"] = bool(launch_at_login)

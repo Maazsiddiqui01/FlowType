@@ -82,6 +82,7 @@ restore_clipboard = false
 hud_style = "mini"
 hud_position = "bottom"
 show_idle_hud = false
+idle_hud_user_set = false
 onboarding_dismissed = false
 close_to_tray = true
 dark_mode = true
@@ -157,6 +158,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "hud_style": "mini",
         "hud_position": "bottom",
         "show_idle_hud": False,
+        "idle_hud_user_set": False,
         "onboarding_dismissed": False,
         "close_to_tray": True,
         "dark_mode": True,
@@ -253,6 +255,7 @@ class ExperienceConfig:
     hud_style: str
     hud_position: str
     show_idle_hud: bool
+    idle_hud_user_set: bool
     onboarding_dismissed: bool
     close_to_tray: bool
     dark_mode: bool
@@ -330,6 +333,9 @@ def load_config_data(explicit_path: str | Path | None = None) -> tuple[Path, dic
     raw_config = copy.deepcopy(DEFAULT_CONFIG)
     loaded = tomllib.loads(config_path.read_text(encoding="utf-8"))
     merged = deep_merge(raw_config, loaded)
+    experience = merged.setdefault("experience", {})
+    if not bool(experience.get("idle_hud_user_set", False)):
+        experience["show_idle_hud"] = False
     return config_path, merged
 
 
@@ -414,6 +420,7 @@ def load_config(explicit_path: str | Path | None = None) -> AppConfig:
         hud_style=str(merged.get("experience", {}).get("hud_style", "mini")).strip().lower(),
         hud_position=str(merged.get("experience", {}).get("hud_position", "bottom")).strip().lower(),
         show_idle_hud=bool(merged.get("experience", {}).get("show_idle_hud", False)),
+        idle_hud_user_set=bool(merged.get("experience", {}).get("idle_hud_user_set", False)),
         onboarding_dismissed=bool(merged.get("experience", {}).get("onboarding_dismissed", False)),
         close_to_tray=bool(merged.get("experience", {}).get("close_to_tray", True)),
         dark_mode=bool(merged.get("experience", {}).get("dark_mode", True)),
@@ -602,6 +609,7 @@ def render_config(values: dict[str, Any]) -> str:
         f'hud_style = "{_escape_basic_string(str(values.get("experience", {}).get("hud_style", "mini")))}"',
         f'hud_position = "{_escape_basic_string(str(values.get("experience", {}).get("hud_position", "bottom")))}"',
         f'show_idle_hud = {_toml_bool(values.get("experience", {}).get("show_idle_hud", False))}',
+        f'idle_hud_user_set = {_toml_bool(values.get("experience", {}).get("idle_hud_user_set", False))}',
         f'onboarding_dismissed = {_toml_bool(values.get("experience", {}).get("onboarding_dismissed", False))}',
         f'close_to_tray = {_toml_bool(values.get("experience", {}).get("close_to_tray", True))}',
         f'dark_mode = {_toml_bool(values.get("experience", {}).get("dark_mode", True))}',
