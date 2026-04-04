@@ -15,7 +15,7 @@ from PySide6.QtWidgets import QApplication
 from flowtype.audio import AudioRecorder
 from flowtype.branding import APP_DISPLAY_NAME, APP_PUBLISHER, app_icon_path
 from flowtype.cleanup import TextCleaner
-from flowtype.config import AppConfig, load_config
+from flowtype.config import AppConfig, load_config, load_config_data, save_config_data
 from flowtype.output import OutputDelivery
 from flowtype.pipeline import DictationPipeline
 from flowtype.startup import sync_launch_at_login
@@ -126,10 +126,31 @@ def run_ui_mode(
                 output=OutputDelivery(config_.output, logger=parent_logger.getChild("output")),
             )
 
-        def start_background_warmup_for(components_: Any) -> None:
+        def apply_transcriber_runtime_fallbacks(transcriber: Any, config_path: Path) -> None:
+            notice = getattr(transcriber, "consume_runtime_notice", lambda: "")()
+            if notice:
+                parent_logger.warning(notice)
+                controller.pipeline_notification_callback(notice, "info")
+
+            consume = getattr(transcriber, "consume_persist_cpu_requested", None)
+            if consume is None or not consume():
+                return
+            try:
+                loaded_path, data = load_config_data(config_path)
+                data.setdefault("transcription", {})
+                if str(data["transcription"].get("device", "auto")).strip().lower() == "auto":
+                    data["transcription"]["device"] = "cpu"
+                    data["transcription"]["compute_type"] = "int8"
+                    save_config_data(loaded_path, data)
+                    parent_logger.warning("Persisted CPU transcription fallback after warm-up inference failure")
+            except Exception as exc:
+                parent_logger.exception("Failed to persist CPU fallback after warm-up: %s", exc)
+
+        def start_background_warmup_for(config_path_: Path, components_: Any) -> None:
             def warm_up() -> None:
                 try:
                     components_.transcriber.warm_up()
+                    apply_transcriber_runtime_fallbacks(components_.transcriber, config_path_)
                     parent_logger.info(
                         "Transcriber warm-up finished using device=%s compute_type=%s",
                         components_.transcriber.used_device or "unknown",
@@ -181,7 +202,7 @@ def run_ui_mode(
                 old_pipeline.stop()
 
             sync_launch_at_login(new_config)
-            start_background_warmup_for(new_components)
+            start_background_warmup_for(new_config.config_path, new_components)
             new_pipeline.start()
             return new_config, new_pipeline
 

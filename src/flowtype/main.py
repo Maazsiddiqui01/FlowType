@@ -11,7 +11,7 @@ import sys
 
 from flowtype.audio import AudioRecorder
 from flowtype.cleanup import TextCleaner
-from flowtype.config import AppConfig, load_config
+from flowtype.config import AppConfig, load_config, load_config_data, save_config_data
 from flowtype.logger import configure_logging
 from flowtype.output import OutputDelivery
 from flowtype.pipeline import DictationPipeline
@@ -77,7 +77,7 @@ class FlowTypeRuntime:
             pipeline.start()
             self._pipeline_active = True
         sync_launch_at_login(self.config)
-        start_background_warmup(self.components.transcriber, self.logger)
+        start_background_warmup(self.components.transcriber, self.logger, self.config.config_path)
         self._start_config_watcher()
         if self._needs_onboarding() and not self._onboarding_prompted:
             self._onboarding_prompted = True
@@ -130,7 +130,7 @@ class FlowTypeRuntime:
             new_pipeline.start()
             self.tray.set_status("ready", "Settings reloaded")
 
-        start_background_warmup(new_components.transcriber, self.logger)
+        start_background_warmup(new_components.transcriber, self.logger, new_config.config_path)
 
     def _build_pipeline(self, config: AppConfig, components: RuntimeComponents) -> DictationPipeline:
         return DictationPipeline(
@@ -182,6 +182,7 @@ def cli(argv: list[str] | None = None) -> int:
 
     if args.warmup_only:
         transcriber.warm_up()
+        _apply_transcriber_runtime_fallbacks(transcriber, logger, config.config_path)
         logger.info(
             "Warm-up finished using device=%s compute_type=%s",
             transcriber.used_device or "unknown",
@@ -197,7 +198,7 @@ def cli(argv: list[str] | None = None) -> int:
         config,
         logger,
         components,
-        lambda: start_background_warmup(transcriber, logger),
+        lambda: start_background_warmup(transcriber, logger, config.config_path),
         start_hidden=bool(args.background and not args.settings),
         activation_message=activation_message,
     )
@@ -227,7 +228,7 @@ def run_console_mode(config: AppConfig, logger: logging.Logger) -> int:
     if config.cleanup.provider != "none" and not config.cleanup.api_key:
         launch_ui_process(config.config_path, settings=True)
 
-    start_background_warmup(components.transcriber, logger)
+    start_background_warmup(components.transcriber, logger, config.config_path)
     pipeline.start()
     logger.info("Console mode started; press Ctrl+C to exit")
     try:
@@ -255,10 +256,11 @@ def log_runtime_config(config: AppConfig, logger: logging.Logger) -> None:
         logger.warning("Paste mode is clipboard_only; FlowType will not press Ctrl+V automatically")
 
 
-def start_background_warmup(transcriber: Transcriber, logger: logging.Logger) -> None:
+def start_background_warmup(transcriber: Transcriber, logger: logging.Logger, config_path: Path) -> None:
     def warm_up() -> None:
         try:
             transcriber.warm_up()
+            _apply_transcriber_runtime_fallbacks(transcriber, logger, config_path)
             logger.info(
                 "Transcriber warm-up finished using device=%s compute_type=%s",
                 transcriber.used_device or "unknown",
@@ -269,6 +271,27 @@ def start_background_warmup(transcriber: Transcriber, logger: logging.Logger) ->
 
     thread = threading.Thread(target=warm_up, name="transcriber-warmup", daemon=True)
     thread.start()
+
+
+def _apply_transcriber_runtime_fallbacks(transcriber: Transcriber, logger: logging.Logger, config_path: Path) -> None:
+    notice = getattr(transcriber, "consume_runtime_notice", lambda: "")()
+    if notice:
+        logger.warning(notice)
+
+    consume = getattr(transcriber, "consume_persist_cpu_requested", None)
+    if consume is None or not consume():
+        return
+
+    try:
+        loaded_path, data = load_config_data(config_path)
+        data.setdefault("transcription", {})
+        if str(data["transcription"].get("device", "auto")).strip().lower() == "auto":
+            data["transcription"]["device"] = "cpu"
+            data["transcription"]["compute_type"] = "int8"
+            save_config_data(loaded_path, data)
+            logger.warning("Persisted CPU transcription fallback after warm-up inference failure")
+    except Exception as exc:
+        logger.exception("Failed to persist CPU fallback after warm-up: %s", exc)
 
 
 def build_ui_launch_command(config_path: Path, *, settings: bool = False, background: bool = False) -> list[str]:

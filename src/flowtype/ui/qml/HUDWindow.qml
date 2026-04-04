@@ -19,8 +19,8 @@ Window {
     property bool isReady: AppController.status === "ready"
     property bool shouldShow: isRecording || isBusy || (isReady && showIdleHud)
 
-    width: hudStyle === "mini" ? 136 : 176
-    height: hudStyle === "mini" ? 40 : 48
+    width: hudStyle === "mini" ? 116 : 156
+    height: hudStyle === "mini" ? 34 : 42
 
     Connections {
         target: AppController
@@ -79,14 +79,14 @@ Window {
 
         Row {
             anchors.centerIn: parent
-            spacing: 8
+            spacing: 6
 
             // Language badge
             Rectangle {
                 visible: hudWindow.showIdleHud || !hudWindow.isReady
-                width: 20
-                height: 20
-                radius: 10
+                width: 18
+                height: 18
+                radius: 9
                 color: theme.darkMode ? "#0C1622" : "#0A0E16"
                 border.width: 1
                 border.color: theme.darkMode ? "#1E3048" : "#233447"
@@ -99,7 +99,7 @@ Window {
                         : AppController.transcriptionLanguage.toUpperCase().slice(0, 2)
                     color: "#F0F4F8"
                     font.family: theme.fontUi
-                    font.pixelSize: 9
+                    font.pixelSize: 8
                     font.weight: Font.DemiBold
                 }
             }
@@ -108,10 +108,10 @@ Window {
             WaveStrip {
                 anchors.verticalCenter: parent.verticalCenter
                 bars: hudWindow.hudStyle === "mini" ? 7 : 9
-                barWidth: 4
-                gap: 4
+                barWidth: 3
+                gap: 3
                 minimumBarHeight: 3
-                maximumBarHeight: hudWindow.hudStyle === "mini" ? 14 : 20
+                maximumBarHeight: hudWindow.hudStyle === "mini" ? 12 : 18
                 level: AppController.audioLevel
                 mode: hudWindow.waveMode()
             }

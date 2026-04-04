@@ -188,6 +188,18 @@ def test_controller_accepts_single_key_shortcuts_for_recording_actions(tmp_path:
     assert controller.toggleRecordingShortcut == "f9"
 
 
+def test_controller_accepts_modifier_only_shortcuts_for_recording_actions(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.toml"
+    write_default_config(config_path)
+    controller = build_controller(config_path)
+
+    controller.saveShortcut("hold_to_talk", "ctrl+win")
+    controller.saveShortcut("toggle_recording", "alt+win")
+
+    assert controller.holdToTalk == "ctrl+meta"
+    assert controller.toggleRecordingShortcut == "alt+meta"
+
+
 def test_controller_rejects_single_key_repaste_shortcut(tmp_path: Path) -> None:
     config_path = tmp_path / "config.toml"
     write_default_config(config_path)
@@ -197,6 +209,17 @@ def test_controller_rejects_single_key_repaste_shortcut(tmp_path: Path) -> None:
 
     assert controller.repasteLast == ""
     assert "Ctrl, Alt, Shift, or Win" in controller.notificationMessage
+
+
+def test_controller_rejects_modifier_only_repaste_shortcut(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.toml"
+    write_default_config(config_path)
+    controller = build_controller(config_path)
+
+    controller.saveShortcut("repaste_last", "ctrl+win")
+
+    assert controller.repasteLast == ""
+    assert "one main key" in controller.notificationMessage
 
 
 def test_controller_exposes_curated_provider_cards(tmp_path: Path) -> None:

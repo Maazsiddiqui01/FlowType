@@ -15,6 +15,10 @@ def test_validate_shortcut_allows_single_key_hold_shortcut() -> None:
     assert validate_shortcut_for_action("hold_to_talk", "space") == "space"
 
 
+def test_validate_shortcut_allows_modifier_only_recording_combo() -> None:
+    assert validate_shortcut_for_action("toggle_recording", "ctrl+win") == "ctrl+meta"
+
+
 def test_validate_shortcut_rejects_common_global_shortcuts() -> None:
     try:
         validate_shortcut_for_action("toggle_recording", "ctrl+v")
@@ -29,5 +33,14 @@ def test_validate_shortcut_rejects_common_repaste_binding() -> None:
         validate_shortcut_for_action("repaste_last", "v")
     except ValueError as exc:
         assert "Ctrl, Alt, Shift, or Win" in str(exc)
+    else:  # pragma: no cover - explicit failure branch
+        raise AssertionError("Expected a repaste shortcut validation error")
+
+
+def test_validate_shortcut_rejects_modifier_only_repaste_binding() -> None:
+    try:
+        validate_shortcut_for_action("repaste_last", "ctrl+win")
+    except ValueError as exc:
+        assert "one main key" in str(exc)
     else:  # pragma: no cover - explicit failure branch
         raise AssertionError("Expected a repaste shortcut validation error")

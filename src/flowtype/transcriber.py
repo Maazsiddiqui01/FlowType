@@ -37,6 +37,7 @@ class Transcriber:
         self._disabled_devices: set[str] = set()
         self._persist_cpu_requested = False
         self._runtime_notice = ""
+        self._warmup_inference_validated = False
 
     @property
     def used_device(self) -> str:
@@ -48,6 +49,7 @@ class Transcriber:
 
     def warm_up(self) -> None:
         self._ensure_model_loaded()
+        self._validate_backend_inference()
 
     def consume_persist_cpu_requested(self) -> bool:
         requested = self._persist_cpu_requested
@@ -78,13 +80,7 @@ class Transcriber:
         audio = captured_audio.audio_array
         start = time.perf_counter()
         try:
-            segments, info = model.transcribe(
-                audio,
-                language=requested_language or None,
-                beam_size=self.settings.beam_size,
-                vad_filter=self.settings.vad_filter,
-                condition_on_previous_text=False,
-            )
+            segments, info = self._run_model_transcribe(model, audio, requested_language)
             text = " ".join(segment.text.strip() for segment in segments if segment.text.strip()).strip()
         except Exception as exc:  # pragma: no cover - depends on model/runtime
             if self._should_retry_on_cpu(exc):
@@ -193,3 +189,55 @@ class Transcriber:
             self._model = None
             self._used_device = ""
             self._used_compute_type = ""
+            self._warmup_inference_validated = False
+
+    def _run_model_transcribe(
+        self,
+        model,
+        audio: np.ndarray,
+        requested_language: str,
+        *,
+        vad_filter_override: bool | None = None,
+    ):
+        return model.transcribe(
+            audio,
+            language=requested_language or None,
+            beam_size=self.settings.beam_size,
+            vad_filter=self.settings.vad_filter if vad_filter_override is None else vad_filter_override,
+            condition_on_previous_text=False,
+        )
+
+    def _validate_backend_inference(self) -> None:
+        if self._warmup_inference_validated:
+            return
+        if self._used_device != "cuda":
+            self._warmup_inference_validated = True
+            return
+
+        probe_audio = np.zeros(16000, dtype=np.float32)
+        model = self._ensure_model_loaded()
+        try:
+            self._run_model_transcribe(
+                model,
+                probe_audio,
+                self._requested_language(),
+                vad_filter_override=False,
+            )
+            self._warmup_inference_validated = True
+        except Exception as exc:  # pragma: no cover - hardware/runtime dependent
+            if self._should_retry_on_cpu(exc):
+                self.logger.warning(
+                    "Warm-up inference failed on %s (%s); retrying on CPU: %s",
+                    self._used_device or "unknown",
+                    self._used_compute_type or "unknown",
+                    exc,
+                )
+                self._persist_cpu_requested = True
+                self._runtime_notice = (
+                    "CUDA transcription failed on this machine. FlowType switched to CPU mode for reliability."
+                )
+                self._disable_device("cuda")
+                self._ensure_model_loaded()
+                self._warmup_inference_validated = True
+                return
+            raise TranscriberError(f"warm-up inference failed: {exc}") from exc

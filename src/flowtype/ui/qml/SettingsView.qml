@@ -27,6 +27,18 @@ Item {
         return shortcut.length > 0 && shortcut.indexOf("+") === -1
     }
 
+    function usesModifierOnly(shortcut) {
+        if (shortcut.length === 0)
+            return false
+        var parts = shortcut.split("+")
+        for (var i = 0; i < parts.length; i += 1) {
+            var part = parts[i]
+            if (["ctrl", "alt", "shift", "meta"].indexOf(part) === -1)
+                return false
+        }
+        return parts.length >= 2
+    }
+
     PageScroll {
         anchors.fill: parent
         maxContentWidth: 1180
@@ -41,7 +53,7 @@ Item {
 
                 SectionHeader {
                     title: "Shortcuts"
-                    subtitle: "These apply immediately after saving. Single-key globals are supported, but function keys or uncommon keys are safer than letters."
+                    subtitle: "These apply immediately after saving. Single-key globals and modifier-only combos like Ctrl + Win are supported for recording actions, but function keys or uncommon keys are safer than letters."
 
                     trailing: FlowButton {
                         label: "Load Defaults"
@@ -100,6 +112,16 @@ Item {
                                         Layout.fillWidth: true
                                         text: "Single-key globals can interrupt normal typing. Prefer function keys or uncommon keys for the smoothest experience."
                                         color: theme.warm
+                                        font.family: theme.fontText
+                                        font.pixelSize: theme.sizeHelper
+                                        wrapMode: Text.WordWrap
+                                    }
+
+                                    Label {
+                                        visible: root.usesModifierOnly(modelData.shortcut) && modelData.key !== "repaste_last"
+                                        Layout.fillWidth: true
+                                        text: "Modifier-only combos work well for dictation, but avoid Windows or language-switch shortcuts."
+                                        color: theme.textSecondary
                                         font.family: theme.fontText
                                         font.pixelSize: theme.sizeHelper
                                         wrapMode: Text.WordWrap

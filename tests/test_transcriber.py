@@ -52,3 +52,24 @@ def test_transcriber_falls_back_to_cpu_when_cuda_inference_fails(tmp_path: Path,
     assert result.used_compute_type == "int8"
     assert transcriber.consume_persist_cpu_requested() is True
     assert "cpu mode" in transcriber.consume_runtime_notice().lower()
+
+
+def test_transcriber_warmup_validates_backend_and_pins_cpu(tmp_path: Path, monkeypatch) -> None:
+    config = TranscriptionConfig(
+        model_size="base.en",
+        device="auto",
+        compute_type="auto",
+        language="en",
+        beam_size=1,
+        vad_filter=True,
+        model_cache_dir=tmp_path / "models",
+    )
+    transcriber = Transcriber(config)
+    monkeypatch.setattr(transcriber, "_load_whisper_module", lambda: FakeWhisperModule())
+
+    transcriber.warm_up()
+
+    assert transcriber.used_device == "cpu"
+    assert transcriber.used_compute_type == "int8"
+    assert transcriber.consume_persist_cpu_requested() is True
+    assert "cpu mode" in transcriber.consume_runtime_notice().lower()
