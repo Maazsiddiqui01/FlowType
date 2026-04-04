@@ -333,10 +333,15 @@ def load_config_data(explicit_path: str | Path | None = None) -> tuple[Path, dic
     raw_config = copy.deepcopy(DEFAULT_CONFIG)
     loaded = tomllib.loads(config_path.read_text(encoding="utf-8"))
     merged = deep_merge(raw_config, loaded)
-    _normalize_cleanup_defaults(merged)
+    migrated = _normalize_cleanup_defaults(merged)
     experience = merged.setdefault("experience", {})
+    experience_changed = False
     if not bool(experience.get("idle_hud_user_set", False)):
+        if bool(experience.get("show_idle_hud", False)):
+            experience_changed = True
         experience["show_idle_hud"] = False
+    if migrated or experience_changed:
+        config_path.write_text(render_config(merged), encoding="utf-8")
     return config_path, merged
 
 
@@ -651,18 +656,18 @@ def _safe_shortcut_value(action: str, value: str) -> str:
         return RECOMMENDED_SHORTCUTS[action]
 
 
-def _normalize_cleanup_defaults(merged: dict[str, Any]) -> None:
+def _normalize_cleanup_defaults(merged: dict[str, Any]) -> bool:
     cleanup = merged.setdefault("cleanup", {})
     provider = str(cleanup.get("provider", "none")).strip().lower()
     model = str(cleanup.get("model", "")).strip()
     if provider in {"none", "ollama"}:
-        return
+        return False
 
     from flowtype.catalog import cleanup_model_cards
 
     model_cards = cleanup_model_cards(provider)
     if not model_cards:
-        return
+        return False
 
     preferred_identifier = ""
     if provider == "openrouter":
@@ -675,3 +680,5 @@ def _normalize_cleanup_defaults(merged: dict[str, Any]) -> None:
 
     if not model or (provider == "openrouter" and model == "openrouter/free"):
         cleanup["model"] = preferred_identifier
+        return True
+    return False

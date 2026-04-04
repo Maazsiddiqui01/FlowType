@@ -206,3 +206,4 @@ def test_load_config_migrates_openrouter_free_to_speed_first_model(tmp_path: Pat
 
     assert config.cleanup.provider == "openrouter"
     assert config.cleanup.model == "openai/gpt-5.4-mini"
+    assert 'model = "openai/gpt-5.4-mini"' in config_path.read_text(encoding="utf-8")

@@ -14,6 +14,7 @@ version_path = project_root / "build" / "version_info.txt"
 hiddenimports = [
     "faster_whisper",
     "keyboard",
+    "keyboard._winkeyboard",
     "pynput.keyboard",
     "pynput.keyboard._win32",
     "pynput._util.win32",
@@ -30,7 +31,6 @@ hiddenimports = [
     "sniffio",
     "h11",
 ]
-hiddenimports += collect_submodules("keyboard")
 hiddenimports += collect_submodules("httpx")
 hiddenimports += collect_submodules("httpcore")
 hiddenimports += collect_submodules("anyio")

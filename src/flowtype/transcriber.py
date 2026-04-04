@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import ctypes
 import importlib
 import logging
+import os
 import threading
 import time
 from dataclasses import dataclass
@@ -126,6 +128,13 @@ class Transcriber:
             self.settings.model_cache_dir.mkdir(parents=True, exist_ok=True)
 
             for device in self._candidate_devices():
+                if device == "cuda" and not self._cuda_runtime_is_ready():
+                    self.logger.warning("Skipping CUDA transcription because the required CUDA runtime is unavailable")
+                    self._persist_cpu_requested = True
+                    self._runtime_notice = (
+                        "CUDA transcription is not available on this machine. FlowType switched to CPU mode for reliability."
+                    )
+                    continue
                 compute_type = self._resolve_compute_type(device)
                 try:
                     self.logger.info(
@@ -182,6 +191,16 @@ class Transcriber:
             and self._used_device == "cuda"
             and "cpu" not in self._disabled_devices
         )
+
+    def _cuda_runtime_is_ready(self) -> bool:
+        if os.name != "nt":
+            return True
+        try:
+            ctypes.WinDLL("cublas64_12.dll")
+            return True
+        except Exception as exc:  # pragma: no cover - depends on host runtime
+            self.logger.warning("CUDA runtime probe failed: %s", exc)
+            return False
 
     def _disable_device(self, device: str) -> None:
         with self._lock:
