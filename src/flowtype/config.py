@@ -333,6 +333,7 @@ def load_config_data(explicit_path: str | Path | None = None) -> tuple[Path, dic
     raw_config = copy.deepcopy(DEFAULT_CONFIG)
     loaded = tomllib.loads(config_path.read_text(encoding="utf-8"))
     merged = deep_merge(raw_config, loaded)
+    _normalize_cleanup_defaults(merged)
     experience = merged.setdefault("experience", {})
     if not bool(experience.get("idle_hud_user_set", False)):
         experience["show_idle_hud"] = False
@@ -457,6 +458,7 @@ def load_config(explicit_path: str | Path | None = None) -> AppConfig:
 def save_config_data(config_path: str | Path, values: dict[str, Any]) -> Path:
     destination = Path(config_path).expanduser().resolve()
     merged = deep_merge(copy.deepcopy(DEFAULT_CONFIG), values)
+    _normalize_cleanup_defaults(merged)
     general_hotkey = str(merged.get("general", {}).get("hotkey", "")).strip()
     shortcuts = merged.setdefault("shortcuts", {})
     raw_shortcuts = values.get("shortcuts", {})
@@ -647,3 +649,29 @@ def _safe_shortcut_value(action: str, value: str) -> str:
         if action == "repaste_last":
             return RECOMMENDED_SHORTCUTS["repaste_last"]
         return RECOMMENDED_SHORTCUTS[action]
+
+
+def _normalize_cleanup_defaults(merged: dict[str, Any]) -> None:
+    cleanup = merged.setdefault("cleanup", {})
+    provider = str(cleanup.get("provider", "none")).strip().lower()
+    model = str(cleanup.get("model", "")).strip()
+    if provider in {"none", "ollama"}:
+        return
+
+    from flowtype.catalog import cleanup_model_cards
+
+    model_cards = cleanup_model_cards(provider)
+    if not model_cards:
+        return
+
+    preferred_identifier = ""
+    if provider == "openrouter":
+        for card in model_cards:
+            if card.get("identifier") != "openrouter/free":
+                preferred_identifier = str(card.get("identifier", "")).strip()
+                break
+    if not preferred_identifier:
+        preferred_identifier = str(model_cards[0].get("identifier", "")).strip()
+
+    if not model or (provider == "openrouter" and model == "openrouter/free"):
+        cleanup["model"] = preferred_identifier

@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from flowtype.config import load_config, write_default_config
+from flowtype.pipeline import DictationResult
 from flowtype.ui.controller import AppController
 
 
@@ -10,6 +11,24 @@ class StubPipeline:
     def __init__(self, config) -> None:
         self.config = config
         self.status = "ready"
+        self.output = type(
+            "OutputStub",
+            (),
+            {"copy_to_clipboard": staticmethod(lambda _text: True)},
+        )()
+        self.cleaner = type(
+            "CleanerStub",
+            (),
+            {
+                "enhance_for_ai": staticmethod(
+                    lambda text: type(
+                        "EnhancementStub",
+                        (),
+                        {"text": "Goal: Improve the following prompt\n\n" + text, "used_fallback": False},
+                    )()
+                )
+            },
+        )()
 
     def _handle_hold_press(self) -> None:
         self.status = "recording"
@@ -151,9 +170,32 @@ def test_controller_rejects_invalid_shortcuts(tmp_path: Path) -> None:
     write_default_config(config_path)
     controller = build_controller(config_path)
 
-    controller.saveShortcut("toggle_recording", "`")
+    controller.saveShortcut("toggle_recording", "ctrl+v")
 
     assert controller.toggleRecordingShortcut == "ctrl+alt+space"
+    assert "does not clash" in controller.notificationMessage
+
+
+def test_controller_accepts_single_key_shortcuts_for_recording_actions(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.toml"
+    write_default_config(config_path)
+    controller = build_controller(config_path)
+
+    controller.saveShortcut("hold_to_talk", "f8")
+    controller.saveShortcut("toggle_recording", "f9")
+
+    assert controller.holdToTalk == "f8"
+    assert controller.toggleRecordingShortcut == "f9"
+
+
+def test_controller_rejects_single_key_repaste_shortcut(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.toml"
+    write_default_config(config_path)
+    controller = build_controller(config_path)
+
+    controller.saveShortcut("repaste_last", "f10")
+
+    assert controller.repasteLast == ""
     assert "Ctrl, Alt, Shift, or Win" in controller.notificationMessage
 
 
@@ -189,3 +231,63 @@ def test_controller_treats_ollama_as_cleanup_enabled_without_api_key(tmp_path: P
     assert controller.provider == "ollama"
     assert controller.cleanupEnabled is True
     assert controller.needsApiKey is False
+
+
+def test_controller_shows_result_card_from_pipeline_results(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.toml"
+    write_default_config(config_path)
+    controller = build_controller(config_path)
+
+    controller.pipeline_result_callback(
+        DictationResult(
+            raw_text="hello there",
+            final_text="Hello there.",
+            used_fallback=False,
+            copied=True,
+            pasted=False,
+            delivery_state="copied_only",
+            delivery_note="FlowType kept the result in the clipboard.",
+            target_title="Notepad",
+            mode_name="default",
+            provider="openrouter",
+            model="openai/gpt-5.4-mini",
+        )
+    )
+
+    assert controller.resultCardVisible is True
+    assert controller.resultCardPersistent is True
+    assert controller.resultCardPreview == "Hello there."
+    assert controller.resultCardCanRepaste is True
+    assert controller.recentResultItems[0]["finalText"] == "Hello there."
+
+
+def test_controller_ai_enhancement_keeps_original_result_and_updates_preview(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.toml"
+    write_default_config(config_path)
+    controller = build_controller(config_path)
+
+    controller.pipeline_result_callback(
+        DictationResult(
+            raw_text="build me a prompt",
+            final_text="Build me a prompt for an agent.",
+            used_fallback=False,
+            copied=True,
+            pasted=True,
+            delivery_state="pasted",
+            delivery_note="",
+            target_title="Notepad",
+            mode_name="default",
+            provider="openrouter",
+            model="openai/gpt-5.4-mini",
+        )
+    )
+
+    controller._apply_ai_enhancer_result(
+        True,
+        "Goal: Improve the following prompt\n\nBuild me a prompt for an agent.",
+        "AI-ready prompt copied. Your original dictation stays unchanged.",
+    )
+
+    assert controller.resultCardPreview.startswith("Goal: Improve the following prompt")
+    assert controller.resultCardCanRepaste is True
+    assert controller.recentResultItems[0]["finalText"] == "Build me a prompt for an agent."

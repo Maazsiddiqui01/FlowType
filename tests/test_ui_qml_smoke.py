@@ -61,3 +61,18 @@ def test_main_qml_loads_with_real_controller(tmp_path: Path) -> None:
     engine.load(QUrl.fromLocalFile(str(qml_path)))
 
     assert engine.rootObjects(), "Main.qml should load successfully with the real controller API"
+
+
+def test_result_window_qml_loads_with_real_controller(tmp_path: Path) -> None:
+    _app()
+    config_path = tmp_path / "config.toml"
+    write_default_config(config_path)
+    controller = _build_controller(config_path)
+
+    engine = QQmlApplicationEngine()
+    engine.rootContext().setContextProperty("AppController", controller)
+
+    qml_path = Path(__file__).resolve().parents[1] / "src" / "flowtype" / "ui" / "qml" / "ResultWindow.qml"
+    engine.load(QUrl.fromLocalFile(str(qml_path)))
+
+    assert engine.rootObjects(), "ResultWindow.qml should load successfully with the real controller API"

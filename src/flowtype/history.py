@@ -4,10 +4,12 @@ import json
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from uuid import uuid4
 
 
 @dataclass(slots=True, frozen=True)
 class HistoryEntry:
+    entry_id: str
     created_at: str
     final_text: str
     raw_text: str
@@ -38,6 +40,7 @@ class HistoryStore:
                 continue
             entries.append(
                 HistoryEntry(
+                    entry_id=str(item.get("entry_id", "")).strip() or uuid4().hex,
                     created_at=str(item.get("created_at", "")),
                     final_text=str(item.get("final_text", "")),
                     raw_text=str(item.get("raw_text", "")),
@@ -75,7 +78,8 @@ def build_history_entry(
     pasted: bool,
 ) -> HistoryEntry:
     return HistoryEntry(
-        created_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        entry_id=uuid4().hex,
+        created_at=datetime.now(timezone.utc).isoformat(timespec="microseconds"),
         final_text=final_text,
         raw_text=raw_text,
         mode=mode,

@@ -35,6 +35,8 @@ class Transcriber:
         self._used_device = ""
         self._used_compute_type = ""
         self._disabled_devices: set[str] = set()
+        self._persist_cpu_requested = False
+        self._runtime_notice = ""
 
     @property
     def used_device(self) -> str:
@@ -46,6 +48,16 @@ class Transcriber:
 
     def warm_up(self) -> None:
         self._ensure_model_loaded()
+
+    def consume_persist_cpu_requested(self) -> bool:
+        requested = self._persist_cpu_requested
+        self._persist_cpu_requested = False
+        return requested
+
+    def consume_runtime_notice(self) -> str:
+        notice = self._runtime_notice
+        self._runtime_notice = ""
+        return notice
 
     def transcribe(self, captured_audio: CapturedAudio) -> TranscriptionResult:
         requested_language = self._requested_language()
@@ -81,6 +93,10 @@ class Transcriber:
                     self._used_device or "unknown",
                     self._used_compute_type or "unknown",
                     exc,
+                )
+                self._persist_cpu_requested = True
+                self._runtime_notice = (
+                    "CUDA transcription failed on this machine. FlowType switched to CPU mode for reliability."
                 )
                 self._disable_device("cuda")
                 return self.transcribe(captured_audio)

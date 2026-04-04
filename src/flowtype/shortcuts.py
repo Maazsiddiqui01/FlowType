@@ -27,10 +27,19 @@ MODIFIER_TOKENS = ("ctrl", "alt", "shift", "meta")
 COMMON_EDITING_SHORTCUTS = {
     "ctrl+a",
     "ctrl+c",
+    "ctrl+l",
+    "ctrl+n",
+    "ctrl+o",
+    "ctrl+p",
+    "ctrl+r",
+    "ctrl+s",
+    "ctrl+t",
     "ctrl+v",
+    "ctrl+w",
     "ctrl+x",
     "ctrl+y",
     "ctrl+z",
+    "alt+f4",
     "alt+tab",
 }
 
@@ -156,14 +165,11 @@ def validate_shortcut_for_action(action: str, hotkey: str) -> str:
 
     canonical = "+".join(tokens)
 
-    if action in {"hold_to_talk", "toggle_recording", "repaste_last"} and not modifiers:
+    if canonical in COMMON_EDITING_SHORTCUTS:
+        raise ValueError("Choose a shortcut that does not clash with common editing or system keys.")
+
+    if action == "repaste_last" and not modifiers:
         raise ValueError("Use Ctrl, Alt, Shift, or Win with one main key.")
-
-    if action == "cancel_recording" and not modifiers and main_keys[0] != "escape":
-        raise ValueError("Use Esc or a modified shortcut for cancel recording.")
-
-    if action == "repaste_last" and canonical in COMMON_EDITING_SHORTCUTS:
-        raise ValueError("Choose a re-paste shortcut that does not clash with common editing keys.")
 
     return canonical
 

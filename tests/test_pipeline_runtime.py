@@ -52,18 +52,49 @@ class DummyCleaner:
 
 
 class FailingOutput:
-    def deliver(self, _text: str) -> DeliveryResult:
+    def deliver(self, _text: str, target=None) -> DeliveryResult:
         raise RuntimeError("paste blocked")
 
 
 class SuccessfulOutput:
-    def deliver(self, _text: str) -> DeliveryResult:
-        return DeliveryResult(copied=True, pasted=True)
+    def deliver(self, _text: str, target=None) -> DeliveryResult:
+        return DeliveryResult(copied=True, pasted=True, delivery_state="pasted", target_restored=True)
+
+    def copy_to_clipboard(self, _text: str) -> bool:
+        return True
+
+
+class CopyOnlyOutput:
+    def __init__(self) -> None:
+        self.copied_text = ""
+
+    def deliver(self, _text: str, target=None) -> DeliveryResult:
+        raise AssertionError("deliver should not run when processing was canceled")
+
+    def copy_to_clipboard(self, text: str) -> bool:
+        self.copied_text = text
+        return True
 
 
 class FailingCleaner:
     def clean(self, _raw_text: str) -> CleanupResult:
         raise RuntimeError("cleanup runtime missing")
+
+
+class PinningTranscriber(DummyTranscriber):
+    def __init__(self) -> None:
+        self._pin_requested = True
+        self._notice = "CUDA transcription failed on this machine. FlowType switched to CPU mode for reliability."
+
+    def consume_persist_cpu_requested(self) -> bool:
+        requested = self._pin_requested
+        self._pin_requested = False
+        return requested
+
+    def consume_runtime_notice(self) -> str:
+        notice = self._notice
+        self._notice = ""
+        return notice
 
 
 def build_config(tmp_path: Path):
@@ -89,6 +120,27 @@ def test_pipeline_sets_error_status_when_recording_cannot_start(tmp_path: Path) 
 
     assert pipeline.status == "error"
     assert status_updates[-1] == ("error", "Could not start recording. Check microphone access.")
+
+
+def test_pipeline_ignores_new_recording_trigger_while_busy(tmp_path: Path) -> None:
+    config = build_config(tmp_path)
+    recorder = DummyRecorder()
+    notifications: list[tuple[str, str]] = []
+    pipeline = DictationPipeline(
+        config=config,
+        recorder=recorder,
+        transcriber=DummyTranscriber(),
+        cleaner=DummyCleaner(),
+        output=SuccessfulOutput(),
+        notification_callback=lambda message, tone: notifications.append((message, tone)),
+        logger=logging.getLogger("test.pipeline.runtime"),
+    )
+
+    pipeline._set_status("transcribing", "Transcribing locally...")
+    pipeline.start_recording()
+
+    assert recorder.started == 0
+    assert notifications[-1] == ("Still processing the previous dictation.", "info")
 
 
 def test_pipeline_sets_error_status_when_delivery_fails(tmp_path: Path) -> None:
@@ -187,3 +239,63 @@ def test_pipeline_falls_back_to_raw_text_when_cleanup_raises(tmp_path: Path) -> 
     assert results
     assert results[-1].final_text == "hello there from flowtype"
     assert results[-1].used_fallback is True
+
+
+def test_pipeline_preserves_text_when_processing_is_canceled(tmp_path: Path) -> None:
+    config = build_config(tmp_path)
+    output = CopyOnlyOutput()
+    results = []
+    pipeline = DictationPipeline(
+        config=config,
+        recorder=DummyRecorder(),
+        transcriber=DummyTranscriber(),
+        cleaner=DummyCleaner(),
+        output=output,
+        result_callback=lambda result: results.append(result),
+        logger=logging.getLogger("test.pipeline.runtime"),
+    )
+
+    pipeline._cancel_requested = True
+    pipeline._process_capture(
+        CapturedAudio(
+            audio_array=[],
+            sample_rate=16000,
+            duration_seconds=1.2,
+            was_truncated=False,
+            frame_count=16000,
+        )
+    )
+
+    assert pipeline.status == "ready"
+    assert output.copied_text == "Hello There From Flowtype"
+    assert results[-1].delivery_state == "copied_only"
+    assert "clipboard" in results[-1].delivery_note.lower()
+
+
+def test_pipeline_pins_cpu_in_config_after_runtime_cuda_failure(tmp_path: Path) -> None:
+    config = build_config(tmp_path)
+    notices: list[tuple[str, str]] = []
+    pipeline = DictationPipeline(
+        config=config,
+        recorder=DummyRecorder(),
+        transcriber=PinningTranscriber(),
+        cleaner=DummyCleaner(),
+        output=SuccessfulOutput(),
+        notification_callback=lambda message, tone: notices.append((message, tone)),
+        logger=logging.getLogger("test.pipeline.runtime"),
+    )
+
+    pipeline._process_capture(
+        CapturedAudio(
+            audio_array=[],
+            sample_rate=16000,
+            duration_seconds=1.2,
+            was_truncated=False,
+            frame_count=16000,
+        )
+    )
+
+    reloaded = load_config(config.config_path)
+    assert reloaded.transcription.device == "cpu"
+    assert reloaded.transcription.compute_type == "int8"
+    assert notices[-1][0].startswith("CUDA transcription failed")

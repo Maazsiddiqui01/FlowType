@@ -7,6 +7,7 @@ import time
 from dataclasses import dataclass
 
 from flowtype.config import OutputConfig
+from flowtype.windows import ForegroundWindowSnapshot, restore_foreground_window
 
 
 MIN_CTRL_V_DELAY_MS = 180
@@ -30,6 +31,10 @@ MODIFIER_KEY_NAMES = (
 class DeliveryResult:
     copied: bool
     pasted: bool
+    delivery_state: str = "none"
+    target_restored: bool = False
+    target_title: str = ""
+    failure_reason: str = ""
 
 
 class OutputDelivery:
@@ -39,10 +44,10 @@ class OutputDelivery:
         self._keyboard_controller = None
         self._keyboard_key = None
 
-    def deliver(self, text: str) -> DeliveryResult:
+    def deliver(self, text: str, target: ForegroundWindowSnapshot | None = None) -> DeliveryResult:
         text = text.strip()
         if not text:
-            return DeliveryResult(copied=False, pasted=False)
+            return DeliveryResult(copied=False, pasted=False, delivery_state="none")
 
         pyperclip = self._load_pyperclip()
         previous_clipboard = None
@@ -56,14 +61,53 @@ class OutputDelivery:
         time.sleep(self._paste_delay_seconds())
 
         pasted = False
+        target_restored = False
+        failure_reason = ""
+        target_title = target.title if target is not None else ""
         if self.settings.paste_method == "ctrl_v":
+            if target is not None:
+                target_restored = self._restore_target(target)
+                if not target_restored:
+                    failure_reason = "Could not return focus to the original app. FlowType kept the result in the clipboard."
+                    self.logger.warning(
+                        "Skipping automatic paste because the original target could not be restored | hwnd=%s title=%s",
+                        target.hwnd,
+                        target.title or "<untitled>",
+                    )
+                    return DeliveryResult(
+                        copied=True,
+                        pasted=False,
+                        delivery_state="copied_only",
+                        target_restored=False,
+                        target_title=target_title,
+                        failure_reason=failure_reason,
+                    )
             pasted = self._paste_via_keyboard()
+            if pasted and target is None:
+                target_restored = True
+            if not pasted:
+                failure_reason = "Automatic paste failed. FlowType kept the result in the clipboard."
 
         if self.settings.restore_clipboard and previous_clipboard is not None and pasted:
             time.sleep(CLIPBOARD_RESTORE_DELAY_SECONDS)
             pyperclip.copy(previous_clipboard)
 
-        return DeliveryResult(copied=True, pasted=pasted)
+        return DeliveryResult(
+            copied=True,
+            pasted=pasted,
+            delivery_state="pasted" if pasted else "copied_only",
+            target_restored=target_restored,
+            target_title=target_title,
+            failure_reason=failure_reason,
+        )
+
+    def copy_to_clipboard(self, text: str) -> bool:
+        normalized = text.strip()
+        if not normalized:
+            return False
+        pyperclip = self._load_pyperclip()
+        pyperclip.copy(normalized)
+        return True
 
     def _paste_via_keyboard(self) -> bool:
         controller, key = self._load_keyboard()
@@ -123,3 +167,6 @@ class OutputDelivery:
                 controller.release(key_value)
             except Exception:
                 continue
+
+    def _restore_target(self, target: ForegroundWindowSnapshot) -> bool:
+        return restore_foreground_window(target)

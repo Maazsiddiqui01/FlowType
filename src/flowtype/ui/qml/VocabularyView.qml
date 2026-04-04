@@ -47,7 +47,7 @@ Item {
 
                     SectionHeader {
                         title: "Protected words and phrases"
-                        subtitle: "Enter one item per line. Use this for names, brands, acronyms, punctuation macros, and exact spellings."
+                        subtitle: "Enter one item per line. Keep entries short and exact so cleanup stays precise."
 
                         trailing: FlowButton {
                             label: "Save Vocabulary"
@@ -82,8 +82,9 @@ Item {
             }
 
             SectionCard {
-                Layout.preferredWidth: 320
+                Layout.preferredWidth: 280
                 Layout.alignment: Qt.AlignTop
+                baseColor: theme.surfaceSubtle
 
                 ColumnLayout {
                     width: parent.width
@@ -91,7 +92,7 @@ Item {
 
                     SectionHeader {
                         title: "Preview"
-                        subtitle: "A quick view of the entries that will be injected into the cleanup prompt."
+                        subtitle: "A quick view of the exact entries FlowType will add to cleanup guidance."
                     }
 
                     Loader {

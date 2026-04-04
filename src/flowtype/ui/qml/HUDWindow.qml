@@ -16,9 +16,8 @@ Window {
     property bool showIdleHud: AppController.showIdleHud
     property bool isRecording: AppController.status === "recording"
     property bool isBusy: AppController.status === "transcribing" || AppController.status === "cleaning" || AppController.status === "pasting"
-    property bool isError: AppController.status === "error"
     property bool isReady: AppController.status === "ready"
-    property bool shouldShow: isRecording || isBusy || isError || (isReady && showIdleHud)
+    property bool shouldShow: isRecording || isBusy || (isReady && showIdleHud)
 
     width: hudStyle === "mini" ? 136 : 176
     height: hudStyle === "mini" ? 40 : 48
@@ -34,7 +33,6 @@ Window {
 
     function waveMode() {
         if (isRecording) return "recording"
-        if (isError) return "error"
         if (isBusy) return "busy"
         return "idle"
     }

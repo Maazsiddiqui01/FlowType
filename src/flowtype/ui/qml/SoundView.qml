@@ -55,9 +55,9 @@ Item {
                     width: parent.width
                     spacing: theme.space16
 
-                    SectionHeader {
-                        title: "Recording HUD"
-                        subtitle: "A small floating indicator appears only while dictation is active unless you keep the idle line enabled."
+                SectionHeader {
+                    title: "Recording HUD"
+                    subtitle: "The floating indicator stays hidden until dictation starts unless you explicitly keep the idle line visible."
                     }
 
                     Rectangle {
@@ -135,9 +135,9 @@ Item {
                     width: parent.width
                     spacing: theme.space16
 
-                    SectionHeader {
-                        title: "Appearance"
-                        subtitle: "Keep the HUD compact and easy to trust while you are speaking."
+                SectionHeader {
+                    title: "Appearance"
+                    subtitle: "Keep the HUD compact, centered, and easy to trust while you are speaking."
                     }
 
                     RowLayout {
@@ -228,7 +228,7 @@ Item {
 
                 SectionHeader {
                     title: "Capture timing"
-                    subtitle: "Fine-tune recording bounds and paste delay without touching the audio pipeline."
+                    subtitle: "Fine-tune capture bounds and paste delay without changing the transcription pipeline."
 
                     trailing: FlowButton {
                         label: "Save Timing"

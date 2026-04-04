@@ -23,6 +23,10 @@ Item {
         }
     }
 
+    function usesSingleKey(shortcut) {
+        return shortcut.length > 0 && shortcut.indexOf("+") === -1
+    }
+
     PageScroll {
         anchors.fill: parent
         maxContentWidth: 1180
@@ -37,7 +41,7 @@ Item {
 
                 SectionHeader {
                     title: "Shortcuts"
-                    subtitle: "These apply immediately after saving, so the app stays predictable everywhere."
+                    subtitle: "These apply immediately after saving. Single-key globals are supported, but function keys or uncommon keys are safer than letters."
 
                     trailing: FlowButton {
                         label: "Load Defaults"
@@ -60,7 +64,7 @@ Item {
 
                         delegate: Rectangle {
                             Layout.fillWidth: true
-                            implicitHeight: 74
+                            implicitHeight: root.usesSingleKey(modelData.shortcut) && modelData.key !== "repaste_last" ? 94 : 78
                             radius: theme.radiusCard
                             color: theme.surfaceSubtle
                             border.width: 1
@@ -88,6 +92,17 @@ Item {
                                         color: theme.textSecondary
                                         font.family: theme.fontText
                                         font.pixelSize: theme.sizeHelper
+                                        wrapMode: Text.WordWrap
+                                    }
+
+                                    Label {
+                                        visible: root.usesSingleKey(modelData.shortcut) && modelData.key !== "repaste_last"
+                                        Layout.fillWidth: true
+                                        text: "Single-key globals can interrupt normal typing. Prefer function keys or uncommon keys for the smoothest experience."
+                                        color: theme.warm
+                                        font.family: theme.fontText
+                                        font.pixelSize: theme.sizeHelper
+                                        wrapMode: Text.WordWrap
                                     }
                                 }
 

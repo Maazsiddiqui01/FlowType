@@ -178,8 +178,8 @@ def test_load_config_sanitizes_invalid_shortcuts(tmp_path: Path) -> None:
     write_default_config(config_path)
     config_path.write_text(
         config_path.read_text(encoding="utf-8")
-        .replace('toggle_recording = "ctrl+alt+space"', 'toggle_recording = "`"')
-        .replace('cancel_recording = "escape"', 'cancel_recording = "tab"')
+        .replace('toggle_recording = "ctrl+alt+space"', 'toggle_recording = "ctrl+v"')
+        .replace('cancel_recording = "escape"', 'cancel_recording = "shift"')
         .replace('repaste_last = ""', 'repaste_last = "ctrl+v"'),
         encoding="utf-8",
     )
@@ -189,3 +189,20 @@ def test_load_config_sanitizes_invalid_shortcuts(tmp_path: Path) -> None:
     assert config.shortcuts.toggle_recording == RECOMMENDED_SHORTCUTS["toggle_recording"]
     assert config.shortcuts.cancel_recording == RECOMMENDED_SHORTCUTS["cancel_recording"]
     assert config.shortcuts.repaste_last == RECOMMENDED_SHORTCUTS["repaste_last"]
+
+
+def test_load_config_migrates_openrouter_free_to_speed_first_model(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.toml"
+    write_default_config(config_path)
+    config_path.write_text(
+        config_path.read_text(encoding="utf-8").replace(
+            'model = "openai/gpt-5.4-mini"',
+            'model = "openrouter/free"',
+        ),
+        encoding="utf-8",
+    )
+
+    config = load_config(config_path)
+
+    assert config.cleanup.provider == "openrouter"
+    assert config.cleanup.model == "openai/gpt-5.4-mini"

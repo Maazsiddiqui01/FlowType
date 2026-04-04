@@ -50,3 +50,5 @@ def test_transcriber_falls_back_to_cpu_when_cuda_inference_fails(tmp_path: Path,
     assert result.text == "Hello world."
     assert result.used_device == "cpu"
     assert result.used_compute_type == "int8"
+    assert transcriber.consume_persist_cpu_requested() is True
+    assert "cpu mode" in transcriber.consume_runtime_notice().lower()

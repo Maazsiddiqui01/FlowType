@@ -164,6 +164,7 @@ def run_ui_mode(
             pipeline_.status_callback = controller.pipeline_status_callback
             pipeline_.audio_level_callback = controller.pipeline_audio_level_callback
             pipeline_.result_callback = controller.pipeline_result_callback
+            pipeline_.notification_callback = controller.pipeline_notification_callback
 
         def reload_runtime() -> tuple[AppConfig, DictationPipeline]:
             new_config = load_config(runtime["config"].config_path)
@@ -202,30 +203,45 @@ def run_ui_mode(
             parent_logger.error("Failed to load HUDWindow.qml. Exiting.")
             return 1
 
+        result_engine = QQmlApplicationEngine()
+        result_engine.rootContext().setContextProperty("AppController", controller)
+        result_qml_file = Path(__file__).resolve().parent / "qml" / "ResultWindow.qml"
+        result_engine.load(str(result_qml_file))
+        if not result_engine.rootObjects():
+            parent_logger.error("Failed to load ResultWindow.qml. Exiting.")
+            return 1
+
         window = engine.rootObjects()[0]
         hud_window = hud_engine.rootObjects()[0]
+        result_window = result_engine.rootObjects()[0]
         if app_icon and hasattr(window, "setIcon"):
             window.setIcon(app_icon)
         if app_icon and hasattr(hud_window, "setIcon"):
             hud_window.setIcon(app_icon)
+        if app_icon and hasattr(result_window, "setIcon"):
+            result_window.setIcon(app_icon)
 
-        def reposition_hud() -> None:
+        def reposition_overlay(overlay_window: Any) -> None:
             try:
-                target_screen = hud_window.screen() or window.screen() or app.primaryScreen()
+                target_screen = overlay_window.screen() or window.screen() or app.primaryScreen()
             except Exception:
                 target_screen = app.primaryScreen()
             if target_screen is None:
                 return
 
             rect = target_screen.availableGeometry()
-            width = int(hud_window.width())
-            height = int(hud_window.height())
+            width = int(overlay_window.width())
+            height = int(overlay_window.height())
             margin = 12
             centered_x = rect.x() + max(0, round((rect.width() - width) / 2))
             top_docked = str(controller.hudPosition).strip().lower() == "top"
             y = rect.y() + margin if top_docked else rect.y() + rect.height() - height - margin
-            hud_window.setX(centered_x)
-            hud_window.setY(y)
+            overlay_window.setX(centered_x)
+            overlay_window.setY(y)
+
+        def reposition_hud() -> None:
+            reposition_overlay(hud_window)
+            reposition_overlay(result_window)
 
         def show_main_window(page_index: int | None = None) -> None:
             if page_index is not None:
@@ -279,15 +295,25 @@ def run_ui_mode(
                 hud_hwnd = 0
             if hud_hwnd and icon_path.exists():
                 set_native_window_icon(hud_hwnd, str(icon_path))
+            try:
+                result_hwnd = int(result_window.winId())
+            except Exception:
+                result_hwnd = 0
+            if result_hwnd and icon_path.exists():
+                set_native_window_icon(result_hwnd, str(icon_path))
 
         apply_window_branding()
         reposition_hud()
         QTimer.singleShot(0, reposition_hud)
         controller.stateChanged.connect(reposition_hud)
         controller.configChanged.connect(reposition_hud)
+        controller.resultCardChanged.connect(reposition_hud)
         hud_window.widthChanged.connect(reposition_hud)
         hud_window.heightChanged.connect(reposition_hud)
         hud_window.screenChanged.connect(lambda *_: reposition_hud())
+        result_window.widthChanged.connect(reposition_hud)
+        result_window.heightChanged.connect(reposition_hud)
+        result_window.screenChanged.connect(lambda *_: reposition_hud())
         primary_screen = app.primaryScreen()
         if primary_screen is not None and hasattr(primary_screen, "availableGeometryChanged"):
             primary_screen.availableGeometryChanged.connect(lambda *_: reposition_hud())

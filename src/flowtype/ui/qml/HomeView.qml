@@ -8,7 +8,7 @@ Item {
     Theme { id: theme }
 
     readonly property var homeStatsData: AppController.homeStats
-    readonly property var latestHistoryItem: AppController.historyItems.length > 0 ? AppController.historyItems[0] : null
+    readonly property var recentItems: AppController.recentResultItems
 
     PageScroll {
         anchors.fill: parent
@@ -288,50 +288,58 @@ Item {
 
                 SectionHeader {
                     title: "Recent output"
-                    subtitle: root.latestHistoryItem !== null
-                        ? "The latest cleaned or raw transcript, ready for a quick sanity check."
+                    subtitle: root.recentItems.length > 0
+                        ? "The latest results stay easy to recover if you want to sanity-check or copy again."
                         : "Your latest dictation will appear here once you start using the app."
                 }
 
-                Loader {
+                ColumnLayout {
                     Layout.fillWidth: true
-                    active: root.latestHistoryItem !== null
-                    sourceComponent: ColumnLayout {
-                        width: parent.width
-                        spacing: theme.space12
+                    spacing: theme.space12
+                    visible: root.recentItems.length > 0
 
-                        Label {
+                    Repeater {
+                        model: root.recentItems.slice(0, 3)
+
+                        delegate: Rectangle {
                             Layout.fillWidth: true
-                            text: root.latestHistoryItem.finalText
-                            color: theme.textPrimary
-                            font.family: theme.fontText
-                            font.pixelSize: 15
-                            wrapMode: Text.WordWrap
-                        }
+                            implicitHeight: previewColumn.implicitHeight + theme.space12 * 2
+                            radius: theme.radiusCard
+                            color: theme.surfaceSubtle
+                            border.width: 1
+                            border.color: theme.border
 
-                        Row {
-                            spacing: theme.space8
+                            ColumnLayout {
+                                id: previewColumn
+                                anchors.fill: parent
+                                anchors.margins: theme.space12
+                                spacing: theme.space8
 
-                            TokenChip {
-                                label: root.latestHistoryItem.createdAt
-                                tone: theme.textTertiary
-                            }
+                                Label {
+                                    Layout.fillWidth: true
+                                    text: modelData.finalText
+                                    color: theme.textPrimary
+                                    font.family: theme.fontText
+                                    font.pixelSize: 14
+                                    wrapMode: Text.WordWrap
+                                    maximumLineCount: 3
+                                    elide: Text.ElideRight
+                                }
 
-                            TokenChip {
-                                label: root.latestHistoryItem.wordCount + " words"
-                                tone: theme.textTertiary
-                            }
+                                Row {
+                                    spacing: theme.space8
 
-                            TokenChip {
-                                label: root.latestHistoryItem.provider
-                                tone: theme.primary
+                                    TokenChip { label: modelData.createdAt; tone: theme.textTertiary }
+                                    TokenChip { label: modelData.wordCount + " words"; tone: theme.textTertiary }
+                                    TokenChip { label: modelData.pasted ? "Pasted" : "Copied"; tone: modelData.pasted ? theme.success : theme.primary }
+                                }
                             }
                         }
                     }
                 }
 
                 EmptyState {
-                    visible: root.latestHistoryItem === null
+                    visible: root.recentItems.length === 0
                     title: "No output yet"
                     message: "Dictate a short phrase and FlowType will show the latest result here."
                 }

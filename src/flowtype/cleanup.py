@@ -27,6 +27,22 @@ class TextCleaner:
         if not stripped:
             return CleanupResult("", False, 0, self.settings.provider)
 
+        return self._run_transform(
+            stripped,
+            self._compose_prompt(),
+        )
+
+    def enhance_for_ai(self, raw_text: str) -> CleanupResult:
+        stripped = raw_text.strip()
+        if not stripped:
+            return CleanupResult("", False, 0, self.settings.provider)
+
+        return self._run_transform(
+            stripped,
+            self._compose_prompt_for_ai_enhancement(),
+        )
+
+    def _run_transform(self, stripped: str, system_prompt: str) -> CleanupResult:
         if self.settings.provider == "none":
             return CleanupResult(stripped, False, 0, self.settings.provider)
 
@@ -44,7 +60,7 @@ class TextCleaner:
             return CleanupResult(text=stripped, used_fallback=True, attempts=0, provider=self.settings.provider)
         url = self._endpoint_for_provider()
         headers = self._headers_for_provider()
-        payload = self._build_payload(stripped)
+        payload = self._build_payload(stripped, system_prompt)
         timeout_seconds = self._effective_timeout_seconds()
         max_retries = self._effective_max_retries()
 
@@ -130,8 +146,9 @@ class TextCleaner:
 
         return headers
 
-    def _build_payload(self, text: str) -> dict[str, Any]:
-        system_prompt = self._compose_prompt()
+    def _build_payload(self, text: str, system_prompt: str | None = None) -> dict[str, Any]:
+        if system_prompt is None:
+            system_prompt = self._compose_prompt()
         if self.settings.provider == "anthropic":
             return {
                 "model": self.settings.model,
@@ -180,6 +197,26 @@ class TextCleaner:
             )
 
         return "\n\n".join(section for section in sections if section)
+
+    def _compose_prompt_for_ai_enhancement(self) -> str:
+        return (
+            "You turn dictated notes into a strong prompt for an AI assistant.\n\n"
+            "Hard constraints:\n"
+            "- Preserve the user's intent, facts, constraints, examples, and requested outcome.\n"
+            "- Do not invent requirements, examples, or context that were not stated.\n"
+            "- Remove verbal filler and obvious dictation noise.\n"
+            "- Keep names, numbers, URLs, filenames, commands, and product names exact.\n"
+            "- Rewrite vague spoken phrasing into crisp task instructions only when the intended meaning is clear.\n"
+            "- If the user already provided structure, keep it. If they did not, organize the prompt into a concise, useful structure.\n"
+            "- Prefer direct instructions, explicit constraints, and clear output expectations.\n"
+            "- Return only the final AI-ready prompt.\n\n"
+            "When useful, lightly structure the result with sections such as:\n"
+            "- Goal\n"
+            "- Context\n"
+            "- Constraints\n"
+            "- Desired output\n"
+            "Only include sections that improve clarity."
+        )
 
     def _extract_text(self, provider: str, payload: dict[str, Any]) -> str:
         if provider == "anthropic":

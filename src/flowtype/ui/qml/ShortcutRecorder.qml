@@ -10,8 +10,6 @@ FocusScope {
     property string shortcut: ""
     property string actionName: ""
     property bool isRecording: captureActive
-    property bool requireModifier: actionName !== "cancel_recording"
-
     signal shortcutRecorded(string newShortcut)
 
     property bool captureActive: false
@@ -101,10 +99,10 @@ FocusScope {
                 Layout.fillWidth: true
                 text: {
                     if (root.captureActive)
-                        return "Press the full shortcut"
+                        return "Press a key or shortcut"
                     if (root.shortcut.length > 0)
                         return root.shortcut.toUpperCase().replace(/\+/g, "  +  ")
-                    return "Click and press a shortcut"
+                    return "Click and press a key"
                 }
                 color: root.captureActive ? theme.textPrimary : (root.shortcut.length > 0 ? theme.textPrimary : theme.textTertiary)
                 font.family: theme.fontUi
