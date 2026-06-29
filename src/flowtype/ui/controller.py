@@ -38,6 +38,12 @@ class AppController(QObject):
     notificationChanged = Signal()
     resultCardChanged = Signal()
     aiEnhancerFinished = Signal(bool, str, str)
+    # Pipeline callbacks fire on worker/hotkey threads; these signals marshal them
+    # onto the GUI thread (queued AutoConnection) so QML/QTimer are only ever
+    # touched from the GUI thread.
+    statusReported = Signal(str, str)
+    resultReported = Signal(object)
+    notificationReported = Signal(str, str)
 
     def __init__(
         self,
@@ -74,6 +80,9 @@ class AppController(QObject):
         self._result_card_timer.timeout.connect(self._auto_dismiss_result_card)
         self.aiEnhancerFinished.connect(self._apply_ai_enhancer_result)
         self.audioLevelReported.connect(self._apply_audio_level)
+        self.statusReported.connect(self._apply_status_update)
+        self.resultReported.connect(self._apply_result_update)
+        self.notificationReported.connect(self._apply_notification_update)
 
     def _load_history(self) -> list[HistoryEntry]:
         if not self._config.history.persist:
@@ -152,6 +161,11 @@ class AppController(QObject):
             self._set_notification(str(exc), "error")
 
     def pipeline_status_callback(self, status: str, detail: str) -> None:
+        # Called from worker/hotkey threads -> hop to the GUI thread.
+        self.statusReported.emit(status, detail)
+
+    @Slot(str, str)
+    def _apply_status_update(self, status: str, detail: str) -> None:
         if status != "recording" and self._audio_level != 0.0:
             self._apply_audio_level(0.0)
         if status in {"recording", "transcribing", "cleaning", "pasting"} and self._result_card_visible:
@@ -169,6 +183,11 @@ class AppController(QObject):
         self._set_status(status, detail)
 
     def pipeline_notification_callback(self, message: str, tone: str) -> None:
+        # Called from worker/hotkey threads -> hop to the GUI thread.
+        self.notificationReported.emit(message, tone)
+
+    @Slot(str, str)
+    def _apply_notification_update(self, message: str, tone: str) -> None:
         self._set_notification(message, tone)
 
     def pipeline_audio_level_callback(self, level: float) -> None:
@@ -183,6 +202,11 @@ class AppController(QObject):
         self.audioLevelChanged.emit()
 
     def pipeline_result_callback(self, result: DictationResult) -> None:
+        # Called from the worker thread -> hop to the GUI thread.
+        self.resultReported.emit(result)
+
+    @Slot(object)
+    def _apply_result_update(self, result: DictationResult) -> None:
         if not result.final_text.strip():
             return
 

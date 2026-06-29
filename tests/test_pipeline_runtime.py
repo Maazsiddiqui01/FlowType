@@ -7,7 +7,7 @@ from types import SimpleNamespace
 from flowtype.audio import AudioRecorderError, CapturedAudio
 from flowtype.cleanup import CleanupResult
 from flowtype.config import load_config, write_default_config
-from flowtype.pipeline import DictationPipeline
+from flowtype.pipeline import DictationPipeline, _Job
 from flowtype.output import DeliveryResult
 
 
@@ -103,6 +103,23 @@ def build_config(tmp_path: Path):
     return load_config(config_path)
 
 
+def make_job(*, cancel: bool = False, was_truncated: bool = False) -> _Job:
+    job = _Job(
+        audio=CapturedAudio(
+            audio_array=[],
+            sample_rate=16000,
+            duration_seconds=1.2,
+            was_truncated=was_truncated,
+            frame_count=16000,
+        ),
+        target=None,
+        was_truncated=was_truncated,
+    )
+    if cancel:
+        job.cancel.set()
+    return job
+
+
 def test_pipeline_sets_error_status_when_recording_cannot_start(tmp_path: Path) -> None:
     config = build_config(tmp_path)
     status_updates: list[tuple[str, str]] = []
@@ -119,28 +136,52 @@ def test_pipeline_sets_error_status_when_recording_cannot_start(tmp_path: Path) 
     pipeline.start_recording()
 
     assert pipeline.status == "error"
-    assert status_updates[-1] == ("error", "Could not start recording. Check microphone access.")
+    # The detail is now a categorized, actionable message rather than a generic one.
+    assert status_updates[-1][0] == "error"
+    assert "microphone" in status_updates[-1][1].lower()
 
 
-def test_pipeline_ignores_new_recording_trigger_while_busy(tmp_path: Path) -> None:
+def test_pipeline_allows_new_recording_while_previous_is_processing(tmp_path: Path) -> None:
+    """The owner's #1 requirement: a record trigger is NEVER dropped just because the
+    previous take is still being transcribed/cleaned/pasted."""
     config = build_config(tmp_path)
     recorder = DummyRecorder()
-    notifications: list[tuple[str, str]] = []
     pipeline = DictationPipeline(
         config=config,
         recorder=recorder,
         transcriber=DummyTranscriber(),
         cleaner=DummyCleaner(),
         output=SuccessfulOutput(),
-        notification_callback=lambda message, tone: notifications.append((message, tone)),
         logger=logging.getLogger("test.pipeline.runtime"),
     )
 
-    pipeline._set_status("transcribing", "Transcribing locally...")
+    # Simulate a previous take still being processed by the worker.
+    pipeline._jobs_in_flight = 1
+    pipeline._worker_stage = "cleaning"
+
     pipeline.start_recording()
 
-    assert recorder.started == 0
-    assert notifications[-1] == ("Still processing the previous dictation.", "info")
+    assert recorder.started == 1
+    assert pipeline.status == "recording"
+
+
+def test_pipeline_refuses_only_when_a_capture_is_already_active(tmp_path: Path) -> None:
+    config = build_config(tmp_path)
+    recorder = DummyRecorder()
+    pipeline = DictationPipeline(
+        config=config,
+        recorder=recorder,
+        transcriber=DummyTranscriber(),
+        cleaner=DummyCleaner(),
+        output=SuccessfulOutput(),
+        logger=logging.getLogger("test.pipeline.runtime"),
+    )
+
+    pipeline.start_recording()
+    pipeline.start_recording()  # second press while already capturing
+
+    assert recorder.started == 1  # not restarted
+    assert pipeline.status == "recording"
 
 
 def test_pipeline_sets_error_status_when_delivery_fails(tmp_path: Path) -> None:
@@ -156,15 +197,7 @@ def test_pipeline_sets_error_status_when_delivery_fails(tmp_path: Path) -> None:
         logger=logging.getLogger("test.pipeline.runtime"),
     )
 
-    pipeline._process_capture(
-        CapturedAudio(
-            audio_array=[],
-            sample_rate=16000,
-            duration_seconds=1.2,
-            was_truncated=False,
-            frame_count=16000,
-        )
-    )
+    pipeline._consume_job(make_job())
 
     assert pipeline.status == "error"
     assert status_updates[-1] == ("error", "paste blocked")
@@ -184,7 +217,7 @@ def test_toggle_recording_can_retry_from_error_state(tmp_path: Path) -> None:
         logger=logging.getLogger("test.pipeline.runtime"),
     )
 
-    pipeline._set_status("error", "Previous dictation failed")
+    pipeline._error_detail = "Previous dictation failed"
     pipeline.toggle_recording()
 
     assert recorder.started == 1
@@ -225,15 +258,7 @@ def test_pipeline_falls_back_to_raw_text_when_cleanup_raises(tmp_path: Path) -> 
         logger=logging.getLogger("test.pipeline.runtime"),
     )
 
-    pipeline._process_capture(
-        CapturedAudio(
-            audio_array=[],
-            sample_rate=16000,
-            duration_seconds=1.2,
-            was_truncated=False,
-            frame_count=16000,
-        )
-    )
+    pipeline._consume_job(make_job())
 
     assert pipeline.status == "ready"
     assert results
@@ -255,21 +280,31 @@ def test_pipeline_preserves_text_when_processing_is_canceled(tmp_path: Path) -> 
         logger=logging.getLogger("test.pipeline.runtime"),
     )
 
-    pipeline._cancel_requested = True
-    pipeline._process_capture(
-        CapturedAudio(
-            audio_array=[],
-            sample_rate=16000,
-            duration_seconds=1.2,
-            was_truncated=False,
-            frame_count=16000,
-        )
-    )
+    pipeline._consume_job(make_job(cancel=True))
 
     assert pipeline.status == "ready"
     assert output.copied_text == "Hello There From Flowtype"
     assert results[-1].delivery_state == "copied_only"
     assert "clipboard" in results[-1].delivery_note.lower()
+
+
+def test_pipeline_surfaces_truncation_note_in_result(tmp_path: Path) -> None:
+    config = build_config(tmp_path)
+    results = []
+    pipeline = DictationPipeline(
+        config=config,
+        recorder=DummyRecorder(),
+        transcriber=DummyTranscriber(),
+        cleaner=DummyCleaner(),
+        output=SuccessfulOutput(),
+        result_callback=lambda result: results.append(result),
+        logger=logging.getLogger("test.pipeline.runtime"),
+    )
+
+    pipeline._consume_job(make_job(was_truncated=True))
+
+    assert results
+    assert "maximum length" in results[-1].delivery_note.lower()
 
 
 def test_pipeline_pins_cpu_in_config_after_runtime_cuda_failure(tmp_path: Path) -> None:
@@ -285,15 +320,7 @@ def test_pipeline_pins_cpu_in_config_after_runtime_cuda_failure(tmp_path: Path) 
         logger=logging.getLogger("test.pipeline.runtime"),
     )
 
-    pipeline._process_capture(
-        CapturedAudio(
-            audio_array=[],
-            sample_rate=16000,
-            duration_seconds=1.2,
-            was_truncated=False,
-            frame_count=16000,
-        )
-    )
+    pipeline._consume_job(make_job())
 
     reloaded = load_config(config.config_path)
     assert reloaded.transcription.device == "cpu"

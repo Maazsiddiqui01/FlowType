@@ -43,6 +43,7 @@ class AudioRecorder:
         self._is_recording = False
         self._was_truncated = False
         self._status_messages: list[str] = []
+        self._actual_sample_rate = self.settings.sample_rate
         self._max_frames = self.settings.sample_rate * self.settings.max_duration_seconds
 
     def start(self) -> None:
@@ -55,6 +56,10 @@ class AudioRecorder:
             self._recorded_frames = 0
             self._was_truncated = False
             self._status_messages = []
+            # Reset per-recording derived state so a prior native-rate fallback does
+            # not leak its sample rate / frame cap into the next (normal) recording.
+            self._actual_sample_rate = self.settings.sample_rate
+            self._max_frames = self.settings.sample_rate * self.settings.max_duration_seconds
 
             def callback(indata, frames, _time_info, status) -> None:
                 del frames
@@ -93,6 +98,7 @@ class AudioRecorder:
                     samplerate=self.settings.sample_rate,
                     channels=self.settings.channels,
                     dtype=self.settings.dtype,
+                    blocksize=0,
                     callback=callback,
                 )
                 self._actual_sample_rate = self.settings.sample_rate
@@ -108,6 +114,7 @@ class AudioRecorder:
                         samplerate=native_rate,
                         channels=self.settings.channels,
                         dtype=self.settings.dtype,
+                        blocksize=0,
                         callback=callback,
                     )
                     self._actual_sample_rate = native_rate
@@ -128,6 +135,7 @@ class AudioRecorder:
             recorded_frames = self._recorded_frames
             was_truncated = self._was_truncated
             status_messages = self._status_messages
+            actual_sample_rate = self._actual_sample_rate
             self._chunks = []
             self._recorded_frames = 0
             self._was_truncated = False
@@ -159,13 +167,9 @@ class AudioRecorder:
         if audio_array.ndim > 1:
             audio_array = audio_array.mean(axis=1)
 
-        if hasattr(self, '_actual_sample_rate') and self._actual_sample_rate != self.settings.sample_rate:
-            duration = len(audio_array) / self._actual_sample_rate
-            new_length = int(duration * self.settings.sample_rate)
-            x_old = np.linspace(0, duration, len(audio_array))
-            x_new = np.linspace(0, duration, new_length)
-            audio_array = np.interp(x_new, x_old, audio_array)
-            recorded_frames = new_length
+        if actual_sample_rate != self.settings.sample_rate:
+            audio_array = _resample(audio_array, actual_sample_rate, self.settings.sample_rate, self.logger)
+            recorded_frames = len(audio_array)
 
         float_audio = audio_array.astype(np.float32) / 32768.0
         duration_seconds = recorded_frames / float(self.settings.sample_rate)
@@ -182,6 +186,11 @@ class AudioRecorder:
         with self._lock:
             return self._is_recording
 
+    @property
+    def actual_sample_rate(self) -> int:
+        with self._lock:
+            return self._actual_sample_rate
+
     def _load_sounddevice(self):
         if self._sounddevice is None:
             try:
@@ -195,3 +204,45 @@ class AudioRecorder:
                     "sounddevice is not installed. Run `python -m pip install -e .` first."
                 ) from exc
         return self._sounddevice
+
+
+def _resample(audio_array: np.ndarray, src_rate: int, dst_rate: int, logger: logging.Logger) -> np.ndarray:
+    """Resample mono audio from src_rate to dst_rate, preserving int16 amplitude scale.
+
+    Prefers a high-quality polyphase/soxr resampler and falls back to linear
+    interpolation only if neither is available. The device-fallback path (capturing
+    at a native rate when the mic refuses 16 kHz) is the only caller, so quality here
+    directly affects transcription accuracy on those machines.
+    """
+    if src_rate == dst_rate or audio_array.size == 0:
+        return audio_array
+
+    samples = audio_array.astype(np.float64, copy=False)
+
+    try:  # high quality, tiny dependency
+        import soxr  # type: ignore
+
+        return soxr.resample(samples, src_rate, dst_rate)
+    except Exception:
+        pass
+
+    try:  # part of scipy if present
+        from math import gcd
+        from scipy.signal import resample_poly  # type: ignore
+
+        divisor = gcd(int(src_rate), int(dst_rate))
+        up = int(dst_rate) // divisor
+        down = int(src_rate) // divisor
+        return resample_poly(samples, up, down)
+    except Exception:
+        logger.warning(
+            "Falling back to linear resampling %dHz->%dHz; install 'soxr' for better quality",
+            src_rate,
+            dst_rate,
+        )
+
+    duration = len(samples) / float(src_rate)
+    new_length = max(1, int(round(duration * dst_rate)))
+    x_old = np.linspace(0.0, duration, len(samples), endpoint=False)
+    x_new = np.linspace(0.0, duration, new_length, endpoint=False)
+    return np.interp(x_new, x_old, samples)

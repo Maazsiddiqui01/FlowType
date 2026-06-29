@@ -12,7 +12,7 @@ import sys
 from flowtype.audio import AudioRecorder
 from flowtype.cleanup import TextCleaner
 from flowtype.config import AppConfig, load_config, load_config_data, save_config_data
-from flowtype.logger import configure_logging
+from flowtype.logger import configure_logging, install_crash_handlers
 from flowtype.output import OutputDelivery
 from flowtype.pipeline import DictationPipeline
 from flowtype.startup import build_launch_command, sync_launch_at_login
@@ -174,6 +174,7 @@ def cli(argv: list[str] | None = None) -> int:
 
     config = load_config(args.config)
     logger = configure_logging(config.general)
+    install_crash_handlers(config.general)
     logger.info("FlowType starting")
     log_runtime_config(config, logger)
 

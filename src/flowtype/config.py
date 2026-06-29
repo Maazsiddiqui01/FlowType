@@ -45,7 +45,7 @@ entries = ""
 sample_rate = 16000
 channels = 1
 dtype = "int16"
-max_duration_seconds = 300
+max_duration_seconds = 1800
 min_duration_ms = 250
 
 [transcription]
@@ -119,7 +119,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "sample_rate": 16000,
         "channels": 1,
         "dtype": "int16",
-        "max_duration_seconds": 300,
+        "max_duration_seconds": 1800,
         "min_duration_ms": 250,
     },
     "transcription": {
