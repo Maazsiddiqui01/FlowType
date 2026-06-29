@@ -183,10 +183,10 @@ Item {
 
                             FlowSwitch {
                                 checked: index === 0 ? root.launchAtLoginDraft : (index === 1 ? root.startMinimizedDraft : root.closeToTrayDraft)
-                                onClicked: {
-                                    if (index === 0) root.launchAtLoginDraft = checked
-                                    else if (index === 1) root.startMinimizedDraft = checked
-                                    else root.closeToTrayDraft = checked
+                                onToggled: function(value) {
+                                    if (index === 0) root.launchAtLoginDraft = value
+                                    else if (index === 1) root.startMinimizedDraft = value
+                                    else root.closeToTrayDraft = value
                                 }
                             }
                         }

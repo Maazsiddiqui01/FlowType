@@ -191,6 +191,36 @@ def test_load_config_sanitizes_invalid_shortcuts(tmp_path: Path) -> None:
     assert config.shortcuts.repaste_last == RECOMMENDED_SHORTCUTS["repaste_last"]
 
 
+def test_multiline_fields_with_backslashes_round_trip(tmp_path: Path) -> None:
+    # Regression: backslashes in app_rules / prompt / vocabulary (e.g. Windows paths)
+    # previously produced invalid or silently-mutated TOML.
+    config_path = tmp_path / "config.toml"
+    write_default_config(config_path)
+    save_config_data(
+        config_path,
+        {
+            "mode": {"app_rules": "C:\\Dev\\code.exe = technical"},
+            "vocabulary": {"entries": "C:\\Users\\path"},
+            "cleanup": {"prompt": "Keep literal backslashes like C:\\temp intact."},
+        },
+    )
+
+    config = load_config(config_path)
+    assert config.mode.app_rules == (("C:\\Dev\\code.exe", "technical"),)
+    assert "C:\\Users\\path" in config.vocabulary.text
+    assert "C:\\temp" in config.cleanup.prompt
+
+
+def test_corrupt_config_recovers_to_defaults(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.toml"
+    config_path.write_text("this is not valid toml {{{ [", encoding="utf-8")
+
+    config = load_config(config_path)  # must not raise
+
+    assert config.cleanup.provider == "openrouter"  # reseeded defaults
+    assert config_path.with_suffix(".corrupt.toml").exists()
+
+
 def test_api_key_is_encrypted_at_rest(tmp_path: Path) -> None:
     import os
 

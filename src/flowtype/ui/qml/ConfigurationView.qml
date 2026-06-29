@@ -359,7 +359,7 @@ Item {
 
                             FlowSwitch {
                                 checked: root.restoreClipboardDraft
-                                onClicked: root.restoreClipboardDraft = checked
+                                onToggled: function(value) { root.restoreClipboardDraft = value }
                             }
                         }
                     }

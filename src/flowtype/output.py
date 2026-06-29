@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib
 import logging
 import sys
+import threading
 import time
 from dataclasses import dataclass
 
@@ -43,12 +44,21 @@ class OutputDelivery:
         self.logger = logger or logging.getLogger("flowtype.output")
         self._keyboard_controller = None
         self._keyboard_key = None
+        # deliver()/copy_to_clipboard() are reachable from the worker thread, the
+        # hotkey thread (repaste-last), and the GUI thread (History re-paste). The
+        # clipboard read/copy/focus-restore/Ctrl+V/restore sequence and the shared
+        # keyboard controller must run one at a time.
+        self._lock = threading.Lock()
 
     def deliver(self, text: str, target: ForegroundWindowSnapshot | None = None) -> DeliveryResult:
         text = text.strip()
         if not text:
             return DeliveryResult(copied=False, pasted=False, delivery_state="none")
 
+        with self._lock:
+            return self._deliver_locked(text, target)
+
+    def _deliver_locked(self, text: str, target: ForegroundWindowSnapshot | None) -> DeliveryResult:
         pyperclip = self._load_pyperclip()
         previous_clipboard = None
         if self.settings.restore_clipboard:
@@ -120,8 +130,9 @@ class OutputDelivery:
         normalized = text.strip()
         if not normalized:
             return False
-        pyperclip = self._load_pyperclip()
-        pyperclip.copy(normalized)
+        with self._lock:
+            pyperclip = self._load_pyperclip()
+            pyperclip.copy(normalized)
         return True
 
     def _paste_via_keyboard(self) -> bool:

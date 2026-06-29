@@ -209,8 +209,8 @@ Item {
 
                         FlowSwitch {
                             checked: root.showIdleHudDraft
-                            onClicked: {
-                                root.showIdleHudDraft = checked
+                            onToggled: function(value) {
+                                root.showIdleHudDraft = value
                                 AppController.saveHudPresentation(root.hudStyleDraft, root.hudPositionDraft, root.showIdleHudDraft)
                             }
                         }

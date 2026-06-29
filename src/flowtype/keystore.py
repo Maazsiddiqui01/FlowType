@@ -72,7 +72,9 @@ def unprotect(value: str) -> str:
     if not value or not is_protected(value):
         return value
     if os.name != "nt":
-        return value
+        # A protected token but no DPAPI to decrypt it: never hand back the raw
+        # ciphertext as if it were the key. Callers fall back to env vars.
+        return ""
     encoded = value[len(SECRET_PREFIX):]
     try:
         raw = base64.b64decode(encoded.encode("ascii"))

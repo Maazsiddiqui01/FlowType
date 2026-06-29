@@ -110,6 +110,7 @@ Window {
 
             // State dot
             Rectangle {
+                id: stateDot
                 Layout.alignment: Qt.AlignVCenter
                 width: 9
                 height: 9
@@ -119,12 +120,13 @@ Window {
 
                 // gentle pulse while busy
                 SequentialAnimation on opacity {
+                    id: busyPulse
                     running: hudWindow.isBusy
                     loops: Animation.Infinite
                     NumberAnimation { from: 1.0; to: 0.35; duration: 600; easing.type: Easing.InOutQuad }
                     NumberAnimation { from: 0.35; to: 1.0; duration: 600; easing.type: Easing.InOutQuad }
+                    onRunningChanged: if (!running) stateDot.opacity = 1.0
                 }
-                onVisibleChanged: if (!hudWindow.isBusy) opacity = 1.0
             }
 
             // Waveform (recording + busy share the animated strip)

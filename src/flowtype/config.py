@@ -346,7 +346,18 @@ def load_config_data(explicit_path: str | Path | None = None) -> tuple[Path, dic
     config_path = discover_config_path(explicit_path)
     seed_runtime_config(config_path)
     raw_config = copy.deepcopy(DEFAULT_CONFIG)
-    loaded = tomllib.loads(config_path.read_text(encoding="utf-8"))
+    try:
+        loaded = tomllib.loads(config_path.read_text(encoding="utf-8"))
+    except Exception:
+        # A corrupt/unparseable config must never brick startup. Back it up and reseed
+        # defaults so the app always launches.
+        try:
+            backup = config_path.with_suffix(".corrupt.toml")
+            backup.write_text(config_path.read_text(encoding="utf-8"), encoding="utf-8")
+        except Exception:
+            pass
+        write_default_config(config_path)
+        loaded = tomllib.loads(config_path.read_text(encoding="utf-8"))
     merged = deep_merge(raw_config, loaded)
     migrated = _normalize_cleanup_defaults(merged)
     experience = merged.setdefault("experience", {})
@@ -356,7 +367,14 @@ def load_config_data(explicit_path: str | Path | None = None) -> tuple[Path, dic
             experience_changed = True
         experience["show_idle_hud"] = False
     if migrated or experience_changed:
-        config_path.write_text(render_config(merged), encoding="utf-8")
+        rendered = render_config(merged)
+        # Defense-in-depth: never overwrite the live config with something that does
+        # not parse back. (Primary protection is correct escaping in render_config.)
+        try:
+            tomllib.loads(rendered)
+            config_path.write_text(rendered, encoding="utf-8")
+        except Exception:
+            pass
     return config_path, merged
 
 
@@ -673,7 +691,11 @@ def _escape_basic_string(value: str) -> str:
 
 
 def _escape_multiline_string(value: str) -> str:
-    escaped = value.replace('"""', '\\"\\"\\"').rstrip()
+    # Backslash-doubling MUST come first (as in _escape_basic_string) so the
+    # subsequent triple-quote escaping is not itself re-escaped. Without this, a
+    # backslash in app_rules/vocabulary/prompt (e.g. a Windows path) produces invalid
+    # TOML or silently mutated content. rstrip() is safe after doubling.
+    escaped = value.replace("\\", "\\\\").replace('"""', '\\"\\"\\"').rstrip()
     return f'"""{escaped}"""'
 
 

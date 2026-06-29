@@ -218,7 +218,7 @@ Item {
 
                         FlowSwitch {
                             checked: root.launchAtLoginDraft
-                            onClicked: root.launchAtLoginDraft = checked
+                            onToggled: function(value) { root.launchAtLoginDraft = value }
                         }
                     }
 
@@ -231,7 +231,7 @@ Item {
 
                         FlowSwitch {
                             checked: root.startMinimizedDraft
-                            onClicked: root.startMinimizedDraft = checked
+                            onToggled: function(value) { root.startMinimizedDraft = value }
                         }
                     }
 
@@ -244,7 +244,7 @@ Item {
 
                         FlowSwitch {
                             checked: root.closeToTrayDraft
-                            onClicked: root.closeToTrayDraft = checked
+                            onToggled: function(value) { root.closeToTrayDraft = value }
                         }
                     }
                 }

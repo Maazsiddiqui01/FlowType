@@ -14,9 +14,11 @@ Item {
     implicitHeight: 24
     activeFocusOnTab: true
 
+    // Presentation-only: never assign to `checked` (that would break the consumer's
+    // binding and desync the switch). Emit the intended new value; the consumer updates
+    // the bound property, which flows back into `checked`.
     function toggle() {
-        root.checked = !root.checked
-        root.toggled(root.checked)
+        root.toggled(!root.checked)
         root.clicked()
     }
 

@@ -48,7 +48,7 @@ class _Job:
     and its own cancel flag, so overlapping dictations never cross-contaminate.
     """
 
-    audio: CapturedAudio
+    audio: CapturedAudio | None
     target: ForegroundWindowSnapshot | None
     was_truncated: bool
     file_path: str | None = None
@@ -270,11 +270,13 @@ class DictationPipeline:
 
         if cancel:
             self.logger.info("Recording cancelled, discarding audio")
+            self._delete_recording_file(captured_audio.file_path)
             self._refresh_status()
             return
 
         if captured_audio.duration_seconds * 1000 < self.config.audio.min_duration_ms:
             self.logger.info("Ignored dictation shorter than minimum duration")
+            self._delete_recording_file(captured_audio.file_path)
             self._refresh_status()
             return
 
@@ -306,17 +308,10 @@ class DictationPipeline:
 
         enqueued = 0
         for path in orphans:
-            try:
-                captured = read_wav(path, target_rate=self.config.audio.sample_rate, logger=self.logger)
-            except Exception as exc:
-                self.logger.warning("Could not read orphan recording %s: %s; removing", path, exc)
-                try:
-                    os.remove(path)
-                except OSError:
-                    pass
-                continue
+            # Decode lazily on the worker thread (read_wav does blocking I/O + resample);
+            # doing it here would block whoever calls recover_orphans (the GUI thread).
             job = _Job(
-                audio=captured,
+                audio=None,
                 target=None,
                 was_truncated=False,
                 file_path=str(path),
@@ -430,11 +425,24 @@ class DictationPipeline:
             self._refresh_status()
 
     def _process_job(self, job: _Job) -> None:
-        metrics = PipelineMetrics(recording_seconds=job.audio.duration_seconds)
+        audio = job.audio
+        if audio is None and job.file_path:
+            # Recovery take: decode the journaled WAV here (on the worker), not on the
+            # caller's thread. If it is unreadable, drop the file so it cannot loop.
+            try:
+                audio = read_wav(job.file_path, target_rate=self.config.audio.sample_rate, logger=self.logger)
+            except Exception as exc:
+                self.logger.warning("Could not read recovered recording %s: %s; removing", job.file_path, exc)
+                self._delete_recording_file(job.file_path)
+                return
+        if audio is None:
+            return
+
+        metrics = PipelineMetrics(recording_seconds=audio.duration_seconds)
 
         self._set_stage("transcribing")
         transcription_start = time.perf_counter()
-        transcription = self.transcriber.transcribe(job.audio)
+        transcription = self.transcriber.transcribe(audio)
         metrics.transcription_seconds = time.perf_counter() - transcription_start
         self._pin_cpu_if_requested()
         self._emit_runtime_notice()
@@ -557,10 +565,13 @@ class DictationPipeline:
 
     # ── status plumbing ──────────────────────────────────────────────────────
     def _delete_job_file(self, job: _Job) -> None:
-        if not job.file_path:
+        self._delete_recording_file(job.file_path)
+
+    def _delete_recording_file(self, file_path: str | None) -> None:
+        if not file_path:
             return
         try:
-            os.remove(job.file_path)
+            os.remove(file_path)
         except OSError:
             pass
 
@@ -584,20 +595,26 @@ class DictationPipeline:
         return ("ready", "Ready")
 
     def _refresh_status(self) -> None:
+        # Emit under the lock so callback order matches _presented_status order (two
+        # threads refreshing concurrently could otherwise deliver status out of order).
+        # The callback only posts a queued Qt signal (or logs), so it never re-enters
+        # pipeline code; the RLock is reentrant anyway.
         with self._state_lock:
             status, detail = self._compute_status_locked()
             if status == self._presented_status and status not in {"error"}:
                 # Avoid spamming identical transitions, but always re-emit errors.
                 return
             self._presented_status = status
-        self._emit_status(status, detail)
+            cb = self.status_callback
+            if cb is not None:
+                cb(status, detail)
 
     def _emit_status(self, status: str, detail: str) -> None:
         with self._state_lock:
             self._presented_status = status
-        cb = self.status_callback
-        if cb is not None:
-            cb(status, detail)
+            cb = self.status_callback
+            if cb is not None:
+                cb(status, detail)
 
     def _notify(self, message: str, tone: str = "info") -> None:
         cb = self.notification_callback
@@ -606,12 +623,19 @@ class DictationPipeline:
 
     def _describe_capture_error(self, exc: Exception) -> str:
         text = str(exc).lower()
-        if "permission" in text or "denied" in text or "access" in text:
+        if "permission" in text or "denied" in text or "access is denied" in text:
             return "Microphone access is blocked. Allow microphone access in Windows settings, then try again."
-        if "no" in text and "device" in text:
-            return "No microphone was found. Connect an input device and try again."
-        if "busy" in text or "in use" in text or "unavailable" in text:
+        if "busy" in text or "in use" in text or "unavailable" in text or "already" in text:
             return "The microphone is in use by another app. Close it and try again."
+        if (
+            "no default" in text
+            or "no input" in text
+            or "no such device" in text
+            or "invalid device" in text
+            or "found no" in text
+            or "no device" in text
+        ):
+            return "No microphone was found. Connect an input device and try again."
         return "Could not start recording. Check microphone access and try again."
 
     def _resolve_mode(self, job: _Job) -> tuple[str, str]:
