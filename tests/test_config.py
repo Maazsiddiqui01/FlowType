@@ -21,7 +21,7 @@ def test_load_config_creates_default_file(tmp_path: Path, monkeypatch: pytest.Mo
     assert config.experience.onboarding_dismissed is False
     assert config.experience.close_to_tray is True
     assert config.experience.hud_position == "bottom"
-    assert config.experience.show_idle_hud is False
+    assert config.experience.show_idle_hud is True
     assert config.startup.launch_at_login is True
     assert config.startup.start_minimized is True
     assert config.startup.prompt_completed is False
@@ -141,21 +141,25 @@ def test_save_config_data_persists_user_changes(tmp_path: Path) -> None:
     assert config.startup.prompt_completed is True
 
 
-def test_legacy_idle_hud_configs_are_hidden_by_default(tmp_path: Path) -> None:
+def test_idle_hud_shows_by_default_when_not_user_set(tmp_path: Path) -> None:
     config_path = tmp_path / "config.toml"
     write_default_config(config_path)
-    config_path.write_text(
-        config_path.read_text(encoding="utf-8").replace(
-            "show_idle_hud = false\nonboarding_dismissed = false",
-            "show_idle_hud = true\nonboarding_dismissed = false",
-        ),
-        encoding="utf-8",
-    )
+
+    config = load_config(config_path)
+
+    # Wispr-style: the idle line is on by default until the user explicitly toggles it.
+    assert config.experience.show_idle_hud is True
+    assert config.experience.idle_hud_user_set is False
+
+
+def test_idle_hud_respects_user_disabling_it(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.toml"
+    write_default_config(config_path)
+    save_config_data(config_path, {"experience": {"show_idle_hud": False, "idle_hud_user_set": True}})
 
     config = load_config(config_path)
 
     assert config.experience.show_idle_hud is False
-    assert config.experience.idle_hud_user_set is False
 
 
 def test_load_config_uses_provider_specific_env_fallbacks(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

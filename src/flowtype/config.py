@@ -85,7 +85,7 @@ restore_clipboard = false
 [experience]
 hud_style = "mini"
 hud_position = "bottom"
-show_idle_hud = false
+show_idle_hud = true
 idle_hud_user_set = false
 onboarding_dismissed = false
 close_to_tray = true
@@ -164,7 +164,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "experience": {
         "hud_style": "mini",
         "hud_position": "bottom",
-        "show_idle_hud": False,
+        "show_idle_hud": True,
         "idle_hud_user_set": False,
         "onboarding_dismissed": False,
         "close_to_tray": True,
@@ -363,9 +363,11 @@ def load_config_data(explicit_path: str | Path | None = None) -> tuple[Path, dic
     experience = merged.setdefault("experience", {})
     experience_changed = False
     if not bool(experience.get("idle_hud_user_set", False)):
-        if bool(experience.get("show_idle_hud", False)):
+        # The idle line is shown by default (Wispr-style minimal indicator that expands
+        # on hover). Users who explicitly toggle it (idle_hud_user_set) keep their choice.
+        if not bool(experience.get("show_idle_hud", True)):
             experience_changed = True
-        experience["show_idle_hud"] = False
+        experience["show_idle_hud"] = True
     if migrated or experience_changed:
         rendered = render_config(merged)
         # Defense-in-depth: never overwrite the live config with something that does

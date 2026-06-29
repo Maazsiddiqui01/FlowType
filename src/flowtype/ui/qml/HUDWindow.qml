@@ -7,33 +7,38 @@ Window {
 
     Theme { id: theme }
 
-    flags: Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowTransparentForInput
+    // Hover-aware but never steals keyboard focus (WS_EX_NOACTIVATE), so dictation
+    // still pastes into the app you're typing in. Not TransparentForInput, so the
+    // idle line can detect hover and expand -- like Wispr Flow.
+    flags: Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowDoesNotAcceptFocus
     color: "transparent"
     visible: shouldShow
 
-    property string hudStyle: AppController.hudStyle
-    property string hudPosition: AppController.hudPosition
+    property string status: AppController.status
+    property bool isRecording: status === "recording"
+    property bool isBusy: status === "transcribing" || status === "cleaning" || status === "pasting"
+    property bool isError: status === "error"
+    property bool isReady: status === "ready" || status === "starting"
     property bool showIdleHud: AppController.showIdleHud
-    property bool isRecording: AppController.status === "recording"
-    property bool isBusy: AppController.status === "transcribing" || AppController.status === "cleaning" || AppController.status === "pasting"
-    property bool isError: AppController.status === "error"
-    property bool isReady: AppController.status === "ready"
-    // Hide while the result card is up so the two overlays never stack on the same anchor.
-    property bool shouldShow: (isRecording || isBusy || isError || (isReady && showIdleHud))
-        && !AppController.resultCardVisible
+    property bool active: isRecording || isBusy || isError
+    property bool hovered: hoverArea.containsMouse || (typeof HudForceHover !== "undefined" && HudForceHover)
+    property bool expanded: active || hovered
+    // The idle line is always present (unless disabled); it expands on hover/activity.
+    property bool shouldShow: (active || (isReady && showIdleHud)) && !AppController.resultCardVisible
 
-    readonly property int hPad: 16
-    readonly property int hudHeight: hudStyle === "mini" ? 40 : 46
-    width: Math.round(Math.max(96, contentRow.implicitWidth + hPad * 2))
-    height: hudHeight
+    readonly property int idleWidth: 66
+    readonly property int idleHeight: 16
+    readonly property int expandedHeight: 38
+
+    width: Math.round(expanded ? Math.max(132, contentRow.implicitWidth + 30) : idleWidth)
+    height: expanded ? expandedHeight : idleHeight
+
+    Behavior on width { NumberAnimation { duration: theme.durBase; easing.type: theme.easeOut } }
+    Behavior on height { NumberAnimation { duration: theme.durBase; easing.type: theme.easeOut } }
 
     Connections {
         target: AppController
-        function onConfigChanged() {
-            hudWindow.hudStyle = AppController.hudStyle
-            hudWindow.hudPosition = AppController.hudPosition
-            hudWindow.showIdleHud = AppController.showIdleHud
-        }
+        function onConfigChanged() { hudWindow.showIdleHud = AppController.showIdleHud }
     }
 
     function waveMode() {
@@ -51,39 +56,59 @@ Window {
 
     function stateLabel() {
         if (isRecording) return "Recording"
-        if (AppController.status === "transcribing") return "Transcribing"
-        if (AppController.status === "cleaning") return "Polishing"
-        if (AppController.status === "pasting") return "Pasting"
+        if (status === "transcribing") return "Transcribing"
+        if (status === "cleaning") return "Polishing"
+        if (status === "pasting") return "Pasting"
         if (isError) return "Error"
         return "Ready"
     }
 
-    // ── Frosted HUD pill ─────────────────────────────────────────────────────
+    function shortcutKeys() {
+        var raw = AppController.holdToTalk || "ctrl+shift+space"
+        var parts = raw.split("+")
+        var out = []
+        for (var i = 0; i < parts.length; i += 1) {
+            var p = parts[i].trim()
+            if (p.length > 0) out.push(p.charAt(0).toUpperCase() + p.slice(1))
+        }
+        return out.join(" + ")
+    }
+
+    MouseArea {
+        id: hoverArea
+        anchors.fill: parent
+        hoverEnabled: true
+        acceptedButtons: Qt.NoButton
+    }
+
+    // ── The capsule ──────────────────────────────────────────────────────────
     Rectangle {
-        id: hudPill
+        id: pill
         anchors.fill: parent
         radius: height / 2
-        color: theme.hudFill
+        antialiasing: true
+        color: hudWindow.expanded ? theme.hudFill
+            : (theme.darkMode ? Qt.rgba(0.05, 0.07, 0.11, 0.72) : Qt.rgba(0.07, 0.10, 0.16, 0.62))
         border.width: 1
         border.color: theme.hudBorder
         opacity: hudWindow.shouldShow ? 1.0 : 0.0
         visible: opacity > 0
-        antialiasing: true
 
         Behavior on opacity { NumberAnimation { duration: theme.durBase; easing.type: theme.easeInOut } }
+        Behavior on color { ColorAnimation { duration: theme.durBase } }
 
-        // Top frost sheen
+        // top sheen
         Rectangle {
             anchors.fill: parent
             radius: parent.radius
             gradient: Gradient {
                 GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.10) }
-                GradientStop { position: 0.5; color: "transparent" }
-                GradientStop { position: 1.0; color: Qt.rgba(0, 0, 0, 0.12) }
+                GradientStop { position: 0.6; color: "transparent" }
+                GradientStop { position: 1.0; color: Qt.rgba(0, 0, 0, 0.10) }
             }
         }
 
-        // Soft recording halo
+        // recording halo
         Rectangle {
             anchors.fill: parent
             anchors.margins: -2
@@ -92,63 +117,76 @@ Window {
             border.width: 2
             border.color: theme.tint(theme.warm, hudWindow.isRecording ? 0.30 * (0.5 + 0.5 * Math.sin(glow.phase)) : 0)
             visible: hudWindow.isRecording
-
             property QtObject glow: QtObject { property real phase: 0.0 }
-
-            Timer {
-                running: parent.visible
-                repeat: true
-                interval: 30
-                onTriggered: parent.glow.phase += 0.08
-            }
+            Timer { running: parent.visible; repeat: true; interval: 30; onTriggered: parent.glow.phase += 0.08 }
         }
 
+        // ── Idle: a tiny blank line ──────────────────────────────────────────
+        Rectangle {
+            visible: !hudWindow.expanded
+            anchors.centerIn: parent
+            width: 40
+            height: 4
+            radius: 2
+            color: theme.darkMode ? Qt.rgba(1, 1, 1, 0.42) : Qt.rgba(1, 1, 1, 0.55)
+        }
+
+        // ── Expanded: hint (hover) or waveform (active) ──────────────────────
         RowLayout {
             id: contentRow
+            visible: hudWindow.expanded
             anchors.centerIn: parent
             spacing: 9
 
-            // State dot
+            // State dot (active) — recording/busy/error
             Rectangle {
-                id: stateDot
+                visible: hudWindow.active
                 Layout.alignment: Qt.AlignVCenter
-                width: 9
-                height: 9
-                radius: 4.5
+                width: 8; height: 8; radius: 4
                 color: hudWindow.stateColor()
                 Behavior on color { ColorAnimation { duration: theme.durBase } }
-
-                // gentle pulse while busy
-                SequentialAnimation on opacity {
-                    id: busyPulse
-                    running: hudWindow.isBusy
-                    loops: Animation.Infinite
-                    NumberAnimation { from: 1.0; to: 0.35; duration: 600; easing.type: Easing.InOutQuad }
-                    NumberAnimation { from: 0.35; to: 1.0; duration: 600; easing.type: Easing.InOutQuad }
-                    onRunningChanged: if (!running) stateDot.opacity = 1.0
-                }
             }
 
-            // Waveform (recording + busy share the animated strip)
             WaveStrip {
+                visible: hudWindow.active
                 Layout.alignment: Qt.AlignVCenter
-                visible: hudWindow.isRecording || hudWindow.isBusy
-                bars: hudWindow.hudStyle === "mini" ? 6 : 8
-                barWidth: 3
-                gap: 3
-                minimumBarHeight: 3
-                maximumBarHeight: hudWindow.hudStyle === "mini" ? 12 : 16
+                bars: 6
+                barWidth: 2
+                gap: 2
+                minimumBarHeight: 2
+                maximumBarHeight: 12
                 level: AppController.audioLevel
                 mode: hudWindow.waveMode()
             }
 
-            // Status word
             Label {
+                visible: hudWindow.active
                 Layout.alignment: Qt.AlignVCenter
                 text: hudWindow.stateLabel()
                 color: theme.hudText
                 font.family: theme.fontUi
-                font.pixelSize: hudWindow.hudStyle === "mini" ? 11 : 12
+                font.pixelSize: 11
+                font.weight: Font.DemiBold
+            }
+
+            // Hover (idle): "Dictate  Ctrl + Shift + Space"
+            Label {
+                visible: !hudWindow.active
+                Layout.alignment: Qt.AlignVCenter
+                text: "Dictate"
+                color: theme.hudText
+                font.family: theme.fontUi
+                font.pixelSize: 11
+                font.weight: Font.DemiBold
+            }
+
+            Label {
+                visible: !hudWindow.active
+                Layout.alignment: Qt.AlignVCenter
+                text: hudWindow.shortcutKeys()
+                color: theme.primary
+                font.family: theme.fontUi
+                font.pixelSize: 11
                 font.weight: Font.DemiBold
             }
         }

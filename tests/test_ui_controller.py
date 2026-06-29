@@ -145,7 +145,7 @@ def test_controller_onboarding_flows_update_runtime(tmp_path: Path) -> None:
     assert controller.provider == "none"
     assert controller.onboardingVisible is False
     assert controller.onboardingDismissed is True
-    assert controller.showIdleHud is False
+    assert controller.showIdleHud is True
     assert controller.launchAtLogin is False
 
     controller.completeOnboarding("openai", "demo-key", "gpt-4o-mini", "en", True)
@@ -156,7 +156,7 @@ def test_controller_onboarding_flows_update_runtime(tmp_path: Path) -> None:
     assert controller.cleanupEnabled is True
     assert controller.onboardingVisible is False
     assert controller.onboardingDismissed is True
-    assert controller.showIdleHud is False
+    assert controller.showIdleHud is True
     assert controller.launchAtLogin is True
     assert controller.toggleRecordingShortcut == "ctrl+alt+space"
     assert controller.cancelRecording == "escape"

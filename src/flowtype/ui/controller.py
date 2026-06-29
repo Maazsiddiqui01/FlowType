@@ -1014,7 +1014,7 @@ class AppController(QObject):
             data["cleanup"]["model"] = model_normalized
             data["transcription"]["language"] = language_normalized
             data["experience"]["hud_style"] = "mini"
-            data["experience"]["show_idle_hud"] = False
+            data["experience"]["show_idle_hud"] = True
             data["experience"]["idle_hud_user_set"] = False
             data["experience"]["onboarding_dismissed"] = True
             data["experience"]["close_to_tray"] = True
@@ -1043,7 +1043,7 @@ class AppController(QObject):
             data["cleanup"]["api_key"] = ""
             data["cleanup"]["model"] = ""
             data["experience"]["hud_style"] = "mini"
-            data["experience"]["show_idle_hud"] = False
+            data["experience"]["show_idle_hud"] = True
             data["experience"]["idle_hud_user_set"] = False
             data["experience"]["onboarding_dismissed"] = True
             data["experience"]["close_to_tray"] = True
