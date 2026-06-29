@@ -148,7 +148,8 @@ ApplicationWindow {
                             }
 
                             Label {
-                                text: "Desktop dictation, cleaned locally first."
+                                Layout.fillWidth: true
+                                text: "Local-first"
                                 color: theme.textSecondary
                                 font.family: theme.fontText
                                 font.pixelSize: theme.sizeHelper

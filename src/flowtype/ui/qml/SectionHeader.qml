@@ -11,6 +11,9 @@ Item {
     property string subtitle: ""
     property alias trailing: trailingSlot.data
 
+    // Fill the parent layout so the subtitle wraps within the card instead of taking
+    // its natural width and clipping in narrow cards.
+    Layout.fillWidth: true
     implicitWidth: headerLayout.implicitWidth
     implicitHeight: headerLayout.implicitHeight
 

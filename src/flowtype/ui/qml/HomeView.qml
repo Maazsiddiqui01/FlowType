@@ -48,11 +48,12 @@ Item {
 
                     Label {
                         Layout.fillWidth: true
-                        text: "Dictate, clean, and paste without babysitting the app"
+                        text: "Speak. FlowType cleans it and drops it where you're typing."
                         color: theme.textPrimary
                         font.family: theme.fontDisplay
-                        font.pixelSize: 34
+                        font.pixelSize: 33
                         font.weight: 780
+                        lineHeight: 1.05
                         wrapMode: Text.WordWrap
                     }
 
