@@ -62,55 +62,68 @@ Item {
 
                     Rectangle {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 140
+                        Layout.preferredHeight: 150
                         radius: theme.radiusCard
                         color: theme.surfaceSubtle
                         border.width: 1
                         border.color: theme.border
 
-                        Rectangle {
+                        Column {
                             anchors.centerIn: parent
-                            width: root.hudStyleDraft === "mini" ? 138 : 178
-                            height: root.hudStyleDraft === "mini" ? 38 : 46
-                            radius: height / 2
-                            color: theme.darkMode ? "#0A0E16" : "#0B1622"
-                            border.width: 1
-                            border.color: theme.darkMode ? "#1D2737" : "#243446"
+                            spacing: 18
 
-                            Row {
-                                anchors.centerIn: parent
-                                spacing: 8
+                            // Idle: the minimal blank line (when enabled).
+                            Rectangle {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                visible: root.showIdleHudDraft
+                                width: 40
+                                height: 4
+                                radius: 2
+                                color: theme.darkMode ? "#33405A" : "#9AA8BC"
+                            }
 
-                                Rectangle {
-                                    visible: root.showIdleHudDraft || AppController.status !== "ready"
-                                    width: 22
-                                    height: 22
-                                    radius: 11
-                                    color: theme.darkMode ? "#101723" : "#0D1825"
-                                    border.width: 1
-                                    border.color: theme.darkMode ? "#213042" : "#25384C"
+                            // Recording: the compact pill (state dot + waveform + label).
+                            Rectangle {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                width: pillRow.implicitWidth + 28
+                                height: root.hudStyleDraft === "mini" ? 38 : 44
+                                radius: height / 2
+                                color: theme.darkMode ? "#0A0E16" : "#0B1622"
+                                border.width: 1
+                                border.color: theme.darkMode ? "#1D2737" : "#243446"
+
+                                Row {
+                                    id: pillRow
+                                    anchors.centerIn: parent
+                                    spacing: 9
+
+                                    Rectangle {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        width: 8
+                                        height: 8
+                                        radius: 4
+                                        color: theme.warm
+                                    }
+
+                                    WaveStrip {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        bars: root.hudStyleDraft === "mini" ? 7 : 9
+                                        barWidth: 4
+                                        gap: 4
+                                        minimumBarHeight: 3
+                                        maximumBarHeight: root.hudStyleDraft === "mini" ? 14 : 18
+                                        level: Math.max(AppController.audioLevel, 0.25)
+                                        mode: root.previewWaveMode()
+                                    }
 
                                     Label {
-                                        anchors.centerIn: parent
-                                        text: AppController.transcriptionLanguage === "auto"
-                                            ? "A"
-                                            : AppController.transcriptionLanguage.toUpperCase().slice(0, 2)
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: "Recording"
                                         color: "#EEF4FA"
                                         font.family: theme.fontUi
-                                        font.pixelSize: 9
+                                        font.pixelSize: theme.sizeHelper
                                         font.weight: 700
                                     }
-                                }
-
-                                WaveStrip {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    bars: root.hudStyleDraft === "mini" ? 7 : 9
-                                    barWidth: 4
-                                    gap: 4
-                                    minimumBarHeight: 3
-                                    maximumBarHeight: root.hudStyleDraft === "mini" ? 14 : 18
-                                    level: Math.max(AppController.audioLevel, 0.25)
-                                    mode: root.previewWaveMode()
                                 }
                             }
                         }
@@ -118,7 +131,7 @@ Item {
 
                     Label {
                         Layout.fillWidth: true
-                        text: "Style and position apply immediately. Timing values save together below."
+                        text: "The idle line expands to a 'Dictate' hint on hover, becomes the recording pill while you speak, and hides over fullscreen video and games. Style and position apply immediately."
                         color: theme.textSecondary
                         font.family: theme.fontText
                         font.pixelSize: theme.sizeHelper
