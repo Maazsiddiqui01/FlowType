@@ -13,6 +13,7 @@ version_path = project_root / "build" / "version_info.txt"
 
 hiddenimports = [
     "faster_whisper",
+    "ctranslate2",
     "keyboard",
     "keyboard._winkeyboard",
     "pynput.keyboard",
@@ -34,12 +35,20 @@ hiddenimports = [
 hiddenimports += collect_submodules("httpx")
 hiddenimports += collect_submodules("httpcore")
 hiddenimports += collect_submodules("anyio")
+hiddenimports += collect_submodules("ctranslate2")
 
 binaries = []
 binaries += collect_dynamic_libs("sounddevice")
+# CRITICAL: faster-whisper dlopen's ctranslate2's native backend at import time.
+# Without these, the packaged app imports faster_whisper fine on the build machine
+# (DLLs resolve via system PATH) but fails to transcribe on any clean machine.
+# Collects ctranslate2.dll, libiomp5md.dll, cudnn64_*.dll, etc.
+binaries += collect_dynamic_libs("ctranslate2")
+binaries += collect_dynamic_libs("faster_whisper")
 
 datas = []
 datas += collect_data_files("faster_whisper")
+datas += collect_data_files("ctranslate2")
 datas += collect_data_files("flowtype", includes=["ui/qml/*.qml", "assets/branding/*", "assets/fonts/*"])
 datas += collect_data_files("pystray")
 datas += collect_data_files("_sounddevice_data")
