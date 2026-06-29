@@ -367,6 +367,69 @@ def _process_name(process_id: int) -> str:
     return ""
 
 
+class _MONITORINFO(ctypes.Structure):
+    _fields_ = [
+        ("cbSize", wintypes.DWORD),
+        ("rcMonitor", wintypes.RECT),
+        ("rcWork", wintypes.RECT),
+        ("dwFlags", wintypes.DWORD),
+    ]
+
+
+MONITOR_DEFAULTTONEAREST = 2
+# Shell/desktop classes the overlay should never treat as a fullscreen app.
+_NON_FULLSCREEN_CLASSES = {"Progman", "WorkerW", "Shell_TrayWnd", "Shell_SecondaryTrayWnd", "Windows.UI.Core.CoreWindow"}
+
+
+def _rect_covers_monitor(win: "wintypes.RECT", mon: "wintypes.RECT") -> bool:
+    """True if a window rect fully covers a monitor rect (i.e. borderless/exclusive
+    fullscreen, which also covers the taskbar -- unlike a merely maximized window)."""
+    return (
+        win.left <= mon.left
+        and win.top <= mon.top
+        and win.right >= mon.right
+        and win.bottom >= mon.bottom
+    )
+
+
+def is_fullscreen_app_foreground() -> bool:
+    """True when the foreground window covers its whole monitor (YouTube/Netflix
+    fullscreen, games, presentations) so the HUD can get out of the way."""
+    if not is_windows():
+        return False
+    try:
+        user32 = ctypes.windll.user32
+        user32.GetForegroundWindow.restype = wintypes.HWND
+        hwnd = user32.GetForegroundWindow()
+        if not hwnd:
+            return False
+
+        class_buf = ctypes.create_unicode_buffer(256)
+        user32.GetClassNameW(hwnd, class_buf, 256)
+        if class_buf.value in _NON_FULLSCREEN_CLASSES:
+            return False
+
+        rect = wintypes.RECT()
+        if not user32.GetWindowRect(hwnd, ctypes.byref(rect)):
+            return False
+
+        user32.MonitorFromWindow.restype = ctypes.c_void_p
+        user32.MonitorFromWindow.argtypes = [wintypes.HWND, wintypes.DWORD]
+        monitor = user32.MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST)
+        if not monitor:
+            return False
+
+        info = _MONITORINFO()
+        info.cbSize = ctypes.sizeof(_MONITORINFO)
+        user32.GetMonitorInfoW.argtypes = [ctypes.c_void_p, ctypes.POINTER(_MONITORINFO)]
+        if not user32.GetMonitorInfoW(ctypes.c_void_p(monitor), ctypes.byref(info)):
+            return False
+
+        return _rect_covers_monitor(rect, info.rcMonitor)
+    except Exception:
+        return False
+
+
 def _send_alt_keypress(user32) -> None:
     try:
         user32.keybd_event(VK_MENU, 0, 0, 0)

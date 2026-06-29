@@ -23,7 +23,7 @@ from flowtype.history import HistoryEntry, HistoryStore, build_history_entry
 from flowtype.pipeline import DictationPipeline, DictationResult
 from flowtype.shortcuts import validate_shortcut_for_action
 from flowtype.startup import sync_launch_at_login
-from flowtype.windows import supports_mica
+from flowtype.windows import is_fullscreen_app_foreground, supports_mica
 
 
 logger = logging.getLogger("flowtype.ui.controller")
@@ -50,6 +50,7 @@ class AppController(QObject):
     # this to show_main_window; -1 means "just show, don't change page".
     showWindowRequested = Signal(int)
     historyRecleanFinished = Signal(str, str, bool)
+    fullscreenForegroundChanged = Signal()
 
     def __init__(
         self,
@@ -87,6 +88,12 @@ class AppController(QObject):
         self._result_card_timer.setInterval(8000)
         self._result_card_timer.setSingleShot(True)
         self._result_card_timer.timeout.connect(self._auto_dismiss_result_card)
+        self._fullscreen_foreground = False
+        self._fullscreen_timer = QTimer(self)
+        self._fullscreen_timer.setInterval(1000)
+        self._fullscreen_timer.timeout.connect(self._poll_fullscreen)
+        self._fullscreen_timer.start()
+
         self.aiEnhancerFinished.connect(self._apply_ai_enhancer_result)
         self.audioLevelReported.connect(self._apply_audio_level)
         self.statusReported.connect(self._apply_status_update)
@@ -418,6 +425,20 @@ class AppController(QObject):
     @Property(bool, notify=configChanged)
     def closeToTray(self) -> bool:
         return self._config.experience.close_to_tray
+
+    @Property(bool, notify=fullscreenForegroundChanged)
+    def fullscreenForeground(self) -> bool:
+        return self._fullscreen_foreground
+
+    @Slot()
+    def _poll_fullscreen(self) -> None:
+        try:
+            value = is_fullscreen_app_foreground()
+        except Exception:
+            value = False
+        if value != self._fullscreen_foreground:
+            self._fullscreen_foreground = value
+            self.fullscreenForegroundChanged.emit()
 
     @Property(bool, notify=configChanged)
     def darkMode(self) -> bool:

@@ -24,7 +24,11 @@ Window {
     property bool hovered: hoverArea.containsMouse || (typeof HudForceHover !== "undefined" && HudForceHover)
     property bool expanded: active || hovered
     // The idle line is always present (unless disabled); it expands on hover/activity.
-    property bool shouldShow: (active || (isReady && showIdleHud)) && !AppController.resultCardVisible
+    // Hidden while the result card is up, and while a fullscreen app (YouTube/Netflix
+    // fullscreen, games) owns the screen so the overlay never covers it.
+    property bool shouldShow: (active || (isReady && showIdleHud))
+        && !AppController.resultCardVisible
+        && !AppController.fullscreenForeground
 
     readonly property int idleWidth: 66
     readonly property int idleHeight: 16
