@@ -1,11 +1,66 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 from flowtype.shortcuts import (
+    ShortcutManager,
     normalize_hotkey_token,
     parse_hotkey,
     should_suppress_hotkey,
     validate_shortcut_for_action,
 )
+
+
+def _ev(name: str, event_type: str) -> SimpleNamespace:
+    return SimpleNamespace(name=name, event_type=event_type)
+
+
+def test_hold_releases_when_modifier_lifted_before_main_key() -> None:
+    # Regression for the reported bug: hold Ctrl+Shift+Space, then lift Ctrl/Shift
+    # while still holding Space -> must stop (release), not keep recording.
+    events: list[str] = []
+    mgr = ShortcutManager()
+    mgr.register_hold(
+        "ctrl+shift+space",
+        on_press=lambda: events.append("press"),
+        on_release=lambda: events.append("release"),
+    )
+
+    for key in ("ctrl", "shift", "space"):
+        mgr._kb_event(_ev(key, "down"))
+    assert events == ["press"]
+
+    mgr._kb_event(_ev("ctrl", "up"))  # lift a MODIFIER first, Space still down
+    assert events == ["press", "release"]
+
+
+def test_hold_releases_when_main_key_lifted() -> None:
+    events: list[str] = []
+    mgr = ShortcutManager()
+    mgr.register_hold(
+        "ctrl+shift+space",
+        on_press=lambda: events.append("press"),
+        on_release=lambda: events.append("release"),
+    )
+    for key in ("ctrl", "shift", "space"):
+        mgr._kb_event(_ev(key, "down"))
+    mgr._kb_event(_ev("space", "up"))
+    assert events == ["press", "release"]
+
+
+def test_hold_normalizes_windows_event_to_meta_token() -> None:
+    events: list[str] = []
+    mgr = ShortcutManager()
+    mgr.register_hold(
+        "ctrl+win",
+        on_press=lambda: events.append("press"),
+        on_release=lambda: events.append("release"),
+    )
+    mgr._kb_event(_ev("ctrl", "down"))
+    mgr._kb_event(_ev("left windows", "down"))  # 'windows' must map to the 'meta' token
+    assert events == ["press"]
+    mgr._kb_event(_ev("left windows", "up"))
+    assert events == ["press", "release"]
 
 
 def test_should_suppress_only_modifier_combos() -> None:

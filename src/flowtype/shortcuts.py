@@ -87,6 +87,9 @@ class ShortcutManager:
         self._pressed: set[str] = set()
         self._bindings: list[ShortcutBinding] = []
         self._keyboard_hotkeys: list[Callable[[], None]] = []
+        self._keyboard_module: Any = None
+        self._release_hook: Any = None
+        self._kb_pressed: set[str] = set()
         self._lock = threading.RLock()
 
     def register_hold(self, hotkey: str, on_press: Callable[[], None], on_release: Callable[[], None]) -> None:
@@ -124,35 +127,45 @@ class ShortcutManager:
                 continue
         self._keyboard_hotkeys = []
 
+        if self._release_hook is not None and self._keyboard_module is not None:
+            try:
+                self._keyboard_module.unhook(self._release_hook)
+            except Exception:
+                pass
+        self._release_hook = None
+        self._keyboard_module = None
+
         listener = self._listener
         if listener is not None:
             listener.stop()
             self._listener = None
 
         self._backend_name = ""
+        for binding in self._bindings:
+            binding.active = False
         self._pressed.clear()
+        self._kb_pressed.clear()
 
     def _start_keyboard_backend(self, keyboard: Any) -> None:
+        self._keyboard_module = keyboard
+        self._kb_pressed = set()
+        has_hold = False
         for binding in self._bindings:
+            binding.active = False
             hotkey = backend_hotkey(binding.ordered_tokens)
             # Only swallow the key event for modifier combos. Suppressing a BARE single
             # key (e.g. cancel = "escape") would consume it globally and break it in
             # every other app; a non-suppressed hotkey still fires our callback.
             suppress = should_suppress_hotkey(binding.ordered_tokens)
             if binding.mode == "hold":
-                press_remove = keyboard.add_hotkey(
-                    hotkey,
-                    self._safe_callback(binding.on_press),
-                    suppress=suppress,
-                    trigger_on_release=False,
-                )
-                release_remove = keyboard.add_hotkey(
-                    hotkey,
-                    self._safe_callback(binding.on_release),
-                    suppress=suppress,
-                    trigger_on_release=True,
-                )
-                self._keyboard_hotkeys.extend([press_remove, release_remove])
+                has_hold = True
+                # add_hotkey is used ONLY to suppress the combo (so Space isn't typed
+                # while talking); press/release are detected by the transition hook
+                # below. add_hotkey's own release fires only when the MAIN key lifts,
+                # which is the reported bug (releasing a modifier first never stops).
+                if suppress:
+                    remove = keyboard.add_hotkey(hotkey, lambda: None, suppress=True, trigger_on_release=False)
+                    self._keyboard_hotkeys.append(remove)
                 continue
 
             remove = keyboard.add_hotkey(
@@ -162,6 +175,39 @@ class ShortcutManager:
                 trigger_on_release=False,
             )
             self._keyboard_hotkeys.append(remove)
+
+        # Track real key transitions for hold bindings: press fires when the combo is
+        # complete, release fires the instant ANY of its keys lifts. Robust against the
+        # suppressed-combo synthetic-event flicker that is_pressed polling suffered from.
+        if has_hold:
+            self._release_hook = keyboard.hook(self._kb_event)
+
+    def _kb_event(self, event: Any) -> None:
+        name = _normalize_event_key(getattr(event, "name", ""))
+        if not name:
+            return
+        event_type = getattr(event, "event_type", "")
+        actions: list[tuple[str, Callable[[], None]]] = []
+        with self._lock:
+            if event_type == "down":
+                self._kb_pressed.add(name)
+                for binding in self._bindings:
+                    if binding.mode == "hold" and not binding.active and binding.tokens.issubset(self._kb_pressed):
+                        binding.active = True
+                        if binding.on_press is not None:
+                            actions.append(("press", binding.on_press))
+            elif event_type == "up":
+                self._kb_pressed.discard(name)
+                for binding in self._bindings:
+                    if binding.mode == "hold" and binding.active and not binding.tokens.issubset(self._kb_pressed):
+                        binding.active = False
+                        if binding.on_release is not None:
+                            actions.append(("release", binding.on_release))
+        for kind, callback in actions:
+            try:
+                callback()
+            except Exception as exc:
+                self.logger.error("Error running hold %s action: %s", kind, exc)
 
     def _safe_callback(self, callback: Callable[[], None] | None) -> Callable[[], None]:
         def wrapped() -> None:
@@ -225,6 +271,17 @@ class ShortcutManager:
             return importlib.import_module("pynput.keyboard")
         except ModuleNotFoundError as exc:  # pragma: no cover - dependency issue
             raise RuntimeError("pynput is not installed. Run `python -m pip install -e .` first.") from exc
+
+
+def _normalize_event_key(name: str) -> str:
+    """Normalize a keyboard-backend event name (e.g. 'left ctrl', 'windows') to a
+    canonical token (ctrl, shift, meta, space, ...) matching our hotkey tokens."""
+    value = (name or "").strip().lower()
+    if value.startswith("left "):
+        value = value[5:]
+    elif value.startswith("right "):
+        value = value[6:]
+    return normalize_hotkey_token(value)
 
 
 def should_suppress_hotkey(ordered_tokens: "tuple[str, ...] | list[str]") -> bool:
