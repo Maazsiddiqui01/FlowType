@@ -822,6 +822,27 @@ def provider_display_name(identifier: str) -> str:
     return provider.label
 
 
+def resolve_mode_for_app(
+    app_rules: tuple[tuple[str, str], ...],
+    process_name: str,
+    window_title: str,
+    default_mode: str,
+) -> str:
+    """Pick a Mode based on the foreground app. First matching rule wins; a rule
+    matches if its pattern is a case-insensitive substring of the exe name or title."""
+    presets = mode_preset_map()
+    name = (process_name or "").lower()
+    title = (window_title or "").lower()
+    for pattern, mode_id in app_rules or ():
+        needle = (pattern or "").lower().strip()
+        if not needle:
+            continue
+        if needle in name or needle in title:
+            if mode_id in presets:
+                return mode_id
+    return default_mode
+
+
 def mode_instructions(mode_identifier: str, custom_prompt: str) -> str:
     preset = mode_preset_map().get(mode_identifier, mode_preset_map()["default"])
     prompt_parts = [preset.instructions.strip(), custom_prompt.strip()]

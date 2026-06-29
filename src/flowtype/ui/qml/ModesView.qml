@@ -9,6 +9,7 @@ Item {
 
     property string selectedMode: AppController.activeMode
     property string customPromptDraft: AppController.customModePrompt
+    property string appRulesDraft: AppController.appRules
 
     function selectedModeCard() {
         for (var i = 0; i < AppController.modeCards.length; i += 1) {
@@ -24,6 +25,7 @@ Item {
         function onConfigChanged() {
             root.selectedMode = AppController.activeMode
             root.customPromptDraft = AppController.customModePrompt
+            root.appRulesDraft = AppController.appRules
         }
     }
 
@@ -178,6 +180,63 @@ Item {
                         placeholderText: "Example: Keep product names exact. Prefer short paragraphs. Preserve code flags and filenames verbatim."
                         placeholderTextColor: theme.textTertiary
                         onTextChanged: root.customPromptDraft = text
+                    }
+                }
+            }
+        }
+
+        SectionCard {
+            width: parent.width
+
+            ColumnLayout {
+                width: parent.width
+                spacing: theme.space12
+
+                SectionHeader {
+                    title: "Per-app modes"
+                    subtitle: "Auto-switch cleanup mode based on the app you are dictating into. One rule per line, format: app or window text = mode."
+
+                    trailing: FlowButton {
+                        label: "Save Rules"
+                        variant: "primary"
+                        onClicked: AppController.saveAppRules(root.appRulesDraft)
+                    }
+                }
+
+                Label {
+                    Layout.fillWidth: true
+                    text: {
+                        var ids = []
+                        for (var i = 0; i < AppController.modeCards.length; i += 1)
+                            ids.push(AppController.modeCards[i].identifier)
+                        return "Available modes: " + ids.join(", ") + ". Example: code.exe = technical"
+                    }
+                    color: theme.textTertiary
+                    font.family: theme.fontUi
+                    font.pixelSize: theme.sizeHelper
+                    wrapMode: Text.WordWrap
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 150
+                    radius: theme.radiusCard
+                    color: theme.surfaceSubtle
+                    border.width: 1
+                    border.color: theme.border
+
+                    TextArea {
+                        anchors.fill: parent
+                        anchors.margins: theme.space16
+                        text: root.appRulesDraft
+                        color: theme.textPrimary
+                        wrapMode: TextEdit.Wrap
+                        font.family: theme.fontMono
+                        font.pixelSize: theme.sizeBody
+                        background: null
+                        placeholderText: "code.exe = technical\nslack.exe = default\noutlook.exe = meeting\nWord = focused"
+                        placeholderTextColor: theme.textTertiary
+                        onTextChanged: root.appRulesDraft = text
                     }
                 }
             }

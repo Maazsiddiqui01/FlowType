@@ -38,6 +38,7 @@ repaste_last = ""
 [mode]
 active = "default"
 custom_prompt = ""
+app_rules = ""
 
 [vocabulary]
 entries = ""
@@ -114,6 +115,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "mode": {
         "active": "default",
         "custom_prompt": "",
+        "app_rules": "",
     },
     "vocabulary": {
         "entries": "",
@@ -247,6 +249,11 @@ class ShortcutsConfig:
 class ModeConfig:
     active: str
     custom_prompt: str
+    app_rules: tuple[tuple[str, str], ...] = ()
+
+    @property
+    def app_rules_text(self) -> str:
+        return "\n".join(f"{pattern} = {mode_id}" for pattern, mode_id in self.app_rules)
 
 
 @dataclass(slots=True, frozen=True)
@@ -388,6 +395,7 @@ def load_config(explicit_path: str | Path | None = None) -> AppConfig:
     mode = ModeConfig(
         active=str(merged.get("mode", {}).get("active", "default")).strip() or "default",
         custom_prompt=str(merged.get("mode", {}).get("custom_prompt", "")).strip(),
+        app_rules=_parse_app_rules(merged.get("mode", {}).get("app_rules", "")),
     )
     vocabulary_text = str(merged.get("vocabulary", {}).get("entries", "")).replace("\r\n", "\n")
     vocabulary = VocabularyConfig(
@@ -584,6 +592,7 @@ def render_config(values: dict[str, Any]) -> str:
     cleanup_prompt = _escape_multiline_string(str(values["cleanup"]["prompt"]))
     vocabulary_entries = _escape_multiline_string(str(values.get("vocabulary", {}).get("entries", "")))
     custom_mode_prompt = _escape_multiline_string(str(values.get("mode", {}).get("custom_prompt", "")))
+    app_rules_text = _escape_multiline_string(str(values.get("mode", {}).get("app_rules", "")))
     lines = [
         "[general]",
         f'log_level = "{_escape_basic_string(str(values["general"]["log_level"]).upper())}"',
@@ -598,6 +607,7 @@ def render_config(values: dict[str, Any]) -> str:
         "[mode]",
         f'active = "{_escape_basic_string(str(values.get("mode", {}).get("active", "default")))}"',
         f"custom_prompt = {custom_mode_prompt}",
+        f"app_rules = {app_rules_text}",
         "",
         "[vocabulary]",
         f"entries = {vocabulary_entries}",
@@ -669,6 +679,21 @@ def _escape_multiline_string(value: str) -> str:
 
 def _toml_bool(value: Any) -> str:
     return "true" if bool(value) else "false"
+
+
+def _parse_app_rules(text: Any) -> tuple[tuple[str, str], ...]:
+    """Parse per-app Mode rules from 'pattern = mode_id' lines into (pattern, mode_id)."""
+    rules: list[tuple[str, str]] = []
+    for line in str(text).replace("\r\n", "\n").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        pattern, _, mode_id = line.partition("=")
+        pattern = pattern.strip()
+        mode_id = mode_id.strip().lower()
+        if pattern and mode_id:
+            rules.append((pattern, mode_id))
+    return tuple(rules)
 
 
 def _safe_shortcut_value(action: str, value: str) -> str:

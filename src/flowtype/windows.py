@@ -44,6 +44,7 @@ class ForegroundWindowSnapshot:
     hwnd: int
     title: str = ""
     process_id: int = 0
+    process_name: str = ""
 
 
 def is_windows() -> bool:
@@ -205,7 +206,10 @@ def snapshot_foreground_window() -> ForegroundWindowSnapshot | None:
 
     title = _window_title(hwnd)
     process_id = _window_process_id(hwnd)
-    return ForegroundWindowSnapshot(hwnd=hwnd, title=title, process_id=process_id)
+    process_name = _process_name(process_id)
+    return ForegroundWindowSnapshot(
+        hwnd=hwnd, title=title, process_id=process_id, process_name=process_name
+    )
 
 
 def restore_foreground_window(snapshot: ForegroundWindowSnapshot | None) -> bool:
@@ -330,6 +334,30 @@ def _window_process_id(hwnd: int) -> int:
         return int(process_id.value)
     except Exception:
         return 0
+
+
+PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+
+
+def _process_name(process_id: int) -> str:
+    """Best-effort executable basename for a PID (e.g. 'code.exe'), for per-app Modes."""
+    if not is_windows() or not process_id:
+        return ""
+    try:
+        kernel32 = ctypes.windll.kernel32
+        handle = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, process_id)
+        if not handle:
+            return ""
+        try:
+            size = wintypes.DWORD(260)
+            buffer = ctypes.create_unicode_buffer(size.value)
+            if kernel32.QueryFullProcessImageNameW(handle, 0, buffer, ctypes.byref(size)):
+                return os.path.basename(buffer.value)
+        finally:
+            kernel32.CloseHandle(handle)
+    except Exception:
+        return ""
+    return ""
 
 
 def _safe_foreground_handle(user32) -> int:

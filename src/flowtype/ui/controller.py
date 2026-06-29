@@ -393,6 +393,10 @@ class AppController(QObject):
         return self._config.mode.custom_prompt
 
     @Property(str, notify=configChanged)
+    def appRules(self) -> str:
+        return self._config.mode.app_rules_text
+
+    @Property(str, notify=configChanged)
     def vocabularyText(self) -> str:
         return self._config.vocabulary.text
 
@@ -724,6 +728,14 @@ class AppController(QObject):
             data["mode"]["custom_prompt"] = custom_prompt.strip()
 
         self._persist_config(mutate, "Mode instructions updated.")
+
+    @Slot(str)
+    def saveAppRules(self, rules_text: str) -> None:
+        def mutate(data: dict) -> None:
+            data.setdefault("mode", {})
+            data["mode"]["app_rules"] = rules_text.strip()
+
+        self._persist_config(mutate, "Per-app mode rules updated.")
 
     @Slot(str)
     def saveVocabulary(self, vocabulary_text: str) -> None:

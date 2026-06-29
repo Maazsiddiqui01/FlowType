@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from typing import Callable
 
 from flowtype.audio import AudioRecorder, CapturedAudio, list_orphan_recordings, read_wav
+from flowtype.catalog import mode_instructions, resolve_mode_for_app
 from flowtype.cleanup import CleanupResult, TextCleaner
 from flowtype.config import AppConfig, load_config_data, save_config_data
 from flowtype.output import OutputDelivery
@@ -445,9 +446,10 @@ class DictationPipeline:
             return
 
         self._set_stage("cleaning")
+        effective_mode, mode_prompt = self._resolve_mode(job)
         cleanup_start = time.perf_counter()
         try:
-            cleanup_result = self.cleaner.clean(raw_text)
+            cleanup_result = self.cleaner.clean(raw_text, mode_prompt=mode_prompt)
         except Exception as exc:
             self.logger.exception("Cleanup failed unexpectedly, using raw transcript: %s", exc)
             cleanup_result = CleanupResult(
@@ -491,6 +493,7 @@ class DictationPipeline:
                 delivery_state="copied_only" if copied else "failed",
                 delivery_note=note + truncated_note,
                 target_title="",
+                mode_name=effective_mode,
             )
             return
 
@@ -515,6 +518,7 @@ class DictationPipeline:
                 )
                 + truncated_note,
                 target_title=job.target.title if job.target is not None else "",
+                mode_name=effective_mode,
             )
             return
 
@@ -531,6 +535,7 @@ class DictationPipeline:
             delivery_state=delivery_result.delivery_state,
             delivery_note=(delivery_result.failure_reason + truncated_note).strip(),
             target_title=delivery_result.target_title,
+            mode_name=effective_mode,
         )
 
         self.logger.info(
@@ -609,6 +614,24 @@ class DictationPipeline:
             return "The microphone is in use by another app. Close it and try again."
         return "Could not start recording. Check microphone access and try again."
 
+    def _resolve_mode(self, job: _Job) -> tuple[str, str]:
+        """Pick the cleanup Mode for this take. With per-app rules configured, the
+        foreground app at capture time selects the Mode; otherwise the active Mode is
+        used. The global custom prompt only applies to the active Mode."""
+        active = self.config.mode.active
+        target = job.target
+        if target is not None and self.config.mode.app_rules:
+            effective = resolve_mode_for_app(
+                self.config.mode.app_rules,
+                getattr(target, "process_name", ""),
+                getattr(target, "title", ""),
+                active,
+            )
+        else:
+            effective = active
+        custom = self.config.mode.custom_prompt if effective == active else ""
+        return effective, mode_instructions(effective, custom)
+
     def _emit_result(
         self,
         raw_text: str,
@@ -619,6 +642,7 @@ class DictationPipeline:
         delivery_state: str,
         delivery_note: str,
         target_title: str,
+        mode_name: str | None = None,
     ) -> None:
         cb = self.result_callback
         if cb is None:
@@ -633,7 +657,7 @@ class DictationPipeline:
                 delivery_state=delivery_state,
                 delivery_note=delivery_note,
                 target_title=target_title,
-                mode_name=self.config.cleanup.mode_name,
+                mode_name=mode_name or self.config.cleanup.mode_name,
                 provider=self.config.cleanup.provider,
                 model=self.config.cleanup.model,
             )

@@ -39,14 +39,14 @@ class TextCleaner:
         self.settings = settings
         self.logger = logger or logging.getLogger("flowtype.cleanup")
 
-    def clean(self, raw_text: str) -> CleanupResult:
+    def clean(self, raw_text: str, mode_prompt: str | None = None) -> CleanupResult:
         stripped = raw_text.strip()
         if not stripped:
             return CleanupResult("", False, 0, self.settings.provider)
 
         return self._run_transform(
             stripped,
-            self._compose_prompt(),
+            self._compose_prompt(mode_prompt),
         )
 
     def enhance_for_ai(self, raw_text: str) -> CleanupResult:
@@ -199,7 +199,7 @@ class TextCleaner:
             payload["temperature"] = self.settings.temperature
         return payload
 
-    def _compose_prompt(self) -> str:
+    def _compose_prompt(self, mode_prompt: str | None = None) -> str:
         sections = [self.settings.prompt.strip()]
         sections.append(
             "Hard constraints:\n"
@@ -211,8 +211,11 @@ class TextCleaner:
             "- Only remove filler words when they are verbal fillers rather than meaningful content."
         )
 
-        if self.settings.mode_prompt.strip():
-            sections.append(f"Mode guidance:\n{self.settings.mode_prompt.strip()}")
+        # A runtime override (per-app Mode resolved for the foreground window) wins over
+        # the statically-configured mode prompt.
+        effective_mode_prompt = self.settings.mode_prompt if mode_prompt is None else mode_prompt
+        if effective_mode_prompt.strip():
+            sections.append(f"Mode guidance:\n{effective_mode_prompt.strip()}")
 
         if self.settings.vocabulary_entries:
             entries = "\n".join(f"- {entry}" for entry in self.settings.vocabulary_entries)

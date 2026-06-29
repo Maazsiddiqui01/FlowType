@@ -6,9 +6,10 @@ from types import SimpleNamespace
 
 from flowtype.audio import AudioRecorderError, CapturedAudio
 from flowtype.cleanup import CleanupResult
-from flowtype.config import load_config, write_default_config
+from flowtype.config import load_config, save_config_data, write_default_config
 from flowtype.pipeline import DictationPipeline, _Job
 from flowtype.output import DeliveryResult
+from flowtype.windows import ForegroundWindowSnapshot
 
 
 class StartFailRecorder:
@@ -47,7 +48,7 @@ class DummyTranscriber:
 
 
 class DummyCleaner:
-    def clean(self, raw_text: str) -> CleanupResult:
+    def clean(self, raw_text: str, mode_prompt: str | None = None) -> CleanupResult:
         return CleanupResult(text=raw_text.title(), used_fallback=False, attempts=1, provider="openrouter")
 
 
@@ -77,7 +78,7 @@ class CopyOnlyOutput:
 
 
 class FailingCleaner:
-    def clean(self, _raw_text: str) -> CleanupResult:
+    def clean(self, _raw_text: str, mode_prompt: str | None = None) -> CleanupResult:
         raise RuntimeError("cleanup runtime missing")
 
 
@@ -398,6 +399,26 @@ def test_recover_orphans_enqueues_copy_only_jobs(tmp_path: Path) -> None:
     assert job.copy_only is True
     assert job.recovered is True
     assert notifications and "Recovering" in notifications[-1][0]
+
+
+def test_pipeline_resolves_per_app_mode_from_foreground_window(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.toml"
+    write_default_config(config_path)
+    save_config_data(config_path, {"mode": {"active": "default", "app_rules": "code.exe = technical"}})
+    config = load_config(config_path)
+    pipeline = _make_pipeline(config, SuccessfulOutput())
+
+    job = make_job()
+    job.target = ForegroundWindowSnapshot(hwnd=1, title="main.py", process_id=2, process_name="Code.exe")
+    effective, prompt = pipeline._resolve_mode(job)
+
+    assert effective == "technical"
+    assert "technical terms" in prompt.lower()
+
+    # No matching rule -> active mode
+    job.target = ForegroundWindowSnapshot(hwnd=1, title="Untitled", process_id=2, process_name="notepad.exe")
+    effective2, _ = pipeline._resolve_mode(job)
+    assert effective2 == "default"
 
 
 def test_pipeline_pins_cpu_in_config_after_runtime_cuda_failure(tmp_path: Path) -> None:
