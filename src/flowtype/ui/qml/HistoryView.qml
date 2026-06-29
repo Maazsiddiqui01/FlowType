@@ -158,6 +158,15 @@ Item {
                                 onClicked: AppController.repasteHistoryItem(modelData.entryId)
                             }
 
+                            FlowButton {
+                                // For takes pasted raw (cleanup off or fallback) — run AI cleanup now.
+                                visible: AppController.cleanupEnabled
+                                label: "Clean with AI"
+                                variant: "ghost"
+                                compact: true
+                                onClicked: AppController.recleanHistoryItem(modelData.entryId)
+                            }
+
                             Item { Layout.fillWidth: true }
 
                             FlowButton {

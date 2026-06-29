@@ -13,9 +13,7 @@ ApplicationWindow {
     height: 820
     minimumWidth: 980
     minimumHeight: 680
-    // Transparent so the native Mica backdrop shows through (Windows 11); solid
-    // gradient fallback on Windows 10 where Mica is unavailable.
-    color: AppController.windowMaterial === "solid" ? theme.appBackground : "transparent"
+    color: theme.appBackground
 
     property int currentPage: 0
     property string notificationMessage: ""
@@ -73,13 +71,40 @@ ApplicationWindow {
         onTriggered: window.notificationVisible = false
     }
 
-    // Solid-mode backdrop gradient (hidden when the Mica material is active).
+    // Designed glass backdrop: a vertical gradient plus two soft accent glows that
+    // give frosted surfaces something to refract. Always painted, so dark mode is
+    // always dark (no reliance on the OS Mica material, which renders inconsistently).
     Rectangle {
         anchors.fill: parent
-        visible: AppController.windowMaterial === "solid"
         gradient: Gradient {
             GradientStop { position: 0.0; color: theme.appGradientTop }
             GradientStop { position: 1.0; color: theme.appGradientBottom }
+        }
+
+        // Top-left primary glow
+        Rectangle {
+            width: parent.width * 0.7
+            height: parent.height * 0.7
+            x: -parent.width * 0.22
+            y: -parent.height * 0.28
+            radius: width / 2
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: theme.glowPrimary }
+                GradientStop { position: 1.0; color: "transparent" }
+            }
+        }
+
+        // Bottom-right teal glow
+        Rectangle {
+            width: parent.width * 0.6
+            height: parent.height * 0.6
+            x: parent.width * 0.62
+            y: parent.height * 0.5
+            radius: width / 2
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: theme.glowTeal }
+                GradientStop { position: 1.0; color: "transparent" }
+            }
         }
     }
 

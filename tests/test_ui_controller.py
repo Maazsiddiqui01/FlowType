@@ -2,9 +2,20 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from flowtype.config import load_config, write_default_config
+from flowtype.config import load_config, save_config_data, write_default_config
 from flowtype.pipeline import DictationResult
 from flowtype.ui.controller import AppController
+
+
+def _add_history_item(controller, raw="raw words here", final="raw words here", fallback=True):
+    controller.pipeline_result_callback(
+        DictationResult(
+            raw_text=raw, final_text=final, used_fallback=fallback, copied=True, pasted=True,
+            delivery_state="pasted", delivery_note="", target_title="",
+            mode_name="default", provider="openai", model="m",
+        )
+    )
+    return controller.historyItems[0]["entryId"]
 
 
 class StubPipeline:
@@ -284,6 +295,31 @@ def test_controller_shows_result_card_from_pipeline_results(tmp_path: Path) -> N
     assert controller.resultCardPreview == "Hello there."
     assert controller.resultCardCanRepaste is True
     assert controller.recentResultItems[0]["finalText"] == "Hello there."
+
+
+def test_reclean_requires_cleanup_provider(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.toml"
+    write_default_config(config_path)  # default: openrouter with no key -> cleanup disabled
+    controller = build_controller(config_path)
+
+    controller.recleanHistoryItem("missing")
+
+    assert "Cleanup" in controller.notificationMessage
+
+
+def test_reclean_replaces_history_text_and_clears_fallback(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.toml"
+    write_default_config(config_path)
+    save_config_data(config_path, {"cleanup": {"provider": "openai", "api_key": "k", "model": "m"}})
+    controller = build_controller(config_path)
+
+    entry_id = _add_history_item(controller)
+    assert controller.historyItems[0]["usedFallback"] is True
+
+    controller._apply_history_reclean(entry_id, "Cleaned words here.", True)
+
+    assert controller.historyItems[0]["finalText"] == "Cleaned words here."
+    assert controller.historyItems[0]["usedFallback"] is False
 
 
 def test_controller_deletes_history_item(tmp_path: Path) -> None:

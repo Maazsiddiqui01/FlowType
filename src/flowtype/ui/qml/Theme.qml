@@ -44,9 +44,14 @@ QtObject {
     readonly property int radiusPill: 999
 
     // ── backdrop (full window) ───────────────────────────────────────────────
-    readonly property color appBackground: darkMode ? "#070B12" : "#EDF1F8"
-    readonly property color appGradientTop: darkMode ? "#0C121D" : "#F7FAFE"
-    readonly property color appGradientBottom: darkMode ? "#070A11" : "#E7EDF7"
+    // A designed glass backdrop (reliable in both themes) rather than flaky Windows
+    // Mica. A richer gradient gives translucent/frosted surfaces something to refract.
+    readonly property color appBackground: darkMode ? "#080B13" : "#EAEFF7"
+    readonly property color appGradientTop: darkMode ? "#141D33" : "#F6F9FE"
+    readonly property color appGradientBottom: darkMode ? "#080B14" : "#E3EAF6"
+    // Soft accent glows layered over the gradient for depth and a premium "lit" feel.
+    readonly property color glowPrimary: darkMode ? Qt.rgba(0.36, 0.45, 1.0, 0.16) : Qt.rgba(0.30, 0.45, 1.0, 0.10)
+    readonly property color glowTeal: darkMode ? Qt.rgba(0.20, 0.78, 0.70, 0.10) : Qt.rgba(0.10, 0.70, 0.62, 0.07)
 
     // ── surfaces (luminance ramp, clearly separated so cards read as layered) ──
     readonly property color surfaceSunken: darkMode ? "#0A0F18" : "#E9EFF7"

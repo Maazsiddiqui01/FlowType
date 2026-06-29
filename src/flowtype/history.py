@@ -64,6 +64,10 @@ class HistoryStore:
         self._write(entries)
         return entries
 
+    def save(self, entries: list[HistoryEntry]) -> None:
+        """Overwrite the stored history with the given entries (trimmed to max_items)."""
+        self._write(entries[: self.max_items])
+
     def _write(self, entries: list[HistoryEntry]) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.path.write_text(

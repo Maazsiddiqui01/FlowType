@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import threading
+from dataclasses import replace
 from datetime import datetime
 from pathlib import Path
 from typing import Callable
@@ -48,6 +49,7 @@ class AppController(QObject):
     # Lets overlay windows (result card) ask the shell to surface a page. app.py wires
     # this to show_main_window; -1 means "just show, don't change page".
     showWindowRequested = Signal(int)
+    historyRecleanFinished = Signal(str, str, bool)
 
     def __init__(
         self,
@@ -90,6 +92,7 @@ class AppController(QObject):
         self.statusReported.connect(self._apply_status_update)
         self.resultReported.connect(self._apply_result_update)
         self.notificationReported.connect(self._apply_notification_update)
+        self.historyRecleanFinished.connect(self._apply_history_reclean)
 
     def _load_history(self) -> list[HistoryEntry]:
         if not self._config.history.persist:
@@ -711,6 +714,59 @@ class AppController(QObject):
         except Exception as exc:
             self._logger.exception("Failed to re-paste history item: %s", exc)
             self._set_notification("Could not paste the history item.", "error")
+
+    @Slot(str)
+    def recleanHistoryItem(self, entry_id: str) -> None:
+        """Re-run AI cleanup on a past dictation (e.g. one that was pasted raw because
+        cleanup was off or fell back). Runs off the GUI thread; result replaces the
+        entry's text and is copied to the clipboard."""
+        if not self.cleanupEnabled:
+            self._set_notification("Add a cleanup provider in Cleanup before using Clean with AI.", "error")
+            return
+        entry = self._find_history_entry(entry_id)
+        if entry is None:
+            return
+        source = (entry.raw_text or entry.final_text).strip()
+        if not source:
+            return
+        self._set_notification("Cleaning with AI...", "info")
+
+        def worker() -> None:
+            try:
+                result = self._pipeline.cleaner.clean(source)
+                text = result.text.strip()
+                ok = bool(text) and not result.used_fallback
+                self.historyRecleanFinished.emit(entry_id, text or source, ok)
+            except Exception as exc:
+                self._logger.exception("History re-clean failed: %s", exc)
+                self.historyRecleanFinished.emit(entry_id, source, False)
+
+        threading.Thread(target=worker, name="history-reclean", daemon=True).start()
+
+    @Slot(str, str, bool)
+    def _apply_history_reclean(self, entry_id: str, new_text: str, success: bool) -> None:
+        if not success:
+            self._set_notification("Couldn't improve that text right now. Kept the original.", "error")
+            return
+        changed = False
+        updated: list[HistoryEntry] = []
+        for entry in self._history_entries:
+            if entry.entry_id == entry_id:
+                updated.append(replace(entry, final_text=new_text, used_fallback=False))
+                changed = True
+            else:
+                updated.append(entry)
+        if not changed:
+            return
+        self._history_entries = updated
+        if self._config.history.persist:
+            self._history_store.save(self._history_entries)
+        try:
+            self._pipeline.output.copy_to_clipboard(new_text)
+        except Exception as exc:
+            self._logger.exception("Failed to copy re-cleaned text: %s", exc)
+        self.historyChanged.emit()
+        self._set_notification("Cleaned with AI and copied to your clipboard.", "success")
 
     @Slot(str)
     def deleteHistoryItem(self, entry_id: str) -> None:

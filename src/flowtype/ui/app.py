@@ -343,6 +343,8 @@ def run_ui_mode(
         QTimer.singleShot(0, reposition_hud)
         controller.stateChanged.connect(reposition_hud)
         controller.configChanged.connect(reposition_hud)
+        # Re-apply native title-bar colors when the theme is toggled at runtime.
+        controller.configChanged.connect(apply_window_branding)
         controller.resultCardChanged.connect(reposition_hud)
         hud_window.widthChanged.connect(reposition_hud)
         hud_window.heightChanged.connect(reposition_hud)
