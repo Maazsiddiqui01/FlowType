@@ -191,6 +191,25 @@ def test_load_config_sanitizes_invalid_shortcuts(tmp_path: Path) -> None:
     assert config.shortcuts.repaste_last == RECOMMENDED_SHORTCUTS["repaste_last"]
 
 
+def test_api_key_is_encrypted_at_rest(tmp_path: Path) -> None:
+    import os
+
+    config_path = tmp_path / "config.toml"
+    write_default_config(config_path)
+    save_config_data(
+        config_path,
+        {"cleanup": {"provider": "openai", "api_key": "super-secret-key", "model": "gpt-4o-mini"}},
+    )
+
+    raw = config_path.read_text(encoding="utf-8")
+    config = load_config(config_path)
+
+    assert config.cleanup.api_key == "super-secret-key"  # decrypted for runtime use
+    if os.name == "nt":
+        assert "super-secret-key" not in raw  # not plaintext at rest
+        assert "dpapi:" in raw
+
+
 def test_custom_provider_base_url_round_trips(tmp_path: Path) -> None:
     config_path = tmp_path / "config.toml"
     write_default_config(config_path)

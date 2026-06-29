@@ -12,6 +12,7 @@ try:
 except ModuleNotFoundError:  # pragma: no cover
     import tomli as tomllib
 
+from flowtype import keystore
 from flowtype.shortcuts import validate_shortcut_for_action
 
 
@@ -496,7 +497,14 @@ def save_config_data(config_path: str | Path, values: dict[str, Any]) -> Path:
 
 def resolve_api_key(provider: str, configured_value: str) -> str:
     if configured_value:
-        return configured_value
+        if keystore.is_protected(configured_value):
+            decrypted = keystore.unprotect(configured_value)
+            if decrypted:
+                return decrypted
+            # Decryption failed (e.g. config copied from another machine/user);
+            # fall through to environment-variable keys rather than using a dead token.
+        else:
+            return configured_value
 
     candidates = ["FLOWTYPE_API_KEY"]
     if provider == "openrouter":
@@ -612,7 +620,7 @@ def render_config(values: dict[str, Any]) -> str:
         "",
         "[cleanup]",
         f'provider = "{_escape_basic_string(str(values["cleanup"]["provider"]))}"',
-        f'api_key = "{_escape_basic_string(str(values["cleanup"]["api_key"]))}"',
+        f'api_key = "{_escape_basic_string(keystore.protect(str(values["cleanup"]["api_key"])))}"',
         f'base_url = "{_escape_basic_string(str(values["cleanup"].get("base_url", "")))}"',
         f'model = "{_escape_basic_string(str(values["cleanup"]["model"]))}"',
         f'temperature = {float(values["cleanup"]["temperature"])}',
