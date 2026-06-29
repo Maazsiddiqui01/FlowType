@@ -135,17 +135,21 @@ class ShortcutManager:
     def _start_keyboard_backend(self, keyboard: Any) -> None:
         for binding in self._bindings:
             hotkey = backend_hotkey(binding.ordered_tokens)
+            # Only swallow the key event for modifier combos. Suppressing a BARE single
+            # key (e.g. cancel = "escape") would consume it globally and break it in
+            # every other app; a non-suppressed hotkey still fires our callback.
+            suppress = should_suppress_hotkey(binding.ordered_tokens)
             if binding.mode == "hold":
                 press_remove = keyboard.add_hotkey(
                     hotkey,
                     self._safe_callback(binding.on_press),
-                    suppress=True,
+                    suppress=suppress,
                     trigger_on_release=False,
                 )
                 release_remove = keyboard.add_hotkey(
                     hotkey,
                     self._safe_callback(binding.on_release),
-                    suppress=True,
+                    suppress=suppress,
                     trigger_on_release=True,
                 )
                 self._keyboard_hotkeys.extend([press_remove, release_remove])
@@ -154,7 +158,7 @@ class ShortcutManager:
             remove = keyboard.add_hotkey(
                 hotkey,
                 self._safe_callback(binding.on_press),
-                suppress=True,
+                suppress=suppress,
                 trigger_on_release=False,
             )
             self._keyboard_hotkeys.append(remove)
@@ -221,6 +225,15 @@ class ShortcutManager:
             return importlib.import_module("pynput.keyboard")
         except ModuleNotFoundError as exc:  # pragma: no cover - dependency issue
             raise RuntimeError("pynput is not installed. Run `python -m pip install -e .` first.") from exc
+
+
+def should_suppress_hotkey(ordered_tokens: "tuple[str, ...] | list[str]") -> bool:
+    """Suppress (consume) a global hotkey only when it includes a modifier.
+
+    Suppressing a bare single key (e.g. "escape") would block that key system-wide
+    and break it in every other app; modifier combos only consume the exact chord.
+    """
+    return any(token in MODIFIER_TOKENS for token in ordered_tokens)
 
 
 def parse_hotkey(hotkey: str) -> list[str]:

@@ -1,6 +1,21 @@
 from __future__ import annotations
 
-from flowtype.shortcuts import normalize_hotkey_token, parse_hotkey, validate_shortcut_for_action
+from flowtype.shortcuts import (
+    normalize_hotkey_token,
+    parse_hotkey,
+    should_suppress_hotkey,
+    validate_shortcut_for_action,
+)
+
+
+def test_should_suppress_only_modifier_combos() -> None:
+    # Modifier combos are consumed (so the exact chord doesn't leak to other apps)...
+    assert should_suppress_hotkey(("ctrl", "shift", "space")) is True
+    assert should_suppress_hotkey(("ctrl", "alt", "space")) is True
+    assert should_suppress_hotkey(("ctrl", "meta")) is True
+    # ...but bare single keys are NOT suppressed (else Escape/F-keys break globally).
+    assert should_suppress_hotkey(("escape",)) is False
+    assert should_suppress_hotkey(("f8",)) is False
 
 
 def test_parse_hotkey_normalizes_aliases() -> None:
