@@ -37,6 +37,8 @@ LR_DEFAULTSIZE = 0x0040
 GCLP_HICON = -14
 GCLP_HICONSM = -34
 SW_RESTORE = 9
+VK_MENU = 0x12
+KEYEVENTF_KEYUP = 0x0002
 
 
 @dataclass(slots=True, frozen=True)
@@ -234,6 +236,11 @@ def restore_foreground_window(snapshot: ForegroundWindowSnapshot | None) -> bool
     except Exception:
         pass
 
+    # A synthetic ALT tap lifts Windows' foreground lock so SetForegroundWindow is
+    # honored instead of merely flashing the taskbar. Documented as the most reliable
+    # way to satisfy the foreground-activation restriction.
+    _send_alt_keypress(user32)
+
     try:
         user32.BringWindowToTop(hwnd)
         user32.SetForegroundWindow(hwnd)
@@ -358,6 +365,14 @@ def _process_name(process_id: int) -> str:
     except Exception:
         return ""
     return ""
+
+
+def _send_alt_keypress(user32) -> None:
+    try:
+        user32.keybd_event(VK_MENU, 0, 0, 0)
+        user32.keybd_event(VK_MENU, 0, KEYEVENTF_KEYUP, 0)
+    except Exception:
+        return
 
 
 def _safe_foreground_handle(user32) -> int:

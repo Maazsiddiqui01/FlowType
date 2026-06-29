@@ -57,7 +57,7 @@ class OutputDelivery:
             except Exception:
                 previous_clipboard = None
 
-        pyperclip.copy(text)
+        self._copy_with_verify(pyperclip, text)
         time.sleep(self._paste_delay_seconds())
 
         pasted = False
@@ -100,6 +100,21 @@ class OutputDelivery:
             target_title=target_title,
             failure_reason=failure_reason,
         )
+
+    def _copy_with_verify(self, pyperclip, text: str, attempts: int = 2) -> bool:
+        """Copy to the clipboard and confirm the write landed. Another app can hold the
+        clipboard and silently drop the write, which would paste stale content."""
+        for attempt in range(1, attempts + 1):
+            pyperclip.copy(text)
+            try:
+                if pyperclip.paste() == text:
+                    return True
+            except Exception:
+                return True  # can't verify (locked); assume the copy took
+            if attempt < attempts:
+                time.sleep(0.05)
+        self.logger.warning("Clipboard write could not be verified; pasting may use stale content")
+        return False
 
     def copy_to_clipboard(self, text: str) -> bool:
         normalized = text.strip()
