@@ -12,6 +12,23 @@ Item {
 
     implicitWidth: 44
     implicitHeight: 24
+    activeFocusOnTab: true
+
+    function toggle() {
+        root.checked = !root.checked
+        root.toggled(root.checked)
+        root.clicked()
+    }
+
+    Rectangle {
+        anchors.fill: parent
+        anchors.margins: -theme.focusRingOffset
+        radius: height / 2
+        color: "transparent"
+        border.width: theme.focusRingWidth
+        border.color: theme.focusRing
+        visible: root.activeFocus
+    }
 
     Rectangle {
         anchors.fill: parent
@@ -38,10 +55,13 @@ Item {
     MouseArea {
         anchors.fill: parent
         cursorShape: Qt.PointingHandCursor
-        onClicked: {
-            root.checked = !root.checked
-            root.toggled(root.checked)
-            root.clicked()
+        onClicked: root.toggle()
+    }
+
+    Keys.onPressed: function(event) {
+        if (event.key === Qt.Key_Space || event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+            root.toggle()
+            event.accepted = true
         }
     }
 }

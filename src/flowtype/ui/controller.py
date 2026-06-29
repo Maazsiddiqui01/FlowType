@@ -45,6 +45,9 @@ class AppController(QObject):
     statusReported = Signal(str, str)
     resultReported = Signal(object)
     notificationReported = Signal(str, str)
+    # Lets overlay windows (result card) ask the shell to surface a page. app.py wires
+    # this to show_main_window; -1 means "just show, don't change page".
+    showWindowRequested = Signal(int)
 
     def __init__(
         self,
@@ -580,6 +583,15 @@ class AppController(QObject):
     @Slot()
     def dismissResultCard(self) -> None:
         self._set_result_card(visible=False)
+
+    @Slot()
+    def requestOpenSettings(self) -> None:
+        self._set_result_card(visible=False)
+        self.showWindowRequested.emit(6)  # Settings page index in Main.qml
+
+    @Slot()
+    def requestShowWindow(self) -> None:
+        self.showWindowRequested.emit(-1)
 
     @Slot()
     def copyLatestResult(self) -> None:

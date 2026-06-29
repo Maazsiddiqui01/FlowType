@@ -363,6 +363,9 @@ def run_ui_mode(
                 show_main_window()
 
         instance.activationRequested.connect(handle_activation)
+        controller.showWindowRequested.connect(
+            lambda page: show_main_window(page if page is not None and page >= 0 else None)
+        )
 
         sync_launch_at_login(config)
         start_warmup()

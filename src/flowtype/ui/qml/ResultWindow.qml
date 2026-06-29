@@ -165,13 +165,26 @@ Window {
                 Layout.fillWidth: true
                 spacing: theme.space8
 
+                readonly property bool isError: AppController.resultCardTone === "error"
+
+                // Error recovery action.
                 FlowButton {
+                    visible: parent.isError
+                    label: "Open Settings"
+                    variant: "primary"
+                    onClicked: AppController.requestOpenSettings()
+                }
+
+                // Result actions (hidden on error: there is no result to act on).
+                FlowButton {
+                    visible: !parent.isError
                     label: "Copy"
                     variant: "secondary"
                     onClicked: AppController.copyLatestResult()
                 }
 
                 FlowButton {
+                    visible: !parent.isError
                     label: "Re-paste"
                     variant: "secondary"
                     buttonEnabled: AppController.resultCardCanRepaste
@@ -179,6 +192,7 @@ Window {
                 }
 
                 FlowButton {
+                    visible: !parent.isError
                     label: AppController.resultCardEnhancing ? "Enhancing..." : "Enhance for AI"
                     variant: "secondary"
                     buttonEnabled: AppController.resultCardCanEnhance

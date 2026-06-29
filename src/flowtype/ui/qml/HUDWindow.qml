@@ -18,7 +18,9 @@ Window {
     property bool isBusy: AppController.status === "transcribing" || AppController.status === "cleaning" || AppController.status === "pasting"
     property bool isError: AppController.status === "error"
     property bool isReady: AppController.status === "ready"
-    property bool shouldShow: isRecording || isBusy || isError || (isReady && showIdleHud)
+    // Hide while the result card is up so the two overlays never stack on the same anchor.
+    property bool shouldShow: (isRecording || isBusy || isError || (isReady && showIdleHud))
+        && !AppController.resultCardVisible
 
     readonly property int hPad: 16
     readonly property int hudHeight: hudStyle === "mini" ? 40 : 46

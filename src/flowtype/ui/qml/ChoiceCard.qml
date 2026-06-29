@@ -20,11 +20,30 @@ Rectangle {
 
     implicitHeight: root.compact ? 64 : 88
     radius: theme.radiusCard
+    antialiasing: true
+    activeFocusOnTab: true
     color: root.selected
         ? theme.tint(root.accent, theme.darkMode ? 0.14 : 0.08)
         : (choiceArea.containsMouse ? theme.surfaceHover : theme.surface)
     border.width: 1
     border.color: root.selected ? theme.tint(root.accent, theme.darkMode ? 0.55 : 0.35) : theme.border
+
+    Rectangle {
+        anchors.fill: parent
+        anchors.margins: -theme.focusRingOffset
+        radius: root.radius + theme.focusRingOffset
+        color: "transparent"
+        border.width: theme.focusRingWidth
+        border.color: theme.focusRing
+        visible: root.activeFocus
+    }
+
+    Keys.onPressed: function(event) {
+        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+            root.clicked()
+            event.accepted = true
+        }
+    }
 
     RowLayout {
         anchors.fill: parent
