@@ -377,6 +377,9 @@ class _MONITORINFO(ctypes.Structure):
 
 
 MONITOR_DEFAULTTONEAREST = 2
+GWL_STYLE = -16
+WS_CAPTION = 0x00C00000
+WS_THICKFRAME = 0x00040000
 # Shell/desktop classes the overlay should never treat as a fullscreen app.
 _NON_FULLSCREEN_CLASSES = {"Progman", "WorkerW", "Shell_TrayWnd", "Shell_SecondaryTrayWnd", "Windows.UI.Core.CoreWindow"}
 
@@ -390,6 +393,21 @@ def _rect_covers_monitor(win: "wintypes.RECT", mon: "wintypes.RECT") -> bool:
         and win.right >= mon.right
         and win.bottom >= mon.bottom
     )
+
+
+def _window_has_frame(user32, hwnd) -> bool:
+    """True if the window has a title bar or resize border. A maximized normal window
+    keeps these and can still cover the whole monitor when the taskbar auto-hides (or on a
+    monitor with no taskbar); true borderless/exclusive fullscreen drops them. On any
+    error, assume framed so we DON'T wrongly hide the HUD."""
+    try:
+        get_style = getattr(user32, "GetWindowLongPtrW", None) or user32.GetWindowLongW
+        get_style.restype = ctypes.c_ssize_t
+        get_style.argtypes = [wintypes.HWND, ctypes.c_int]
+        style = int(get_style(hwnd, GWL_STYLE))
+        return bool(style & (WS_CAPTION | WS_THICKFRAME))
+    except Exception:
+        return True
 
 
 def is_fullscreen_app_foreground() -> bool:
@@ -425,7 +443,11 @@ def is_fullscreen_app_foreground() -> bool:
         if not user32.GetMonitorInfoW(ctypes.c_void_p(monitor), ctypes.byref(info)):
             return False
 
-        return _rect_covers_monitor(rect, info.rcMonitor)
+        if not _rect_covers_monitor(rect, info.rcMonitor):
+            return False
+        # Covering the monitor isn't enough: a maximized framed window does too under an
+        # auto-hidden taskbar. Only treat it as fullscreen if it has no title bar / frame.
+        return not _window_has_frame(user32, hwnd)
     except Exception:
         return False
 

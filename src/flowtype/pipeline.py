@@ -293,6 +293,7 @@ class DictationPipeline:
             was_truncated=captured_audio.was_truncated,
             file_path=captured_audio.file_path,
         )
+        self._ensure_worker_alive()
         with self._state_lock:
             self._jobs_in_flight += 1
         self._jobs.put(job)
@@ -308,6 +309,7 @@ class DictationPipeline:
             return 0
 
         enqueued = 0
+        self._ensure_worker_alive()
         for path in orphans:
             # Decode lazily on the worker thread (read_wav does blocking I/O + resample);
             # doing it here would block whoever calls recover_orphans (the GUI thread).
@@ -381,6 +383,19 @@ class DictationPipeline:
             self._refresh_status()
             return
         self._refresh_status()
+
+    def _ensure_worker_alive(self) -> None:
+        """Respawn the dictation worker if it ever died, so a queued take is never stranded
+        (which would leave status stuck at 'working' forever). Called before every enqueue."""
+        with self._state_lock:
+            if self._lifecycle == "stopped":
+                return
+            if self._worker_thread is None or not self._worker_thread.is_alive():
+                self.logger.warning("Dictation worker thread was not alive; respawning")
+                self._worker_thread = threading.Thread(
+                    target=self._worker_loop, name="dictation-worker", daemon=True
+                )
+                self._worker_thread.start()
 
     # ── worker ───────────────────────────────────────────────────────────────
     def _worker_loop(self) -> None:

@@ -2,9 +2,13 @@ from __future__ import annotations
 
 import importlib
 import logging
+import sys
 import threading
 from dataclasses import dataclass
 from typing import Any, Callable, Literal
+
+# How often the safety watchdog reconciles binding state against real key state.
+RECONCILE_INTERVAL_SECONDS = 1.0
 
 
 HOTKEY_ALIASES = {
@@ -16,6 +20,10 @@ HOTKEY_ALIASES = {
     "alt_l": "alt",
     "alt_r": "alt",
     "cmd": "meta",
+    "cmd_l": "meta",
+    "cmd_r": "meta",
+    "win_l": "meta",
+    "win_r": "meta",
     "super": "meta",
     "return": "enter",
     "esc": "escape",
@@ -91,6 +99,8 @@ class ShortcutManager:
         self._release_hook: Any = None
         self._kb_pressed: set[str] = set()
         self._lock = threading.RLock()
+        self._reconcile_stop = threading.Event()
+        self._reconcile_thread: threading.Thread | None = None
 
     def register_hold(self, hotkey: str, on_press: Callable[[], None], on_release: Callable[[], None]) -> None:
         tokens = tuple(canonicalize_hotkey(parse_hotkey(hotkey)))
@@ -105,21 +115,82 @@ class ShortcutManager:
         self.logger.debug("Registered action hotkey: %s", hotkey)
 
     def start(self) -> None:
+        started = False
         try:
             keyboard = self._load_keyboard_backend()
             self._start_keyboard_backend(keyboard)
             self._backend_name = "keyboard"
             self.logger.info("Shortcut backend started with suppressed Windows keyboard hook")
-            return
+            started = True
         except Exception as exc:
             self.logger.warning("Keyboard shortcut backend unavailable; falling back to pynput: %s", exc)
 
-        keyboard = self._load_pynput_keyboard()
-        self._listener = keyboard.Listener(on_press=self._handle_press, on_release=self._handle_release)
-        self._listener.start()
-        self._backend_name = "pynput"
+        if not started:
+            keyboard = self._load_pynput_keyboard()
+            self._listener = keyboard.Listener(on_press=self._handle_press, on_release=self._handle_release)
+            self._listener.start()
+            self._backend_name = "pynput"
+
+        self._start_reconcile_watchdog()
+
+    def _start_reconcile_watchdog(self) -> None:
+        """Heal a stuck hold if its key-up was never delivered (focus loss to a secure
+        desktop, lock screen, a fullscreen input grab, or a suppressing hook winning the
+        race). Reads true physical key state, so it never cuts a legitimately-held take."""
+        if not any(binding.mode == "hold" for binding in self._bindings):
+            return
+        if sys.platform != "win32":
+            return
+        self._reconcile_stop.clear()
+        self._reconcile_thread = threading.Thread(
+            target=self._reconcile_loop, name="hotkey-watchdog", daemon=True
+        )
+        self._reconcile_thread.start()
+
+    def _reconcile_loop(self) -> None:
+        try:
+            import ctypes
+
+            user32 = ctypes.windll.user32
+        except Exception:
+            return
+
+        def _down(vk: int) -> bool:
+            return bool(user32.GetAsyncKeyState(vk) & 0x8000)
+
+        while not self._reconcile_stop.wait(RECONCILE_INTERVAL_SECONDS):
+            actions: list[Callable[[], None]] = []
+            with self._lock:
+                for binding in self._bindings:
+                    if binding.mode != "hold" or not binding.active:
+                        continue
+                    vk_groups = [_token_virtual_keys(token) for token in binding.ordered_tokens]
+                    if any(group is None for group in vk_groups):
+                        continue  # an unmappable key -> never force-release this binding
+                    combo_down = all(any(_down(vk) for vk in group) for group in vk_groups)
+                    if combo_down:
+                        continue
+                    # The chord is no longer physically held but we never saw the up.
+                    binding.active = False
+                    for token in binding.ordered_tokens:
+                        self._kb_pressed.discard(token)
+                        self._pressed.discard(token)
+                    if binding.on_release is not None:
+                        actions.append(binding.on_release)
+                    self.logger.warning("Hold release was missed; force-releasing to avoid a stuck recording")
+            for callback in actions:
+                try:
+                    callback()
+                except Exception as exc:
+                    self.logger.error("Error running watchdog release action: %s", exc)
 
     def stop(self) -> None:
+        self._reconcile_stop.set()
+        watchdog = self._reconcile_thread
+        self._reconcile_thread = None
+        if watchdog is not None and watchdog is not threading.current_thread():
+            watchdog.join(timeout=2.0)
+
         for remove in self._keyboard_hotkeys:
             try:
                 remove()
@@ -351,6 +422,11 @@ def normalize_hotkey_token(token: str) -> str:
 def normalize_key_token(key: Any) -> str:
     char = getattr(key, "char", None)
     if char:
+        # When a modifier (esp. Ctrl) is held, pynput delivers a CONTROL character in
+        # .char (Ctrl+A -> '\x01'). Map it back to the base letter so the token at press
+        # ('\x01') matches the token at release ('a') and the combo can resolve.
+        if len(char) == 1 and "\x01" <= char <= "\x1a":
+            char = chr(ord(char) - 1 + ord("a"))
         return normalize_hotkey_token(char)
 
     name = getattr(key, "name", "")
@@ -365,3 +441,43 @@ def normalize_key_token(key: Any) -> str:
 
 def backend_hotkey(tokens: tuple[str, ...]) -> str:
     return "+".join(BACKEND_TOKEN_ALIASES.get(token, token) for token in tokens)
+
+
+# Windows virtual-key codes for canonical hotkey tokens (used only by the safety
+# watchdog's GetAsyncKeyState reconciliation; unknown tokens return None and are skipped).
+_VK_TOKEN_MAP = {
+    "ctrl": 0x11,
+    "shift": 0x10,
+    "alt": 0x12,
+    "space": 0x20,
+    "enter": 0x0D,
+    "escape": 0x1B,
+    "tab": 0x09,
+    "backspace": 0x08,
+    "delete": 0x2E,
+    "insert": 0x2D,
+    "home": 0x24,
+    "end": 0x23,
+    "pageup": 0x21,
+    "pagedown": 0x22,
+    "up": 0x26,
+    "down": 0x28,
+    "left": 0x25,
+    "right": 0x27,
+}
+
+
+def _token_virtual_keys(token: str) -> "tuple[int, ...] | None":
+    """Virtual-key code(s) a token can be satisfied by, or None if it can't be mapped.
+    None means 'do not reconcile' so an unmappable key is never force-released by mistake."""
+    if token == "meta":
+        return (0x5B, 0x5C)  # left or right Windows key
+    if token in _VK_TOKEN_MAP:
+        return (_VK_TOKEN_MAP[token],)
+    if len(token) == 1 and ("a" <= token <= "z" or "0" <= token <= "9"):
+        return (ord(token.upper()),)
+    if len(token) >= 2 and token[0] == "f" and token[1:].isdigit():
+        number = int(token[1:])
+        if 1 <= number <= 24:
+            return (0x70 + number - 1,)
+    return None

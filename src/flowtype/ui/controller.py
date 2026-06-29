@@ -288,11 +288,15 @@ class AppController(QObject):
         """Learn which apps the user dictates into and, once a pattern is clear, offer
         to auto-set a per-app Mode for that app."""
         app = (getattr(result, "target_process", "") or "").strip()
-        if not app or self._mode_suggestion_app:
+        if not app:
             return
         try:
             count = self._usage_store.record_dictation(app)
         except Exception:
+            return
+        # Keep accumulating usage for every app; only suppress *raising a new* suggestion
+        # while one is still pending, so a single un-actioned banner can't freeze learning.
+        if self._mode_suggestion_app:
             return
         if (
             count >= SUGGESTION_THRESHOLD
@@ -663,7 +667,10 @@ class AppController(QObject):
 
     @Slot()
     def repasteLastText(self) -> None:
-        self._pipeline.repaste_last()
+        # deliver() does blocking clipboard/focus/keystroke work (~hundreds of ms); run it
+        # off the GUI thread so the UI (and the record hotkey) never freeze. The pipeline
+        # marshals its own status/notifications back via queued signals.
+        threading.Thread(target=self._pipeline.repaste_last, name="repaste-last", daemon=True).start()
 
     @Slot()
     def dismissResultCard(self) -> None:
@@ -785,13 +792,20 @@ class AppController(QObject):
         entry = self._find_history_entry(entry_id)
         if entry is None or not entry.final_text.strip():
             return
-        self._latest_result_text = entry.final_text
-        try:
-            self._pipeline.output.deliver(entry.final_text)
-            self._set_notification("Pasted into the active app.", "success")
-        except Exception as exc:
-            self._logger.exception("Failed to re-paste history item: %s", exc)
-            self._set_notification("Could not paste the history item.", "error")
+        text = entry.final_text
+        self._latest_result_text = text
+
+        def worker() -> None:
+            try:
+                self._pipeline.output.deliver(text)
+                self.notificationReported.emit("Pasted into the active app.", "success")
+            except Exception as exc:
+                self._logger.exception("Failed to re-paste history item: %s", exc)
+                self.notificationReported.emit("Could not paste the history item.", "error")
+
+        # Offload the blocking paste so the GUI thread never freezes (notificationReported
+        # is a queued signal -> applied back on the GUI thread).
+        threading.Thread(target=worker, name="repaste-history", daemon=True).start()
 
     @Slot(str)
     def recleanHistoryItem(self, entry_id: str) -> None:

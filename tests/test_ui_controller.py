@@ -340,6 +340,24 @@ def test_dismiss_mode_suggestion_stops_nagging(tmp_path: Path) -> None:
     assert controller.modeSuggestionApp == ""
 
 
+def test_learning_continues_while_a_suggestion_is_pending(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.toml"
+    write_default_config(config_path)
+    controller = build_controller(config_path)
+
+    _dictate_into(controller, "appA.exe", 4)
+    assert controller.modeSuggestionApp == "appA.exe"
+
+    # A pending, un-actioned suggestion must NOT freeze learning for other apps.
+    _dictate_into(controller, "appB.exe", 4)
+    assert controller.modeSuggestionApp == "appA.exe"  # we don't stack suggestions
+    assert controller._usage_store.count("appB.exe") == 4  # but appB still accrued
+
+    controller.dismissModeSuggestion()
+    _dictate_into(controller, "appB.exe", 1)  # now appB can raise its own suggestion
+    assert controller.modeSuggestionApp == "appB.exe"
+
+
 def test_no_suggestion_when_app_already_has_rule(tmp_path: Path) -> None:
     config_path = tmp_path / "config.toml"
     write_default_config(config_path)

@@ -107,7 +107,6 @@ Item {
 
             SectionCard {
                 Layout.fillWidth: true
-                Layout.preferredWidth: 1.4
 
                 ColumnLayout {
                     width: parent.width

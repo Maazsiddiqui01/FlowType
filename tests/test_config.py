@@ -141,6 +141,34 @@ def test_save_config_data_persists_user_changes(tmp_path: Path) -> None:
     assert config.startup.prompt_completed is True
 
 
+def test_explicit_openrouter_free_model_is_preserved(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.toml"
+    write_default_config(config_path)
+    save_config_data(
+        config_path,
+        {"cleanup": {"provider": "openrouter", "api_key": "router-key", "model": "openrouter/free"}},
+    )
+
+    # An explicit free-model choice must survive a load (it must NOT be silently
+    # rewritten to a paid model, which would also be persisted on the next read).
+    config = load_config(config_path)
+    assert config.cleanup.model == "openrouter/free"
+
+    # And it stays put across a second load (no read-time mutation persisted to disk).
+    assert load_config(config_path).cleanup.model == "openrouter/free"
+
+
+def test_missing_model_is_still_filled_in(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.toml"
+    write_default_config(config_path)
+    save_config_data(
+        config_path,
+        {"cleanup": {"provider": "openrouter", "api_key": "router-key", "model": ""}},
+    )
+    config = load_config(config_path)
+    assert config.cleanup.model  # a sensible default was chosen for the empty case
+
+
 def test_idle_hud_shows_by_default_when_not_user_set(tmp_path: Path) -> None:
     config_path = tmp_path / "config.toml"
     write_default_config(config_path)
@@ -275,19 +303,7 @@ def test_invalid_base_url_scheme_is_rejected(tmp_path: Path) -> None:
         save_config_data(config_path, {"cleanup": {"provider": "custom", "base_url": "localhost:8000", "model": "x"}})
 
 
-def test_load_config_migrates_openrouter_free_to_speed_first_model(tmp_path: Path) -> None:
-    config_path = tmp_path / "config.toml"
-    write_default_config(config_path)
-    config_path.write_text(
-        config_path.read_text(encoding="utf-8").replace(
-            'model = "openai/gpt-5.4-mini"',
-            'model = "openrouter/free"',
-        ),
-        encoding="utf-8",
-    )
-
-    config = load_config(config_path)
-
-    assert config.cleanup.provider == "openrouter"
-    assert config.cleanup.model == "openai/gpt-5.4-mini"
-    assert 'model = "openai/gpt-5.4-mini"' in config_path.read_text(encoding="utf-8")
+# NOTE: an earlier build silently migrated an explicit 'openrouter/free' selection to a
+# paid model on load. That lost a deliberate user choice and risked unexpected billing for
+# a model the catalog still offers, so the migration was removed. Preservation is covered by
+# test_explicit_openrouter_free_model_is_preserved above.

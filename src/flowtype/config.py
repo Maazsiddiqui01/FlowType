@@ -751,7 +751,10 @@ def _normalize_cleanup_defaults(merged: dict[str, Any]) -> bool:
     if not preferred_identifier:
         preferred_identifier = str(model_cards[0].get("identifier", "")).strip()
 
-    if not model or (provider == "openrouter" and model == "openrouter/free"):
+    # Only fill in a genuinely missing model. Never rewrite an explicit, valid choice --
+    # in particular 'openrouter/free' is a deliberate selection; silently switching it to a
+    # paid model (and persisting that on a plain read) loses the choice and risks billing.
+    if not model:
         cleanup["model"] = preferred_identifier
         return True
     return False
