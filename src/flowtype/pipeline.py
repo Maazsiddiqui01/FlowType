@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import logging
+import os
 import queue
 import threading
 import time
 from dataclasses import dataclass, field
 from typing import Callable
 
-from flowtype.audio import AudioRecorder, CapturedAudio
+from flowtype.audio import AudioRecorder, CapturedAudio, list_orphan_recordings, read_wav
 from flowtype.cleanup import CleanupResult, TextCleaner
 from flowtype.config import AppConfig, load_config_data, save_config_data
 from flowtype.output import OutputDelivery
@@ -49,6 +50,9 @@ class _Job:
     audio: CapturedAudio
     target: ForegroundWindowSnapshot | None
     was_truncated: bool
+    file_path: str | None = None
+    copy_only: bool = False  # recovery takes are copied, never auto-pasted
+    recovered: bool = False
     cancel: threading.Event = field(default_factory=threading.Event)
 
 
@@ -279,11 +283,59 @@ class DictationPipeline:
                 self.config.audio.max_duration_seconds,
             )
 
-        job = _Job(audio=captured_audio, target=target, was_truncated=captured_audio.was_truncated)
+        job = _Job(
+            audio=captured_audio,
+            target=target,
+            was_truncated=captured_audio.was_truncated,
+            file_path=captured_audio.file_path,
+        )
         with self._state_lock:
             self._jobs_in_flight += 1
         self._jobs.put(job)
         self._refresh_status()
+
+    def recover_orphans(self) -> int:
+        """Re-process journaled takes left behind by a crash. Recovered takes are
+        copied to the clipboard (never auto-pasted, since the original target is gone)
+        and added to History, so a crash never silently loses a recording."""
+        recordings_dir = self.config.audio.recordings_dir
+        orphans = list_orphan_recordings(recordings_dir)
+        if not orphans:
+            return 0
+
+        enqueued = 0
+        for path in orphans:
+            try:
+                captured = read_wav(path, target_rate=self.config.audio.sample_rate, logger=self.logger)
+            except Exception as exc:
+                self.logger.warning("Could not read orphan recording %s: %s; removing", path, exc)
+                try:
+                    os.remove(path)
+                except OSError:
+                    pass
+                continue
+            job = _Job(
+                audio=captured,
+                target=None,
+                was_truncated=False,
+                file_path=str(path),
+                copy_only=True,
+                recovered=True,
+            )
+            with self._state_lock:
+                self._jobs_in_flight += 1
+            self._jobs.put(job)
+            enqueued += 1
+
+        if enqueued:
+            self.logger.info("Recovering %s orphaned recording(s) from a previous session", enqueued)
+            self._notify(
+                f"Recovering {enqueued} unfinished recording{'s' if enqueued != 1 else ''} "
+                "from a previous session. The cleaned text will appear and be copied to your clipboard.",
+                "info",
+            )
+            self._refresh_status()
+        return enqueued
 
     def _handle_toggle(self) -> None:
         with self._state_lock:
@@ -356,6 +408,10 @@ class DictationPipeline:
             self._active_job = job
         try:
             self._process_job(job)
+            # Processing completed (delivered/copied/cancelled-safe/no-speech): the
+            # journaled file is no longer needed. On a hard exception we keep it so the
+            # take can be recovered on next launch.
+            self._delete_job_file(job)
         except Exception as exc:
             self.logger.exception("Dictation failed: %s", exc)
             message = str(exc).strip() or "Last dictation failed. Check the log."
@@ -414,6 +470,30 @@ class DictationPipeline:
             else ""
         )
 
+        if job.copy_only:
+            # Recovery take: copy, never paste (the original target is long gone).
+            copied = False
+            try:
+                copied = self.output.copy_to_clipboard(final_text)
+            except Exception as exc:
+                self.logger.exception("Failed to copy recovered dictation: %s", exc)
+            note = (
+                "Recovered from a previous session and copied to your clipboard."
+                if copied
+                else "Recovered from a previous session, but FlowType could not copy it."
+            )
+            self._emit_result(
+                raw_text=raw_text,
+                final_text=final_text,
+                used_fallback=cleanup_result.used_fallback,
+                copied=copied,
+                pasted=False,
+                delivery_state="copied_only" if copied else "failed",
+                delivery_note=note + truncated_note,
+                target_title="",
+            )
+            return
+
         if job.cancel.is_set():
             self.logger.info("Processing cancelled before paste; preserving transcript")
             copied = False
@@ -471,6 +551,14 @@ class DictationPipeline:
         )
 
     # ── status plumbing ──────────────────────────────────────────────────────
+    def _delete_job_file(self, job: _Job) -> None:
+        if not job.file_path:
+            return
+        try:
+            os.remove(job.file_path)
+        except OSError:
+            pass
+
     def _set_stage(self, stage: str) -> None:
         with self._state_lock:
             self._worker_stage = stage

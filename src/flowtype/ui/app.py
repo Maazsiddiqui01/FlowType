@@ -367,6 +367,11 @@ def run_ui_mode(
         sync_launch_at_login(config)
         start_warmup()
         pipeline.start()
+        # Recover any takes journaled to disk but not finished (e.g. a prior crash).
+        try:
+            pipeline.recover_orphans()
+        except Exception as exc:
+            parent_logger.warning("Orphan recording recovery failed: %s", exc)
 
         if not start_hidden:
             if activation_message == "settings":

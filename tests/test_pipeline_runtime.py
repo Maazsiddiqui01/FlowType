@@ -103,7 +103,9 @@ def build_config(tmp_path: Path):
     return load_config(config_path)
 
 
-def make_job(*, cancel: bool = False, was_truncated: bool = False) -> _Job:
+def make_job(
+    *, cancel: bool = False, was_truncated: bool = False, file_path=None, copy_only: bool = False
+) -> _Job:
     job = _Job(
         audio=CapturedAudio(
             audio_array=[],
@@ -114,6 +116,8 @@ def make_job(*, cancel: bool = False, was_truncated: bool = False) -> _Job:
         ),
         target=None,
         was_truncated=was_truncated,
+        file_path=file_path,
+        copy_only=copy_only,
     )
     if cancel:
         job.cancel.set()
@@ -305,6 +309,95 @@ def test_pipeline_surfaces_truncation_note_in_result(tmp_path: Path) -> None:
 
     assert results
     assert "maximum length" in results[-1].delivery_note.lower()
+
+
+def _make_pipeline(config, output):
+    return DictationPipeline(
+        config=config,
+        recorder=DummyRecorder(),
+        transcriber=DummyTranscriber(),
+        cleaner=DummyCleaner(),
+        output=output,
+        result_callback=lambda r: None,
+        logger=logging.getLogger("test.pipeline.runtime"),
+    )
+
+
+def test_consume_job_deletes_journal_file_on_success(tmp_path: Path) -> None:
+    config = build_config(tmp_path)
+    journal = tmp_path / "rec-1.wav"
+    journal.write_bytes(b"fake")
+    pipeline = _make_pipeline(config, SuccessfulOutput())
+
+    pipeline._consume_job(make_job(file_path=str(journal)))
+
+    assert not journal.exists()  # cleaned up after successful processing
+
+
+def test_consume_job_keeps_journal_file_on_failure(tmp_path: Path) -> None:
+    config = build_config(tmp_path)
+    journal = tmp_path / "rec-2.wav"
+    journal.write_bytes(b"fake")
+    pipeline = _make_pipeline(config, FailingOutput())
+
+    pipeline._consume_job(make_job(file_path=str(journal)))
+
+    assert journal.exists()  # preserved so the take can be recovered next launch
+    assert pipeline.status == "error"
+
+
+def test_copy_only_recovery_job_copies_without_pasting_and_deletes_file(tmp_path: Path) -> None:
+    config = build_config(tmp_path)
+    journal = tmp_path / "rec-3.wav"
+    journal.write_bytes(b"fake")
+    output = CopyOnlyOutput()
+    results = []
+    pipeline = DictationPipeline(
+        config=config,
+        recorder=DummyRecorder(),
+        transcriber=DummyTranscriber(),
+        cleaner=DummyCleaner(),
+        output=output,
+        result_callback=lambda r: results.append(r),
+        logger=logging.getLogger("test.pipeline.runtime"),
+    )
+
+    pipeline._consume_job(make_job(file_path=str(journal), copy_only=True))
+
+    assert output.copied_text == "Hello There From Flowtype"
+    assert results[-1].delivery_state == "copied_only"
+    assert results[-1].pasted is False
+    assert "recovered" in results[-1].delivery_note.lower()
+    assert not journal.exists()
+
+
+def test_recover_orphans_enqueues_copy_only_jobs(tmp_path: Path) -> None:
+    from flowtype.audio import write_wav
+    import numpy as np
+
+    config = build_config(tmp_path)
+    recordings = config.audio.recordings_dir
+    recordings.mkdir(parents=True, exist_ok=True)
+    write_wav(recordings / "rec-1000.wav", np.zeros(1600, dtype=np.float32), 16000)
+
+    notifications: list[tuple[str, str]] = []
+    pipeline = DictationPipeline(
+        config=config,
+        recorder=DummyRecorder(),
+        transcriber=DummyTranscriber(),
+        cleaner=DummyCleaner(),
+        output=SuccessfulOutput(),
+        notification_callback=lambda m, t: notifications.append((m, t)),
+        logger=logging.getLogger("test.pipeline.runtime"),
+    )
+
+    count = pipeline.recover_orphans()
+
+    assert count == 1
+    job = pipeline._jobs.get_nowait()
+    assert job.copy_only is True
+    assert job.recovered is True
+    assert notifications and "Recovering" in notifications[-1][0]
 
 
 def test_pipeline_pins_cpu_in_config_after_runtime_cuda_failure(tmp_path: Path) -> None:

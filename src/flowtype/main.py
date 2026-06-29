@@ -76,6 +76,10 @@ class FlowTypeRuntime:
         if pipeline is not None and not self._pipeline_active:
             pipeline.start()
             self._pipeline_active = True
+            try:
+                pipeline.recover_orphans()
+            except Exception as exc:
+                self.logger.warning("Orphan recording recovery failed: %s", exc)
         sync_launch_at_login(self.config)
         start_background_warmup(self.components.transcriber, self.logger, self.config.config_path)
         self._start_config_watcher()

@@ -4,7 +4,10 @@ import importlib
 import logging
 import sys
 import threading
+import time
+import wave
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 import types
@@ -24,6 +27,7 @@ class CapturedAudio:
     duration_seconds: float
     was_truncated: bool
     frame_count: int
+    file_path: str | None = None
 
     @property
     def is_empty(self) -> bool:
@@ -174,13 +178,34 @@ class AudioRecorder:
         float_audio = audio_array.astype(np.float32) / 32768.0
         duration_seconds = recorded_frames / float(self.settings.sample_rate)
 
+        # Journal the take to disk BEFORE it is handed to transcription/cleanup/paste.
+        # If FlowType crashes (or is killed) during that window, the recording survives
+        # on disk and is recovered on next launch instead of being lost forever.
+        file_path = self._journal_to_disk(float_audio)
+
         return CapturedAudio(
             audio_array=float_audio,
             sample_rate=self.settings.sample_rate,
             duration_seconds=duration_seconds,
             was_truncated=was_truncated,
             frame_count=recorded_frames,
+            file_path=file_path,
         )
+
+    def _journal_to_disk(self, float_audio: np.ndarray) -> str | None:
+        if not self.settings.journal_audio or self.settings.recordings_dir is None:
+            return None
+        if float_audio.size == 0:
+            return None
+        try:
+            recordings_dir = Path(self.settings.recordings_dir)
+            recordings_dir.mkdir(parents=True, exist_ok=True)
+            path = recordings_dir / f"rec-{time.time_ns()}.wav"
+            write_wav(path, float_audio, self.settings.sample_rate)
+            return str(path)
+        except Exception as exc:  # best effort: never fail a recording over journaling
+            self.logger.warning("Could not journal recording to disk: %s", exc)
+            return None
 
     def is_recording(self) -> bool:
         with self._lock:
@@ -204,6 +229,53 @@ class AudioRecorder:
                     "sounddevice is not installed. Run `python -m pip install -e .` first."
                 ) from exc
         return self._sounddevice
+
+
+def write_wav(path: "str | Path", float_audio: np.ndarray, sample_rate: int) -> None:
+    """Write mono float32 audio (range -1..1) to a 16-bit PCM WAV file."""
+    samples = np.clip(np.asarray(float_audio, dtype=np.float32), -1.0, 1.0)
+    int16 = (samples * 32767.0).astype("<i2")
+    with wave.open(str(path), "wb") as wav:
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(int(sample_rate))
+        wav.writeframes(int16.tobytes())
+
+
+def read_wav(path: "str | Path", target_rate: int = 16000, logger: logging.Logger | None = None) -> CapturedAudio:
+    """Load a journaled WAV back into a CapturedAudio (resampled to target_rate)."""
+    log = logger or logging.getLogger("flowtype.audio")
+    with wave.open(str(path), "rb") as wav:
+        channels = wav.getnchannels()
+        src_rate = wav.getframerate()
+        frames = wav.readframes(wav.getnframes())
+    int16 = np.frombuffer(frames, dtype="<i2")
+    if channels > 1:
+        int16 = int16.reshape(-1, channels).mean(axis=1).astype("<i2")
+    array = int16.astype(np.float64)
+    if src_rate != target_rate:
+        array = _resample(array, src_rate, target_rate, log)
+    float_audio = (array.astype(np.float32)) / 32768.0
+    frame_count = int(float_audio.size)
+    return CapturedAudio(
+        audio_array=float_audio,
+        sample_rate=target_rate,
+        duration_seconds=frame_count / float(target_rate) if target_rate else 0.0,
+        was_truncated=False,
+        frame_count=frame_count,
+        file_path=str(path),
+    )
+
+
+def list_orphan_recordings(recordings_dir: "str | Path | None") -> list[Path]:
+    """Journaled takes left behind by a crash/hard-error, oldest first."""
+    if not recordings_dir:
+        return []
+    directory = Path(recordings_dir)
+    if not directory.exists():
+        return []
+    files = [p for p in directory.glob("rec-*.wav") if p.is_file()]
+    return sorted(files, key=lambda p: p.stat().st_mtime)
 
 
 def _resample(audio_array: np.ndarray, src_rate: int, dst_rate: int, logger: logging.Logger) -> np.ndarray:

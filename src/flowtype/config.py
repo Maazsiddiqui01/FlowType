@@ -47,6 +47,7 @@ channels = 1
 dtype = "int16"
 max_duration_seconds = 1800
 min_duration_ms = 250
+journal_audio = true
 
 [transcription]
 model_size = "base.en"
@@ -122,6 +123,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "dtype": "int16",
         "max_duration_seconds": 1800,
         "min_duration_ms": 250,
+        "journal_audio": True,
     },
     "transcription": {
         "model_size": "base.en",
@@ -192,6 +194,8 @@ class AudioConfig:
     dtype: str
     max_duration_seconds: int
     min_duration_ms: int
+    journal_audio: bool = True
+    recordings_dir: Path | None = None
 
 
 @dataclass(slots=True, frozen=True)
@@ -394,6 +398,8 @@ def load_config(explicit_path: str | Path | None = None) -> AppConfig:
         dtype=str(merged["audio"]["dtype"]).strip(),
         max_duration_seconds=int(merged["audio"]["max_duration_seconds"]),
         min_duration_ms=int(merged["audio"]["min_duration_ms"]),
+        journal_audio=bool(merged["audio"].get("journal_audio", True)),
+        recordings_dir=app_dir / "recordings",
     )
     transcription = TranscriptionConfig(
         model_size=str(merged["transcription"]["model_size"]).strip(),
@@ -594,6 +600,7 @@ def render_config(values: dict[str, Any]) -> str:
         f'dtype = "{_escape_basic_string(str(values["audio"]["dtype"]))}"',
         f'max_duration_seconds = {int(values["audio"]["max_duration_seconds"])}',
         f'min_duration_ms = {int(values["audio"]["min_duration_ms"])}',
+        f'journal_audio = {_toml_bool(values["audio"].get("journal_audio", True))}',
         "",
         "[transcription]",
         f'model_size = "{_escape_basic_string(str(values["transcription"]["model_size"]))}"',
