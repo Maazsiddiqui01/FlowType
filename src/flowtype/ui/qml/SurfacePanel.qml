@@ -1,6 +1,9 @@
 import QtQuick
 
-Rectangle {
+// A card surface with a real soft shadow for depth. Was a bare Rectangle; now an
+// Item that draws SoftShadow behind an opaque card + a glass sheen, while preserving
+// the original API (baseColor / borderTone / radius / panelPadding / panelChildren).
+Item {
     id: root
 
     Theme { id: theme }
@@ -8,32 +11,44 @@ Rectangle {
     property color baseColor: theme.surface
     property color borderTone: theme.border
     property int panelPadding: theme.cardPadding
-    // Kept for API/intent; depth is conveyed by the sheen + ramp + borders rather
-    // than a shader/FBO effect, so cards always render regardless of GPU/driver.
+    property int radius: theme.radiusCard
+    // 0 = flat (no shadow), 1 = resting card, 2 = raised (popovers/modals).
     property int elevation: 1
-    // Adds the top-edge frost highlight + bottom depth that sells the glass look.
     property bool glass: true
 
     default property alias panelChildren: contentItem.data
 
-    radius: theme.radiusCard
-    color: root.baseColor
-    border.width: 1
-    border.color: root.borderTone
-    antialiasing: true
     implicitWidth: 240
     implicitHeight: Math.max(contentItem.childrenRect.height + root.panelPadding * 2, 64)
 
-    // Glass sheen: a brighter top edge fading to a subtle base shade. Pure gradient
-    // (no shader) so it renders identically on every backend.
+    SoftShadow {
+        anchors.fill: card
+        radius: root.radius
+        visible: root.elevation > 0
+        shadowColor: theme.shadowColor
+        spread: root.elevation >= 2 ? 28 : 15
+        verticalOffset: root.elevation >= 2 ? 12 : 5
+    }
+
     Rectangle {
+        id: card
         anchors.fill: parent
         radius: root.radius
-        visible: root.glass
-        gradient: Gradient {
-            GradientStop { position: 0.0; color: theme.glassHighlight }
-            GradientStop { position: 0.42; color: "transparent" }
-            GradientStop { position: 1.0; color: theme.glassLowlight }
+        color: root.baseColor
+        border.width: 1
+        border.color: root.borderTone
+        antialiasing: true
+
+        // Glass sheen: brighter top edge fading to a subtle base shade (pure gradient).
+        Rectangle {
+            anchors.fill: parent
+            radius: parent.radius
+            visible: root.glass
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: theme.glassHighlight }
+                GradientStop { position: 0.45; color: "transparent" }
+                GradientStop { position: 1.0; color: theme.glassLowlight }
+            }
         }
     }
 
