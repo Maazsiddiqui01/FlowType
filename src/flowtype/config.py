@@ -59,6 +59,7 @@ vad_filter = true
 [cleanup]
 provider = "openrouter"
 api_key = ""
+base_url = ""
 model = "openai/gpt-5.4-mini"
 temperature = 0.1
 max_tokens = 1024
@@ -133,6 +134,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "cleanup": {
         "provider": "openrouter",
         "api_key": "",
+        "base_url": "",
         "model": "openai/gpt-5.4-mini",
         "temperature": 0.1,
         "max_tokens": 1024,
@@ -215,6 +217,7 @@ class CleanupConfig:
     max_retries: int
     retry_backoff_seconds: float
     min_word_count: int
+    base_url: str = ""
     mode_name: str = "default"
     mode_prompt: str = ""
     vocabulary_entries: tuple[str, ...] = ()
@@ -405,6 +408,7 @@ def load_config(explicit_path: str | Path | None = None) -> AppConfig:
     cleanup = CleanupConfig(
         provider=provider,
         api_key=resolve_api_key(provider, str(merged["cleanup"]["api_key"]).strip()),
+        base_url=str(merged["cleanup"].get("base_url", "")).strip(),
         model=str(merged["cleanup"]["model"]).strip(),
         prompt=str(merged["cleanup"]["prompt"]).strip(),
         temperature=float(merged["cleanup"]["temperature"]),
@@ -533,8 +537,12 @@ def validate_config(config: AppConfig) -> None:
         raise ValueError("transcription.device must be auto, cpu, or cuda")
     if config.transcription.compute_type not in {"auto", "int8", "float16", "float32"}:
         raise ValueError("transcription.compute_type must be auto, int8, float16, or float32")
-    if config.cleanup.provider not in {"openrouter", "openai", "anthropic", "gemini", "xai", "groq", "ollama", "none"}:
-        raise ValueError("cleanup.provider must be openrouter, openai, anthropic, gemini, xai, groq, ollama, or none")
+    if config.cleanup.provider not in {"openrouter", "openai", "anthropic", "gemini", "xai", "groq", "ollama", "custom", "none"}:
+        raise ValueError("cleanup.provider must be openrouter, openai, anthropic, gemini, xai, groq, ollama, custom, or none")
+    if config.cleanup.base_url and not config.cleanup.base_url.lower().startswith(("http://", "https://")):
+        raise ValueError("cleanup.base_url must start with http:// or https://")
+    if config.cleanup.provider == "custom" and not config.cleanup.base_url:
+        raise ValueError("cleanup.base_url is required when provider is custom")
     if config.cleanup.timeout_seconds <= 0:
         raise ValueError("cleanup.timeout_seconds must be greater than zero")
     if config.cleanup.max_retries <= 0:
@@ -598,6 +606,7 @@ def render_config(values: dict[str, Any]) -> str:
         "[cleanup]",
         f'provider = "{_escape_basic_string(str(values["cleanup"]["provider"]))}"',
         f'api_key = "{_escape_basic_string(str(values["cleanup"]["api_key"]))}"',
+        f'base_url = "{_escape_basic_string(str(values["cleanup"].get("base_url", "")))}"',
         f'model = "{_escape_basic_string(str(values["cleanup"]["model"]))}"',
         f'temperature = {float(values["cleanup"]["temperature"])}',
         f'max_tokens = {int(values["cleanup"]["max_tokens"])}',

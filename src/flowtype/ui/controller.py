@@ -350,6 +350,10 @@ class AppController(QObject):
         return self._config.cleanup.api_key
 
     @Property(str, notify=configChanged)
+    def baseUrl(self) -> str:
+        return self._config.cleanup.base_url
+
+    @Property(str, notify=configChanged)
     def model(self) -> str:
         return self._config.cleanup.model
 
@@ -439,13 +443,18 @@ class AppController(QObject):
 
     @Property(bool, notify=configChanged)
     def needsApiKey(self) -> bool:
-        return self._config.cleanup.provider not in {"none", "ollama"} and not self._config.cleanup.api_key
+        return self._config.cleanup.provider not in {"none", "ollama", "custom"} and not self._config.cleanup.api_key
 
     @Property(bool, notify=configChanged)
     def cleanupEnabled(self) -> bool:
-        return self._config.cleanup.provider == "ollama" or (
-            self._config.cleanup.provider != "none" and bool(self._config.cleanup.api_key)
-        )
+        provider = self._config.cleanup.provider
+        if provider == "none":
+            return False
+        if provider == "ollama":
+            return True
+        if provider == "custom":
+            return bool(self._config.cleanup.base_url)
+        return bool(self._config.cleanup.api_key)
 
     @Property(bool, notify=configChanged)
     def launchAtLogin(self) -> bool:
@@ -722,11 +731,12 @@ class AppController(QObject):
 
         self._persist_config(mutate, "Transcription language updated.")
 
-    @Slot(str, str, str, str, str, bool)
+    @Slot(str, str, str, str, str, str, bool)
     def saveCleanupSettings(
         self,
         provider: str,
         api_key: str,
+        base_url: str,
         model: str,
         prompt: str,
         paste_method: str,
@@ -738,6 +748,7 @@ class AppController(QObject):
             data.setdefault("experience", {})
             data["cleanup"]["provider"] = provider.strip().lower() or "none"
             data["cleanup"]["api_key"] = api_key.strip()
+            data["cleanup"]["base_url"] = base_url.strip()
             data["cleanup"]["model"] = model.strip()
             data["cleanup"]["prompt"] = prompt.strip()
             data["output"]["paste_method"] = paste_method.strip().lower()

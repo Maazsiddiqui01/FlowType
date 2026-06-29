@@ -191,6 +191,37 @@ def test_load_config_sanitizes_invalid_shortcuts(tmp_path: Path) -> None:
     assert config.shortcuts.repaste_last == RECOMMENDED_SHORTCUTS["repaste_last"]
 
 
+def test_custom_provider_base_url_round_trips(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.toml"
+    write_default_config(config_path)
+
+    save_config_data(
+        config_path,
+        {"cleanup": {"provider": "custom", "api_key": "", "base_url": "http://localhost:8000/v1", "model": "local-model"}},
+    )
+    config = load_config(config_path)
+
+    assert config.cleanup.provider == "custom"
+    assert config.cleanup.base_url == "http://localhost:8000/v1"
+    assert config.cleanup.model == "local-model"
+
+
+def test_custom_provider_without_base_url_is_rejected(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.toml"
+    write_default_config(config_path)
+
+    with pytest.raises(ValueError):
+        save_config_data(config_path, {"cleanup": {"provider": "custom", "api_key": "", "base_url": "", "model": "x"}})
+
+
+def test_invalid_base_url_scheme_is_rejected(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.toml"
+    write_default_config(config_path)
+
+    with pytest.raises(ValueError):
+        save_config_data(config_path, {"cleanup": {"provider": "custom", "base_url": "localhost:8000", "model": "x"}})
+
+
 def test_load_config_migrates_openrouter_free_to_speed_first_model(tmp_path: Path) -> None:
     config_path = tmp_path / "config.toml"
     write_default_config(config_path)

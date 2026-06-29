@@ -10,13 +10,17 @@ Item {
     property bool showApiKey: false
     property string providerDraft: AppController.provider
     property string apiKeyDraft: AppController.apiKey
+    property string baseUrlDraft: AppController.baseUrl
     property string modelDraft: AppController.model
     property string promptDraft: AppController.prompt
     property string pasteMethodDraft: AppController.pasteMethod
     property bool restoreClipboardDraft: AppController.restoreClipboard
 
     readonly property var providerModels: AppController.availableModelCards(providerDraft)
-    readonly property bool providerNeedsKey: providerDraft !== "none" && providerDraft !== "ollama"
+    // Hosted providers require a key; custom may use one (optional); ollama/none never do.
+    readonly property bool providerAllowsKey: providerDraft !== "none" && providerDraft !== "ollama"
+    readonly property bool providerRequiresKey: providerAllowsKey && providerDraft !== "custom"
+    readonly property bool providerShowsBaseUrl: providerDraft === "custom" || providerDraft === "ollama"
 
     function syncModelForProvider() {
         if (providerDraft === "none") {
@@ -53,6 +57,7 @@ Item {
         function onConfigChanged() {
             root.providerDraft = AppController.provider
             root.apiKeyDraft = AppController.apiKey
+            root.baseUrlDraft = AppController.baseUrl
             root.modelDraft = AppController.model
             root.promptDraft = AppController.prompt
             root.pasteMethodDraft = AppController.pasteMethod
@@ -85,6 +90,7 @@ Item {
                         onClicked: AppController.saveCleanupSettings(
                             root.providerDraft,
                             root.apiKeyDraft,
+                            root.baseUrlDraft,
                             root.modelDraft,
                             root.promptDraft,
                             root.pasteMethodDraft,
@@ -129,12 +135,41 @@ Item {
                     spacing: theme.space16
 
                     SectionHeader {
-                        title: root.providerNeedsKey ? "API key" : "Connection"
-                        subtitle: root.providerDraft === "ollama"
-                            ? "Ollama uses the default localhost endpoint."
-                            : (root.providerNeedsKey
-                                ? "Paste your private API key. FlowType never proxies your requests."
-                                : "Local-only cleanup does not need a key.")
+                        title: root.providerRequiresKey ? "API key" : "Connection"
+                        subtitle: root.providerDraft === "custom"
+                            ? "Point FlowType at any OpenAI-compatible endpoint and enter an exact model id below. The API key is optional for local gateways."
+                            : (root.providerDraft === "ollama"
+                                ? "Ollama uses the default localhost endpoint, or set a custom base URL for a remote host."
+                                : (root.providerRequiresKey
+                                    ? "Paste your private API key. FlowType never proxies your requests."
+                                    : "Local-only cleanup does not need a key."))
+                    }
+
+                    // Base URL (custom / remote-ollama endpoints)
+                    Rectangle {
+                        Layout.fillWidth: true
+                        implicitHeight: 48
+                        radius: theme.radiusControl
+                        color: theme.surfaceSubtle
+                        border.width: 1
+                        border.color: theme.border
+                        visible: root.providerShowsBaseUrl
+
+                        TextField {
+                            anchors.fill: parent
+                            anchors.leftMargin: theme.space12
+                            anchors.rightMargin: theme.space12
+                            text: root.baseUrlDraft
+                            color: theme.textPrimary
+                            placeholderText: root.providerDraft === "ollama"
+                                ? "http://localhost:11434 (default)"
+                                : "https://your-endpoint/v1"
+                            placeholderTextColor: theme.textTertiary
+                            font.family: theme.fontUi
+                            font.pixelSize: theme.sizeBody
+                            background: null
+                            onTextChanged: root.baseUrlDraft = text
+                        }
                     }
 
                     Rectangle {
@@ -144,6 +179,7 @@ Item {
                         color: theme.surfaceSubtle
                         border.width: 1
                         border.color: theme.border
+                        visible: root.providerAllowsKey
 
                         RowLayout {
                             anchors.fill: parent
@@ -156,9 +192,8 @@ Item {
                                 text: root.apiKeyDraft
                                 color: theme.textPrimary
                                 echoMode: root.showApiKey ? TextInput.Normal : TextInput.Password
-                                placeholderText: root.providerNeedsKey ? "Paste your API key" : "Not required"
+                                placeholderText: root.providerRequiresKey ? "Paste your API key" : "Optional API key"
                                 placeholderTextColor: theme.textTertiary
-                                readOnly: !root.providerNeedsKey
                                 font.family: theme.fontUi
                                 font.pixelSize: theme.sizeBody
                                 background: null
@@ -166,7 +201,6 @@ Item {
                             }
 
                             FlowButton {
-                                visible: root.providerNeedsKey
                                 label: root.showApiKey ? "Hide" : "Show"
                                 variant: "secondary"
                                 onClicked: root.showApiKey = !root.showApiKey
@@ -175,7 +209,7 @@ Item {
                     }
 
                     Label {
-                        visible: root.providerNeedsKey
+                        visible: root.providerRequiresKey
                         text: "Get your " + root.selectedProviderLabel() + " key"
                         color: theme.primary
                         font.family: theme.fontUi

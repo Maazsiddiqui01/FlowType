@@ -100,7 +100,7 @@ def test_clean_falls_back_after_failures(monkeypatch) -> None:
 
     assert result.text == "This should fall back to raw text"
     assert result.used_fallback is True
-    assert result.attempts == 1
+    assert result.attempts == 3  # honors configured max_retries (build_settings: 3)
 
 
 def test_clean_skips_short_inputs() -> None:
@@ -165,15 +165,67 @@ def test_cleanup_falls_back_when_httpx_runtime_is_missing(monkeypatch) -> None:
     assert result.attempts == 0
 
 
-def test_cleanup_caps_cloud_timeout_and_retries(monkeypatch) -> None:
+def test_cleanup_honors_configured_timeout_and_retries(monkeypatch) -> None:
+    # Previously cloud timeout was hard-capped at 8s and retries forced to 1, making
+    # those settings dead knobs. They are now honored (safe: cleanup runs on the
+    # decoupled worker, so a long timeout never blocks recording).
     settings = replace(build_settings(), timeout_seconds=20, max_retries=3, model="openrouter/free")
-    module = FakeHttpxModule([RuntimeError("boom")])
+    module = FakeHttpxModule([RuntimeError("boom"), RuntimeError("boom"), RuntimeError("boom")])
     cleaner = TextCleaner(settings, logger=logging.getLogger("test.cleanup"))
     monkeypatch.setattr(cleaner, "_load_httpx", lambda: module)
 
-    result = cleaner.clean("This should fall back quickly")
+    result = cleaner.clean("This should retry the configured number of times")
 
     assert module.client is not None
-    assert module.timeout == 8
-    assert module.client.calls == 1
+    assert module.timeout == 20
+    assert module.client.calls == 3
     assert result.used_fallback is True
+
+
+def test_cleanup_custom_endpoint_uses_base_url_without_key(monkeypatch) -> None:
+    settings = replace(
+        build_settings(), provider="custom", api_key="", base_url="http://localhost:8000/v1", model="local-model"
+    )
+    cleaner = TextCleaner(settings, logger=logging.getLogger("test.cleanup"))
+
+    assert cleaner._endpoint_for_provider() == "http://localhost:8000/v1/chat/completions"
+    headers = cleaner._headers_for_provider()
+    assert "Authorization" not in headers  # keyless local gateway
+
+    module = FakeHttpxModule([FakeResponse({"choices": [{"message": {"content": "Cleaned by local model."}}]})])
+    monkeypatch.setattr(cleaner, "_load_httpx", lambda: module)
+    result = cleaner.clean("please clean this transcript")
+    assert result.text == "Cleaned by local model."
+    assert result.used_fallback is False
+
+
+def test_cleanup_custom_endpoint_normalizes_base_url_variants() -> None:
+    base_to_endpoint = {
+        "http://host:8000": "http://host:8000/v1/chat/completions",
+        "http://host:8000/v1": "http://host:8000/v1/chat/completions",
+        "https://gw/api/v1/chat/completions": "https://gw/api/v1/chat/completions",
+        "https://gw/v1/": "https://gw/v1/chat/completions",
+    }
+    for base, expected in base_to_endpoint.items():
+        cleaner = TextCleaner(
+            replace(build_settings(), provider="custom", base_url=base, api_key=""),
+            logger=logging.getLogger("test.cleanup"),
+        )
+        assert cleaner._endpoint_for_provider() == expected
+
+
+def test_cleanup_custom_endpoint_sends_key_when_present() -> None:
+    cleaner = TextCleaner(
+        replace(build_settings(), provider="custom", base_url="https://gw/v1", api_key="secret"),
+        logger=logging.getLogger("test.cleanup"),
+    )
+    headers = cleaner._headers_for_provider()
+    assert headers["Authorization"] == "Bearer secret"
+
+
+def test_cleanup_ollama_base_url_override() -> None:
+    cleaner = TextCleaner(
+        replace(build_settings(), provider="ollama", api_key="", base_url="http://workstation:11434"),
+        logger=logging.getLogger("test.cleanup"),
+    )
+    assert cleaner._endpoint_for_provider() == "http://workstation:11434/v1/chat/completions"

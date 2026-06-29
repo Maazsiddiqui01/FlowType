@@ -166,6 +166,18 @@ PROVIDER_OPTIONS: tuple[ProviderOption, ...] = (
         featured=False,
     ),
     ProviderOption(
+        identifier="custom",
+        label="Custom endpoint",
+        summary="Any OpenAI-compatible API: vLLM, LM Studio, LiteLLM, a remote Ollama, or your own gateway.",
+        accent="#9aa6ff",
+        badge="API",
+        badge_background="#161d2e",
+        badge_foreground="#e6ebff",
+        key_env="",
+        key_hint="Point FlowType at a base URL and enter the exact model id. Key optional.",
+        featured=False,
+    ),
+    ProviderOption(
         identifier="none",
         label="Local only",
         summary="Skip LLM cleanup and deliver the raw local transcript.",

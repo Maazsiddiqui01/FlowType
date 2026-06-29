@@ -85,6 +85,7 @@ def test_controller_saves_and_reloads_runtime_settings(tmp_path: Path) -> None:
     controller.saveCleanupSettings(
         "openai",
         "demo-key",
+        "",
         "gpt-4o-mini",
         "Return only polished dictated text.",
         "clipboard_only",
@@ -244,6 +245,7 @@ def test_controller_treats_ollama_as_cleanup_enabled_without_api_key(tmp_path: P
 
     controller.saveCleanupSettings(
         "ollama",
+        "",
         "",
         "llama3.1:8b",
         "Return only cleaned text.",

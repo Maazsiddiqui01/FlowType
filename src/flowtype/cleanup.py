@@ -9,6 +9,23 @@ from typing import Any
 from flowtype.config import CleanupConfig
 
 
+def _normalize_openai_base(base_url: str) -> str:
+    """Turn a user-entered base URL into a full OpenAI-compatible chat-completions URL.
+
+    Accepts forms like 'http://host:8000', '.../v1', or a full '.../chat/completions'
+    so users can paste whatever their gateway documents (vLLM, LM Studio, LiteLLM,
+    remote Ollama, etc.).
+    """
+    base = base_url.strip().rstrip("/")
+    if not base:
+        return base
+    if base.endswith("/chat/completions"):
+        return base
+    if base.endswith("/v1"):
+        return base + "/chat/completions"
+    return base + "/v1/chat/completions"
+
+
 @dataclass(slots=True, frozen=True)
 class CleanupResult:
     text: str
@@ -49,7 +66,9 @@ class TextCleaner:
         if len(stripped.split()) < self.settings.min_word_count:
             return CleanupResult(stripped, False, 0, self.settings.provider)
 
-        if self.settings.provider != "ollama" and not self.settings.api_key:
+        # ollama and custom (self-hosted/local OpenAI-compatible) endpoints may not
+        # require a key; every hosted provider does.
+        if self.settings.provider not in {"ollama", "custom"} and not self.settings.api_key:
             self.logger.warning("Cleanup skipped because no API key is configured")
             return CleanupResult(stripped, True, 0, self.settings.provider)
 
@@ -109,6 +128,11 @@ class TextCleaner:
             raise RuntimeError("httpx is not installed. Run `python -m pip install -e .` first.") from exc
 
     def _endpoint_for_provider(self) -> str:
+        base_url = (self.settings.base_url or "").strip()
+        if self.settings.provider == "custom":
+            if not base_url:
+                raise ValueError("custom cleanup provider requires a base URL")
+            return _normalize_openai_base(base_url)
         if self.settings.provider == "openrouter":
             return "https://openrouter.ai/api/v1/chat/completions"
         if self.settings.provider == "openai":
@@ -122,8 +146,9 @@ class TextCleaner:
         if self.settings.provider == "anthropic":
             return "https://api.anthropic.com/v1/messages"
         if self.settings.provider == "ollama":
-            # Assuming standard local Ollama OpenAI-compatible endpoint
-            return "http://localhost:11434/v1/chat/completions"
+            # Default local Ollama OpenAI-compatible endpoint, overridable via base_url
+            # (e.g. a remote Ollama host).
+            return _normalize_openai_base(base_url) if base_url else "http://localhost:11434/v1/chat/completions"
 
         raise ValueError(f"unsupported cleanup provider: {self.settings.provider}")
 
@@ -136,7 +161,8 @@ class TextCleaner:
             }
             
         headers = {"Content-Type": "application/json"}
-        if self.settings.provider != "ollama":
+        # Send auth whenever a key exists; ollama/custom may run keyless locally.
+        if self.settings.api_key:
             headers["Authorization"] = f"Bearer {self.settings.api_key}"
         if self.settings.provider == "openrouter":
             headers["HTTP-Referer"] = "https://github.com/AntiGravity/FlowType"
@@ -256,11 +282,11 @@ class TextCleaner:
         return True
 
     def _effective_timeout_seconds(self) -> int:
-        if self.settings.provider == "ollama":
-            return self.settings.timeout_seconds
-        return min(self.settings.timeout_seconds, 8)
+        # Honor the configured timeout. This used to be hard-capped at 8s, which made
+        # the setting a dead knob and starved slow self-hosted/reasoning models. Since
+        # cleanup now runs on the decoupled worker (capture is never blocked), a longer
+        # timeout no longer risks dropping a recording.
+        return max(1, int(self.settings.timeout_seconds))
 
     def _effective_max_retries(self) -> int:
-        if self.settings.provider == "ollama":
-            return self.settings.max_retries
-        return max(1, min(self.settings.max_retries, 1))
+        return max(1, int(self.settings.max_retries))
