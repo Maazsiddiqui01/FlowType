@@ -38,6 +38,7 @@ class DictationResult:
     mode_name: str
     provider: str
     model: str
+    target_process: str = ""
 
 
 @dataclass(slots=True)
@@ -502,6 +503,7 @@ class DictationPipeline:
                 delivery_note=note + truncated_note,
                 target_title="",
                 mode_name=effective_mode,
+                target_process=(job.target.process_name if job.target is not None else ""),
             )
             return
 
@@ -527,6 +529,7 @@ class DictationPipeline:
                 + truncated_note,
                 target_title=job.target.title if job.target is not None else "",
                 mode_name=effective_mode,
+                target_process=(job.target.process_name if job.target is not None else ""),
             )
             return
 
@@ -544,6 +547,7 @@ class DictationPipeline:
             delivery_note=(delivery_result.failure_reason + truncated_note).strip(),
             target_title=delivery_result.target_title,
             mode_name=effective_mode,
+            target_process=(job.target.process_name if job.target is not None else ""),
         )
 
         self.logger.info(
@@ -667,6 +671,7 @@ class DictationPipeline:
         delivery_note: str,
         target_title: str,
         mode_name: str | None = None,
+        target_process: str = "",
     ) -> None:
         cb = self.result_callback
         if cb is None:
@@ -684,6 +689,7 @@ class DictationPipeline:
                 mode_name=mode_name or self.config.cleanup.mode_name,
                 provider=self.config.cleanup.provider,
                 model=self.config.cleanup.model,
+                target_process=target_process,
             )
         )
 

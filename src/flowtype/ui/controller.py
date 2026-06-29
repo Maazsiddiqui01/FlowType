@@ -23,6 +23,7 @@ from flowtype.history import HistoryEntry, HistoryStore, build_history_entry
 from flowtype.pipeline import DictationPipeline, DictationResult
 from flowtype.shortcuts import validate_shortcut_for_action
 from flowtype.startup import sync_launch_at_login
+from flowtype.usage import SUGGESTION_THRESHOLD, UsageStore
 from flowtype.windows import is_fullscreen_app_foreground, supports_mica
 
 
@@ -51,6 +52,7 @@ class AppController(QObject):
     showWindowRequested = Signal(int)
     historyRecleanFinished = Signal(str, str, bool)
     fullscreenForegroundChanged = Signal()
+    modeSuggestionChanged = Signal()
 
     def __init__(
         self,
@@ -74,6 +76,8 @@ class AppController(QObject):
         self._notification_tone = "info"
         self._history_store = HistoryStore(config.history.file_path, config.history.max_items)
         self._history_entries = self._load_history()
+        self._usage_store = UsageStore(config.config_path.parent / "usage.json")
+        self._mode_suggestion_app = ""
         self._latest_result_text = ""
         self._result_card_preview_text = ""
         self._latest_result_title = ""
@@ -277,6 +281,59 @@ class AppController(QObject):
             persistent=persistent,
             can_repaste=bool(result.copied),
         )
+
+        self._learn_from_result(result)
+
+    def _learn_from_result(self, result: DictationResult) -> None:
+        """Learn which apps the user dictates into and, once a pattern is clear, offer
+        to auto-set a per-app Mode for that app."""
+        app = (getattr(result, "target_process", "") or "").strip()
+        if not app or self._mode_suggestion_app:
+            return
+        try:
+            count = self._usage_store.record_dictation(app)
+        except Exception:
+            return
+        if (
+            count >= SUGGESTION_THRESHOLD
+            and not self._usage_store.is_dismissed(app)
+            and not self._app_has_mode_rule(app)
+        ):
+            self._mode_suggestion_app = app
+            self.modeSuggestionChanged.emit()
+
+    def _app_has_mode_rule(self, app: str) -> bool:
+        target = (app or "").lower()
+        for pattern, _mode in self._config.mode.app_rules:
+            needle = (pattern or "").lower().strip()
+            if needle and needle in target:
+                return True
+        return False
+
+    @Property(str, notify=modeSuggestionChanged)
+    def modeSuggestionApp(self) -> str:
+        return self._mode_suggestion_app
+
+    @Slot(str)
+    def applyAppModeSuggestion(self, mode: str) -> None:
+        app = self._mode_suggestion_app
+        if not app:
+            return
+        normalized_mode = (mode or "default").strip().lower()
+        existing = self._config.mode.app_rules_text
+        new_rule = f"{app} = {normalized_mode}"
+        combined = new_rule + ("\n" + existing if existing.strip() else "")
+        self._usage_store.dismiss(app)  # don't re-suggest once acted on
+        self._mode_suggestion_app = ""
+        self.modeSuggestionChanged.emit()
+        self.saveAppRules(combined)
+
+    @Slot()
+    def dismissModeSuggestion(self) -> None:
+        if self._mode_suggestion_app:
+            self._usage_store.dismiss(self._mode_suggestion_app)
+        self._mode_suggestion_app = ""
+        self.modeSuggestionChanged.emit()
 
     @Property(str, notify=stateChanged)
     def status(self) -> str:

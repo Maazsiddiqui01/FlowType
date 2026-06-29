@@ -297,6 +297,59 @@ def test_controller_shows_result_card_from_pipeline_results(tmp_path: Path) -> N
     assert controller.recentResultItems[0]["finalText"] == "Hello there."
 
 
+def _dictate_into(controller, app: str, n: int = 1) -> None:
+    for _ in range(n):
+        controller.pipeline_result_callback(
+            DictationResult(
+                raw_text="hello there", final_text="Hello there.", used_fallback=False, copied=True, pasted=True,
+                delivery_state="pasted", delivery_note="", target_title=app, mode_name="default",
+                provider="openai", model="m", target_process=app,
+            )
+        )
+
+
+def test_learns_and_suggests_per_app_mode_after_threshold(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.toml"
+    write_default_config(config_path)
+    controller = build_controller(config_path)
+
+    _dictate_into(controller, "Code.exe", 3)
+    assert controller.modeSuggestionApp == ""  # below threshold
+
+    _dictate_into(controller, "Code.exe", 1)  # 4th -> suggestion
+    assert controller.modeSuggestionApp == "Code.exe"
+
+    controller.applyAppModeSuggestion("technical")
+    assert controller.modeSuggestionApp == ""
+    rules = controller._config.mode.app_rules
+    assert any(p.lower() == "code.exe" and m == "technical" for p, m in rules)
+
+
+def test_dismiss_mode_suggestion_stops_nagging(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.toml"
+    write_default_config(config_path)
+    controller = build_controller(config_path)
+
+    _dictate_into(controller, "slack.exe", 4)
+    assert controller.modeSuggestionApp == "slack.exe"
+
+    controller.dismissModeSuggestion()
+    assert controller.modeSuggestionApp == ""
+
+    _dictate_into(controller, "slack.exe", 3)  # dismissed -> never suggests again
+    assert controller.modeSuggestionApp == ""
+
+
+def test_no_suggestion_when_app_already_has_rule(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.toml"
+    write_default_config(config_path)
+    save_config_data(config_path, {"mode": {"app_rules": "code.exe = technical"}})
+    controller = build_controller(config_path)
+
+    _dictate_into(controller, "code.exe", 5)
+    assert controller.modeSuggestionApp == ""
+
+
 def test_reclean_requires_cleanup_provider(tmp_path: Path) -> None:
     config_path = tmp_path / "config.toml"
     write_default_config(config_path)  # default: openrouter with no key -> cleanup disabled

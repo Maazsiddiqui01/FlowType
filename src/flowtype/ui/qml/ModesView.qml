@@ -34,6 +34,73 @@ Item {
         maxContentWidth: 1180
         contentSpacing: theme.sectionGap
 
+        // ── Learned per-app suggestion ───────────────────────────────────────
+        Rectangle {
+            width: parent.width
+            visible: AppController.modeSuggestionApp.length > 0
+            implicitHeight: suggestionCol.implicitHeight + theme.space20 * 2
+            radius: theme.radiusCard
+            color: theme.tint(theme.primary, theme.darkMode ? 0.16 : 0.10)
+            border.width: 1
+            border.color: theme.tint(theme.primary, theme.darkMode ? 0.45 : 0.30)
+
+            ColumnLayout {
+                id: suggestionCol
+                anchors.fill: parent
+                anchors.margins: theme.space20
+                spacing: theme.space12
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: theme.space12
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 2
+                        Label {
+                            text: "Auto-apply a mode for " + AppController.modeSuggestionApp + "?"
+                            color: theme.textPrimary
+                            font.family: theme.fontDisplay
+                            font.pixelSize: theme.sizeSectionTitle
+                            font.weight: 700
+                        }
+                        Label {
+                            Layout.fillWidth: true
+                            text: "You've dictated into this app a few times. Pick a mode and FlowType will switch to it automatically whenever " + AppController.modeSuggestionApp + " is in front."
+                            color: theme.textSecondary
+                            font.family: theme.fontText
+                            font.pixelSize: theme.sizeHelper
+                            wrapMode: Text.WordWrap
+                        }
+                    }
+
+                    FlowButton {
+                        Layout.alignment: Qt.AlignTop
+                        label: "Dismiss"
+                        variant: "ghost"
+                        compact: true
+                        onClicked: AppController.dismissModeSuggestion()
+                    }
+                }
+
+                Flow {
+                    Layout.fillWidth: true
+                    spacing: theme.space8
+
+                    Repeater {
+                        model: AppController.modeCards
+
+                        delegate: FlowButton {
+                            label: modelData.label
+                            variant: "secondary"
+                            compact: true
+                            onClicked: AppController.applyAppModeSuggestion(modelData.identifier)
+                        }
+                    }
+                }
+            }
+        }
+
         RowLayout {
             width: parent.width
             spacing: theme.space12
