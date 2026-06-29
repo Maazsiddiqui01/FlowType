@@ -249,8 +249,11 @@ def run_ui_mode(
             result_window.setIcon(app_icon)
 
         def reposition_overlay(overlay_window: Any) -> None:
+            # Anchor to the main window's screen (or primary). Do NOT trust the overlay's
+            # own current screen -- on multi-monitor setups it can drift onto a secondary
+            # monitor and strand the HUD off-screen (e.g. at a negative x).
             try:
-                target_screen = overlay_window.screen() or window.screen() or app.primaryScreen()
+                target_screen = window.screen() or app.primaryScreen()
             except Exception:
                 target_screen = app.primaryScreen()
             if target_screen is None:
