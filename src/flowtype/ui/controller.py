@@ -22,6 +22,7 @@ from flowtype.history import HistoryEntry, HistoryStore, build_history_entry
 from flowtype.pipeline import DictationPipeline, DictationResult
 from flowtype.shortcuts import validate_shortcut_for_action
 from flowtype.startup import sync_launch_at_login
+from flowtype.windows import supports_mica
 
 
 logger = logging.getLogger("flowtype.ui.controller")
@@ -59,6 +60,9 @@ class AppController(QObject):
         self._runtime_reloader = runtime_reloader
         self._status = "starting"
         self._detail = "Starting FlowType..."
+        # Resolved against the OS; app.py confirms (or downgrades to "solid") once the
+        # native backdrop is actually applied to the window.
+        self._window_material = "mica" if supports_mica() else "solid"
         self._audio_level = 0.0
         self._notification_message = ""
         self._notification_tone = "info"
@@ -404,6 +408,18 @@ class AppController(QObject):
     @Property(bool, notify=configChanged)
     def darkMode(self) -> bool:
         return self._config.experience.dark_mode
+
+    @Property(str, notify=configChanged)
+    def windowMaterial(self) -> str:
+        return self._window_material
+
+    def set_window_material(self, value: str) -> None:
+        """Set by app.py after attempting the native backdrop; flips QML to a solid
+        background if Mica/Acrylic could not be applied."""
+        normalized = value if value in {"mica", "acrylic", "solid"} else "solid"
+        if normalized != self._window_material:
+            self._window_material = normalized
+            self.configChanged.emit()
 
     @Property(str, notify=configChanged)
     def whisperModel(self) -> str:

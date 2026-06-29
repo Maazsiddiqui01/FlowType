@@ -16,11 +16,14 @@ Window {
     property bool showIdleHud: AppController.showIdleHud
     property bool isRecording: AppController.status === "recording"
     property bool isBusy: AppController.status === "transcribing" || AppController.status === "cleaning" || AppController.status === "pasting"
+    property bool isError: AppController.status === "error"
     property bool isReady: AppController.status === "ready"
-    property bool shouldShow: isRecording || isBusy || (isReady && showIdleHud)
+    property bool shouldShow: isRecording || isBusy || isError || (isReady && showIdleHud)
 
-    width: hudStyle === "mini" ? 116 : 156
-    height: hudStyle === "mini" ? 34 : 42
+    readonly property int hPad: 16
+    readonly property int hudHeight: hudStyle === "mini" ? 40 : 46
+    width: Math.round(Math.max(96, contentRow.implicitWidth + hPad * 2))
+    height: hudHeight
 
     Connections {
         target: AppController
@@ -37,83 +40,112 @@ Window {
         return "idle"
     }
 
-    // ── HUD pill ─────────────────────────────────────────
+    function stateColor() {
+        if (isRecording) return theme.warm
+        if (isBusy) return theme.primary
+        if (isError) return theme.error
+        return theme.success
+    }
+
+    function stateLabel() {
+        if (isRecording) return "Recording"
+        if (AppController.status === "transcribing") return "Transcribing"
+        if (AppController.status === "cleaning") return "Polishing"
+        if (AppController.status === "pasting") return "Pasting"
+        if (isError) return "Error"
+        return "Ready"
+    }
+
+    // ── Frosted HUD pill ─────────────────────────────────────────────────────
     Rectangle {
         id: hudPill
-        anchors.centerIn: parent
-        width: hudWindow.width
-        height: hudWindow.height
+        anchors.fill: parent
         radius: height / 2
-        color: theme.darkMode ? "#0A0E16" : "#0C1622"
+        color: theme.hudFill
         border.width: 1
-        border.color: theme.darkMode ? "#1A2538" : "#243446"
+        border.color: theme.hudBorder
         opacity: hudWindow.shouldShow ? 1.0 : 0.0
         visible: opacity > 0
+        antialiasing: true
 
-        Behavior on opacity { NumberAnimation { duration: 250; easing.type: Easing.InOutQuad } }
+        Behavior on opacity { NumberAnimation { duration: theme.durBase; easing.type: theme.easeInOut } }
 
-        // Recording glow
+        // Top frost sheen
+        Rectangle {
+            anchors.fill: parent
+            radius: parent.radius
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.10) }
+                GradientStop { position: 0.5; color: "transparent" }
+                GradientStop { position: 1.0; color: Qt.rgba(0, 0, 0, 0.12) }
+            }
+        }
+
+        // Soft recording halo
         Rectangle {
             anchors.fill: parent
             anchors.margins: -2
             radius: parent.radius + 2
             color: "transparent"
             border.width: 2
-            border.color: Qt.rgba(0.42, 0.55, 1.0, hudWindow.isRecording ? 0.25 * (0.5 + 0.5 * Math.sin(glowPhase.phase)) : 0)
+            border.color: theme.tint(theme.warm, hudWindow.isRecording ? 0.30 * (0.5 + 0.5 * Math.sin(glow.phase)) : 0)
             visible: hudWindow.isRecording
 
-            property QtObject glowPhase: QtObject {
-                property real phase: 0.0
-                property bool running: hudWindow.isRecording
-            }
+            property QtObject glow: QtObject { property real phase: 0.0 }
 
             Timer {
                 running: parent.visible
                 repeat: true
                 interval: 30
-                onTriggered: parent.glowPhase.phase += 0.08
+                onTriggered: parent.glow.phase += 0.08
             }
-
-            Behavior on border.color { ColorAnimation { duration: 300 } }
         }
 
-        Row {
+        RowLayout {
+            id: contentRow
             anchors.centerIn: parent
-            spacing: 6
+            spacing: 9
 
-            // Language badge
+            // State dot
             Rectangle {
-                visible: hudWindow.showIdleHud || !hudWindow.isReady
-                width: 18
-                height: 18
-                radius: 9
-                color: theme.darkMode ? "#0C1622" : "#0A0E16"
-                border.width: 1
-                border.color: theme.darkMode ? "#1E3048" : "#233447"
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Qt.AlignVCenter
+                width: 9
+                height: 9
+                radius: 4.5
+                color: hudWindow.stateColor()
+                Behavior on color { ColorAnimation { duration: theme.durBase } }
 
-                Label {
-                    anchors.centerIn: parent
-                    text: AppController.transcriptionLanguage === "auto"
-                        ? "A"
-                        : AppController.transcriptionLanguage.toUpperCase().slice(0, 2)
-                    color: "#F0F4F8"
-                    font.family: theme.fontUi
-                    font.pixelSize: 8
-                    font.weight: Font.DemiBold
+                // gentle pulse while busy
+                SequentialAnimation on opacity {
+                    running: hudWindow.isBusy
+                    loops: Animation.Infinite
+                    NumberAnimation { from: 1.0; to: 0.35; duration: 600; easing.type: Easing.InOutQuad }
+                    NumberAnimation { from: 0.35; to: 1.0; duration: 600; easing.type: Easing.InOutQuad }
                 }
+                onVisibleChanged: if (!hudWindow.isBusy) opacity = 1.0
             }
 
-            // Waveform
+            // Waveform (recording + busy share the animated strip)
             WaveStrip {
-                anchors.verticalCenter: parent.verticalCenter
-                bars: hudWindow.hudStyle === "mini" ? 7 : 9
+                Layout.alignment: Qt.AlignVCenter
+                visible: hudWindow.isRecording || hudWindow.isBusy
+                bars: hudWindow.hudStyle === "mini" ? 6 : 8
                 barWidth: 3
                 gap: 3
                 minimumBarHeight: 3
-                maximumBarHeight: hudWindow.hudStyle === "mini" ? 12 : 18
+                maximumBarHeight: hudWindow.hudStyle === "mini" ? 12 : 16
                 level: AppController.audioLevel
                 mode: hudWindow.waveMode()
+            }
+
+            // Status word
+            Label {
+                Layout.alignment: Qt.AlignVCenter
+                text: hudWindow.stateLabel()
+                color: theme.hudText
+                font.family: theme.fontUi
+                font.pixelSize: hudWindow.hudStyle === "mini" ? 11 : 12
+                font.weight: Font.DemiBold
             }
         }
     }

@@ -23,7 +23,13 @@ from flowtype.transcriber import Transcriber
 from flowtype.ui.controller import AppController
 from flowtype.ui.single_instance import SingleInstanceManager
 from flowtype.ui.system_tray import UiTrayController
-from flowtype.windows import set_app_user_model_id, set_native_title_bar_colors, set_native_window_icon
+from flowtype.windows import (
+    enable_acrylic_blur,
+    set_app_user_model_id,
+    set_native_title_bar_colors,
+    set_native_window_icon,
+    set_window_backdrop_material,
+)
 
 logger = logging.getLogger("flowtype.ui.app")
 
@@ -310,18 +316,27 @@ def run_ui_mode(
                 set_native_title_bar_colors(hwnd, caption_color, text_color, border_color)
                 if icon_path.exists():
                     set_native_window_icon(hwnd, str(icon_path))
+                # Authentic Windows 11 glass: Mica behind the (transparent) shell.
+                # If the OS refuses (Windows 10), fall back to a solid background.
+                if controller.windowMaterial != "solid":
+                    if not set_window_backdrop_material(hwnd, dark_mode, "mica"):
+                        controller.set_window_material("solid")
             try:
                 hud_hwnd = int(hud_window.winId())
             except Exception:
                 hud_hwnd = 0
-            if hud_hwnd and icon_path.exists():
-                set_native_window_icon(hud_hwnd, str(icon_path))
+            if hud_hwnd:
+                enable_acrylic_blur(hud_hwnd)
+                if icon_path.exists():
+                    set_native_window_icon(hud_hwnd, str(icon_path))
             try:
                 result_hwnd = int(result_window.winId())
             except Exception:
                 result_hwnd = 0
-            if result_hwnd and icon_path.exists():
-                set_native_window_icon(result_hwnd, str(icon_path))
+            if result_hwnd:
+                enable_acrylic_blur(result_hwnd)
+                if icon_path.exists():
+                    set_native_window_icon(result_hwnd, str(icon_path))
 
         apply_window_branding()
         reposition_hud()

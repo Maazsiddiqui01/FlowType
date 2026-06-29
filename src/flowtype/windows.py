@@ -2,14 +2,32 @@ from __future__ import annotations
 
 import ctypes
 import os
+import sys
 from dataclasses import dataclass
 from ctypes import wintypes
 
 
 APP_USER_MODEL_ID = "AntiGravity.FlowType"
+DWMWA_USE_IMMERSIVE_DARK_MODE = 20
 DWMWA_BORDER_COLOR = 34
 DWMWA_CAPTION_COLOR = 35
 DWMWA_TEXT_COLOR = 36
+DWMWA_SYSTEMBACKDROP_TYPE = 38
+
+# DWM system backdrop materials (Windows 11)
+DWMSBT_AUTO = 0
+DWMSBT_NONE = 1
+DWMSBT_MAINWINDOW = 2      # Mica
+DWMSBT_TRANSIENTWINDOW = 3  # Acrylic
+DWMSBT_TABBEDWINDOW = 4     # Mica Alt
+
+# SetWindowCompositionAttribute (acrylic blur-behind, Win10 1803+/Win11)
+WCA_ACCENT_POLICY = 19
+ACCENT_DISABLED = 0
+ACCENT_ENABLE_BLURBEHIND = 3
+ACCENT_ENABLE_ACRYLICBLURBEHIND = 4
+
+MICA_MIN_BUILD = 22000
 WM_SETICON = 0x0080
 ICON_SMALL = 0
 ICON_BIG = 1
@@ -53,6 +71,88 @@ def set_native_title_bar_colors(hwnd: int, caption_hex: str, text_hex: str, bord
     _set_dwm_color(dwmapi, hwnd, DWMWA_TEXT_COLOR, _hex_to_colorref(text_hex))
     if border_hex:
         _set_dwm_color(dwmapi, hwnd, DWMWA_BORDER_COLOR, _hex_to_colorref(border_hex))
+
+
+def windows_build() -> int:
+    if not is_windows():
+        return 0
+    try:
+        return int(sys.getwindowsversion().build)
+    except Exception:
+        return 0
+
+
+def supports_mica() -> bool:
+    """Windows 11 (build >= 22000) supports the DWM Mica system backdrop."""
+    return is_windows() and windows_build() >= MICA_MIN_BUILD
+
+
+def set_window_backdrop_material(hwnd: int, dark: bool, material: str = "mica") -> bool:
+    """Apply a translucent system backdrop (Mica/Acrylic) to a top-level window.
+
+    Returns True only if the OS accepted it. Callers should fall back to a solid
+    window background when this returns False (e.g. on Windows 10).
+    """
+    if not hwnd or not supports_mica():
+        return False
+    try:
+        dwmapi = ctypes.windll.dwmapi
+    except Exception:
+        return False
+
+    _set_dwm_int(dwmapi, hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, 1 if dark else 0)
+    backdrop = {
+        "mica": DWMSBT_MAINWINDOW,
+        "mica-alt": DWMSBT_TABBEDWINDOW,
+        "acrylic": DWMSBT_TRANSIENTWINDOW,
+    }.get(material, DWMSBT_MAINWINDOW)
+    return _set_dwm_int(dwmapi, hwnd, DWMWA_SYSTEMBACKDROP_TYPE, backdrop) == 0
+
+
+def enable_acrylic_blur(hwnd: int, tint_argb: int = 0x140A0E14) -> bool:
+    """Frosted acrylic blur-behind for a frameless overlay (the HUD).
+
+    tint_argb is 0xAARRGGBB; it is converted to the ABGR gradient color the
+    composition API expects. A low alpha keeps it a subtle frost so the QML fill
+    provides the actual color/contrast.
+    """
+    if not is_windows() or not hwnd:
+        return False
+    try:
+        user32 = ctypes.windll.user32
+        set_attr = user32.SetWindowCompositionAttribute
+    except Exception:
+        return False
+
+    a = (tint_argb >> 24) & 0xFF
+    r = (tint_argb >> 16) & 0xFF
+    g = (tint_argb >> 8) & 0xFF
+    b = tint_argb & 0xFF
+    gradient_abgr = (a << 24) | (b << 16) | (g << 8) | r
+
+    class ACCENT_POLICY(ctypes.Structure):
+        _fields_ = [
+            ("AccentState", ctypes.c_int),
+            ("AccentFlags", ctypes.c_int),
+            ("GradientColor", ctypes.c_uint),
+            ("AnimationId", ctypes.c_int),
+        ]
+
+    class WINDOWCOMPOSITIONATTRIBDATA(ctypes.Structure):
+        _fields_ = [
+            ("Attribute", ctypes.c_int),
+            ("Data", ctypes.c_void_p),
+            ("SizeOfData", ctypes.c_size_t),
+        ]
+
+    try:
+        accent = ACCENT_POLICY(ACCENT_ENABLE_ACRYLICBLURBEHIND, 0, gradient_abgr, 0)
+        data = WINDOWCOMPOSITIONATTRIBDATA(
+            WCA_ACCENT_POLICY, ctypes.cast(ctypes.byref(accent), ctypes.c_void_p), ctypes.sizeof(accent)
+        )
+        return bool(set_attr(wintypes.HWND(hwnd), ctypes.byref(data)))
+    except Exception:
+        return False
 
 
 def set_native_window_icon(hwnd: int, icon_path: str) -> None:
@@ -183,6 +283,22 @@ def _set_dwm_color(dwmapi, hwnd: int, attribute: int, colorref: int) -> None:
         )
     except Exception:
         return
+
+
+def _set_dwm_int(dwmapi, hwnd: int, attribute: int, value: int) -> int:
+    """Set an integer/BOOL DWM window attribute. Returns the HRESULT (0 == success)."""
+    data = ctypes.c_int(int(value))
+    try:
+        return int(
+            dwmapi.DwmSetWindowAttribute(
+                wintypes.HWND(hwnd),
+                ctypes.c_uint(attribute),
+                ctypes.byref(data),
+                ctypes.sizeof(data),
+            )
+        )
+    except Exception:
+        return -1
 
 
 def _hex_to_colorref(value: str) -> int:

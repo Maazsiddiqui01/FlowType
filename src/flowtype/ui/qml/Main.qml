@@ -13,7 +13,9 @@ ApplicationWindow {
     height: 820
     minimumWidth: 980
     minimumHeight: 680
-    color: theme.appBackground
+    // Transparent so the native Mica backdrop shows through (Windows 11); solid
+    // gradient fallback on Windows 10 where Mica is unavailable.
+    color: AppController.windowMaterial === "solid" ? theme.appBackground : "transparent"
 
     property int currentPage: 0
     property string notificationMessage: ""
@@ -71,6 +73,16 @@ ApplicationWindow {
         onTriggered: window.notificationVisible = false
     }
 
+    // Solid-mode backdrop gradient (hidden when the Mica material is active).
+    Rectangle {
+        anchors.fill: parent
+        visible: AppController.windowMaterial === "solid"
+        gradient: Gradient {
+            GradientStop { position: 0.0; color: theme.appGradientTop }
+            GradientStop { position: 1.0; color: theme.appGradientBottom }
+        }
+    }
+
     RowLayout {
         anchors.fill: parent
         spacing: 0
@@ -79,7 +91,7 @@ ApplicationWindow {
             id: rail
             Layout.preferredWidth: theme.railWidth
             Layout.fillHeight: true
-            color: theme.darkMode ? "#0D121B" : "#FBFCFE"
+            color: theme.darkMode ? "#0B0F18" : "#F7FAFE"
 
             Rectangle {
                 anchors.top: parent.top
