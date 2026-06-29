@@ -1,5 +1,35 @@
 # FlowType Improvement Roadmap
 
+## Status (branch `feat/reliability-ux-overhaul`)
+
+Delivered, tested (87 tests), and committed:
+- **Phase 1A** — queue pipeline never drops a record trigger while busy; thread-safe
+  state; cross-thread Qt callbacks marshalled via queued signals; crash handlers
+  (faulthandler + excepthooks); 5-min cap → 30-min + surfaced; audio races fixed.
+- **Phase 1B** — crash-safe recording: each take journaled to disk before processing,
+  deleted on success, kept on failure, auto-recovered (copy-only) on next launch.
+- **Phase 2** — Windows 11 Mica + Acrylic HUD glass; WCAG-AA dark/light design system
+  (no shader/FBO dependency); legible frosted HUD with per-state text; focus rings;
+  HUD/result overlap fixed; error card recovery action.
+- **Phase 3 (quick wins)** — bundle ctranslate2 native DLLs (ship-blocker); hard
+  release-gate validator; reconciled requirements with pyproject; pinned ctranslate2.
+- **Phase 4** — custom OpenAI-compatible endpoint / bring-your-own-model + honored
+  cleanup timeouts; per-app Modes (auto-switch by foreground app); DPAPI-encrypted API
+  keys at rest; History recovery (copy/re-paste/delete); Windows paste reliability
+  (ALT-key foreground trick + clipboard-write verification).
+- **Phase 5 (partial)** — CTranslate2 cpu_threads bound to avoid oversubscription.
+
+Remaining (need live-device validation / a product decision):
+- VAD-segmented streaming transcription for long takes (perceived latency).
+- Streaming (SSE) cleanup with a first-token deadline.
+- ~500 ms pre-roll ring buffer so the first word is never clipped — requires an
+  always-listening mic (privacy/battery trade-off to confirm with the owner).
+- Optional UI for choosing the Whisper model tier (base.en / small.en / distil-large-v3).
+
+---
+
+
+
 > Generated from a multi-agent audit (reliability / providers / UI design system / UI flows /
 > lifecycle / packaging) + competitive research (Wispr Flow, Superwhisper, Aqua Voice, VoiceInk,
 > Talon, Windows Voice Access) + local-Whisper technical best-practices. Owner goals: a reliable
