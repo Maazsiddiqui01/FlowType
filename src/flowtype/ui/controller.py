@@ -681,6 +681,44 @@ class AppController(QObject):
             self._logger.exception("Failed to copy saved result: %s", exc)
             self._set_notification("Could not copy the saved result.", "error")
 
+    def _find_history_entry(self, entry_id: str) -> HistoryEntry | None:
+        for entry in self._history_entries:
+            if entry.entry_id == entry_id:
+                return entry
+        return None
+
+    @Slot(str)
+    def copyHistoryItem(self, entry_id: str) -> None:
+        entry = self._find_history_entry(entry_id)
+        if entry is None or not entry.final_text.strip():
+            return
+        try:
+            self._pipeline.output.copy_to_clipboard(entry.final_text)
+            self._set_notification("Copied to clipboard.", "success")
+        except Exception as exc:
+            self._logger.exception("Failed to copy history item: %s", exc)
+            self._set_notification("Could not copy the history item.", "error")
+
+    @Slot(str)
+    def repasteHistoryItem(self, entry_id: str) -> None:
+        entry = self._find_history_entry(entry_id)
+        if entry is None or not entry.final_text.strip():
+            return
+        self._latest_result_text = entry.final_text
+        try:
+            self._pipeline.output.deliver(entry.final_text)
+            self._set_notification("Pasted into the active app.", "success")
+        except Exception as exc:
+            self._logger.exception("Failed to re-paste history item: %s", exc)
+            self._set_notification("Could not paste the history item.", "error")
+
+    @Slot(str)
+    def deleteHistoryItem(self, entry_id: str) -> None:
+        self._history_entries = [e for e in self._history_entries if e.entry_id != entry_id]
+        if self._config.history.persist:
+            self._history_store.remove(entry_id)
+        self.historyChanged.emit()
+
     @Slot()
     def clearHistory(self) -> None:
         self._history_entries = []

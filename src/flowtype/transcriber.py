@@ -148,6 +148,7 @@ class Transcriber:
                         device=device,
                         compute_type=compute_type,
                         download_root=str(self.settings.model_cache_dir),
+                        cpu_threads=self._cpu_threads(),
                     )
                     self._used_device = device
                     self._used_compute_type = compute_type
@@ -179,6 +180,11 @@ class Transcriber:
             candidates = [self.settings.device]
         filtered = [device for device in candidates if device not in self._disabled_devices]
         return filtered or ["cpu"]
+
+    def _cpu_threads(self) -> int:
+        # CTranslate2 defaults to 0 (let OpenMP decide), which oversubscribes on
+        # many-core machines and hurts latency. Cap at a sane small value.
+        return max(1, min(4, os.cpu_count() or 1))
 
     def _resolve_compute_type(self, device: str) -> str:
         if self.settings.compute_type != "auto":

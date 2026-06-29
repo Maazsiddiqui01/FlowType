@@ -56,12 +56,20 @@ class HistoryStore:
     def append(self, entry: HistoryEntry) -> list[HistoryEntry]:
         entries = [entry, *self.load()]
         trimmed = entries[: self.max_items]
+        self._write(trimmed)
+        return trimmed
+
+    def remove(self, entry_id: str) -> list[HistoryEntry]:
+        entries = [entry for entry in self.load() if entry.entry_id != entry_id]
+        self._write(entries)
+        return entries
+
+    def _write(self, entries: list[HistoryEntry]) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.path.write_text(
-            json.dumps([asdict(item) for item in trimmed], indent=2),
+            json.dumps([asdict(item) for item in entries], indent=2),
             encoding="utf-8",
         )
-        return trimmed
 
     def clear(self) -> None:
         if self.path.exists():

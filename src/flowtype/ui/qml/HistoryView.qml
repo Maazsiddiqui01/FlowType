@@ -139,6 +139,34 @@ Item {
                             wrapMode: Text.WordWrap
                             textFormat: Text.PlainText
                         }
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: theme.space8
+
+                            FlowButton {
+                                label: "Copy"
+                                variant: "secondary"
+                                compact: true
+                                onClicked: AppController.copyHistoryItem(modelData.entryId)
+                            }
+
+                            FlowButton {
+                                label: "Re-paste"
+                                variant: "secondary"
+                                compact: true
+                                onClicked: AppController.repasteHistoryItem(modelData.entryId)
+                            }
+
+                            Item { Layout.fillWidth: true }
+
+                            FlowButton {
+                                label: "Delete"
+                                variant: "ghost"
+                                compact: true
+                                onClicked: AppController.deleteHistoryItem(modelData.entryId)
+                            }
+                        }
                     }
                 }
             }

@@ -286,6 +286,26 @@ def test_controller_shows_result_card_from_pipeline_results(tmp_path: Path) -> N
     assert controller.recentResultItems[0]["finalText"] == "Hello there."
 
 
+def test_controller_deletes_history_item(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.toml"
+    write_default_config(config_path)
+    controller = build_controller(config_path)
+
+    controller.pipeline_result_callback(
+        DictationResult(
+            raw_text="keep me", final_text="Keep me.", used_fallback=False, copied=True, pasted=True,
+            delivery_state="pasted", delivery_note="", target_title="Notepad",
+            mode_name="default", provider="openrouter", model="x",
+        )
+    )
+    items = controller.historyItems
+    assert len(items) == 1
+    entry_id = items[0]["entryId"]
+
+    controller.deleteHistoryItem(entry_id)
+    assert len(controller.historyItems) == 0
+
+
 def test_controller_ai_enhancement_keeps_original_result_and_updates_preview(tmp_path: Path) -> None:
     config_path = tmp_path / "config.toml"
     write_default_config(config_path)
