@@ -22,6 +22,15 @@ Item {
     readonly property bool providerRequiresKey: providerAllowsKey && providerDraft !== "custom"
     readonly property bool providerShowsBaseUrl: providerDraft === "custom" || providerDraft === "ollama"
 
+    // Live cleanup status, so it's obvious when transcripts are delivered raw vs cleaned.
+    readonly property bool cleanupActive: providerDraft !== "none" && (!providerRequiresKey || apiKeyDraft.length > 0)
+    readonly property string cleanupStatusText: providerDraft === "none"
+        ? "Cleanup is off — dictation is delivered as a raw transcript. Pick a provider below and add a key to turn on AI cleanup."
+        : (providerRequiresKey && apiKeyDraft.length === 0
+            ? "Almost there — paste your " + selectedProviderLabel() + " API key below, then Save Changes, to turn cleanup on."
+            : "Cleanup is active via " + selectedProviderLabel() + ". Save Changes to apply any edits.")
+    readonly property color cleanupStatusColor: cleanupActive ? theme.success : theme.warm
+
     function syncModelForProvider() {
         if (providerDraft === "none") {
             modelDraft = ""
@@ -96,6 +105,44 @@ Item {
                             root.pasteMethodDraft,
                             root.restoreClipboardDraft
                         )
+                    }
+                }
+
+                // Live status: makes it unmistakable whether cleanup is on or transcripts
+                // are being delivered raw (and what to do about it).
+                Rectangle {
+                    Layout.fillWidth: true
+                    implicitHeight: statusRow.implicitHeight + theme.space12 * 2
+                    radius: theme.radiusControl
+                    color: theme.tint(root.cleanupStatusColor, theme.darkMode ? 0.13 : 0.10)
+                    border.width: 1
+                    border.color: theme.tint(root.cleanupStatusColor, theme.darkMode ? 0.38 : 0.30)
+
+                    RowLayout {
+                        id: statusRow
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.leftMargin: theme.space16
+                        anchors.rightMargin: theme.space16
+                        spacing: theme.space12
+
+                        Rectangle {
+                            Layout.alignment: Qt.AlignVCenter
+                            width: 9
+                            height: 9
+                            radius: 4.5
+                            color: root.cleanupStatusColor
+                        }
+
+                        Label {
+                            Layout.fillWidth: true
+                            text: root.cleanupStatusText
+                            color: theme.textPrimary
+                            font.family: theme.fontText
+                            font.pixelSize: theme.sizeHelper
+                            wrapMode: Text.WordWrap
+                        }
                     }
                 }
 
@@ -279,7 +326,6 @@ Item {
 
             SectionCard {
                 Layout.fillWidth: true
-                Layout.preferredWidth: 1.6
 
                 ColumnLayout {
                     width: parent.width

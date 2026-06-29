@@ -46,37 +46,41 @@ QtObject {
     // ── backdrop (full window) ───────────────────────────────────────────────
     // A designed glass backdrop (reliable in both themes) rather than flaky Windows
     // Mica. A richer gradient gives translucent/frosted surfaces something to refract.
-    readonly property color appBackground: darkMode ? "#080B13" : "#EAEFF7"
-    readonly property color appGradientTop: darkMode ? "#141D33" : "#F6F9FE"
-    readonly property color appGradientBottom: darkMode ? "#080B14" : "#E3EAF6"
-    // Soft accent glows layered over the gradient for depth and a premium "lit" feel.
-    readonly property color glowPrimary: darkMode ? Qt.rgba(0.36, 0.45, 1.0, 0.16) : Qt.rgba(0.30, 0.45, 1.0, 0.10)
-    readonly property color glowTeal: darkMode ? Qt.rgba(0.20, 0.78, 0.70, 0.10) : Qt.rgba(0.10, 0.70, 0.62, 0.07)
+    // Warm, Wispr-style neutrals: a soft warm paper in light mode and a neutral-warm
+    // charcoal (no blue cast) in dark mode, so the UI reads calm and premium rather than
+    // cold. The luminance ramp below is preserved so cards still read as layered.
+    readonly property color appBackground: darkMode ? "#100F0E" : "#F1EDE6"
+    readonly property color appGradientTop: darkMode ? "#211F1C" : "#FAF7F1"
+    readonly property color appGradientBottom: darkMode ? "#100F0D" : "#E8E3DA"
+    // Soft WARM glows layered over the gradient for depth and a premium "lit" feel,
+    // kept warm (sand/amber) so the backdrop never reads cool/blue.
+    readonly property color glowPrimary: darkMode ? Qt.rgba(0.62, 0.54, 0.40, 0.09) : Qt.rgba(0.82, 0.70, 0.48, 0.06)
+    readonly property color glowTeal: darkMode ? Qt.rgba(0.85, 0.66, 0.32, 0.08) : Qt.rgba(0.80, 0.58, 0.20, 0.05)
 
     // ── surfaces (luminance ramp, clearly separated so cards read as layered) ──
-    readonly property color surfaceSunken: darkMode ? "#0A0F18" : "#E9EFF7"
-    readonly property color surface: darkMode ? "#141C2A" : "#FFFFFF"
-    readonly property color surfaceSubtle: darkMode ? "#101722" : "#F6F9FD"
-    readonly property color surfaceMuted: darkMode ? "#1A2434" : "#EDF2FA"
-    readonly property color surfaceHover: darkMode ? "#202C3F" : "#E8F0FA"
-    readonly property color surfaceActive: darkMode ? "#26344B" : "#DEE9F8"
+    readonly property color surfaceSunken: darkMode ? "#131210" : "#ECE7DF"
+    readonly property color surface: darkMode ? "#242120" : "#FFFFFF"
+    readonly property color surfaceSubtle: darkMode ? "#1A1817" : "#F7F4ED"
+    readonly property color surfaceMuted: darkMode ? "#2C2926" : "#EFEAE1"
+    readonly property color surfaceHover: darkMode ? "#34302D" : "#F1ECE3"
+    readonly property color surfaceActive: darkMode ? "#3D3936" : "#E8E1D5"
 
     // Frosted-glass fills: a vertical gradient from a brighter top edge to the base
     // surface, plus a translucent variant for when a native material sits behind.
-    readonly property color glassTop: darkMode ? "#1B2638" : "#FFFFFF"
-    readonly property color glassBottom: darkMode ? "#121A27" : "#F4F8FD"
-    readonly property color glassFillTranslucent: darkMode ? Qt.rgba(0.10, 0.14, 0.21, 0.62) : Qt.rgba(1, 1, 1, 0.66)
+    readonly property color glassTop: darkMode ? "#2A2623" : "#FFFFFF"
+    readonly property color glassBottom: darkMode ? "#1C1A18" : "#F6F2EB"
+    readonly property color glassFillTranslucent: darkMode ? Qt.rgba(0.13, 0.12, 0.11, 0.62) : Qt.rgba(1, 1, 1, 0.66)
 
     // ── borders & dividers ───────────────────────────────────────────────────
-    readonly property color border: darkMode ? "#27344A" : "#D7E1EF"
-    readonly property color borderStrong: darkMode ? "#36475F" : "#C2D1E5"
-    readonly property color divider: darkMode ? "#1C2735" : "#E5ECF6"
-    readonly property color borderSelected: darkMode ? "#5C73A0" : "#A8BEDE"
+    readonly property color border: darkMode ? "#312D29" : "#E4DDD1"
+    readonly property color borderStrong: darkMode ? "#433D38" : "#D4CABB"
+    readonly property color divider: darkMode ? "#221F1C" : "#ECE7DE"
+    readonly property color borderSelected: darkMode ? "#5A4F44" : "#CABDA8"
 
     // ── text (lifted for WCAG AA on the surface ramp) ────────────────────────
-    readonly property color textPrimary: darkMode ? "#F3F6FC" : "#0F2236"
-    readonly property color textSecondary: darkMode ? "#ABBAD0" : "#4C6076"
-    readonly property color textTertiary: darkMode ? "#8395AE" : "#697E94"
+    readonly property color textPrimary: darkMode ? "#F5F2EC" : "#2B2722"
+    readonly property color textSecondary: darkMode ? "#C2B9AD" : "#5B544B"
+    readonly property color textTertiary: darkMode ? "#988E81" : "#7A7164"
 
     // ── accents ──────────────────────────────────────────────────────────────
     readonly property color primary: darkMode ? "#6E86FF" : "#2F62F4"
@@ -90,13 +94,13 @@ QtObject {
 
     // ── glass refraction & glow ──────────────────────────────────────────────
     // Top inner-highlight that sells the "glass edge"; previously 0.02 (invisible).
-    readonly property color glassHighlight: darkMode ? Qt.rgba(1, 1, 1, 0.07) : Qt.rgba(1, 1, 1, 0.92)
-    readonly property color glassLowlight: darkMode ? Qt.rgba(0, 0, 0, 0.22) : Qt.rgba(0.40, 0.49, 0.62, 0.10)
-    readonly property color accentGlow: darkMode ? Qt.rgba(0.43, 0.52, 1.0, 0.16) : Qt.rgba(0.18, 0.42, 1.0, 0.10)
+    readonly property color glassHighlight: darkMode ? Qt.rgba(1, 1, 1, 0.06) : Qt.rgba(1, 1, 1, 0.92)
+    readonly property color glassLowlight: darkMode ? Qt.rgba(0, 0, 0, 0.22) : Qt.rgba(0.42, 0.38, 0.30, 0.10)
+    readonly property color accentGlow: darkMode ? Qt.rgba(0.45, 0.50, 0.95, 0.14) : Qt.rgba(0.20, 0.40, 0.95, 0.09)
 
     // ── depth tokens (used for sheen/ramp; no shader effects so cards always paint) ──
-    readonly property color shadowColor: darkMode ? Qt.rgba(0, 0, 0, 0.55) : Qt.rgba(0.16, 0.24, 0.40, 0.16)
-    readonly property color shadowColorStrong: darkMode ? Qt.rgba(0, 0, 0, 0.72) : Qt.rgba(0.16, 0.24, 0.40, 0.26)
+    readonly property color shadowColor: darkMode ? Qt.rgba(0, 0, 0, 0.55) : Qt.rgba(0.32, 0.26, 0.16, 0.15)
+    readonly property color shadowColorStrong: darkMode ? Qt.rgba(0, 0, 0, 0.72) : Qt.rgba(0.32, 0.26, 0.16, 0.24)
     readonly property real elevation1: 14
     readonly property real elevation2: 26
     readonly property real elevation3: 44

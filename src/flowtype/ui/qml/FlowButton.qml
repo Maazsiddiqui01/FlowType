@@ -18,10 +18,14 @@ Rectangle {
     implicitHeight: root.compact ? theme.controlHeightCompact : theme.buttonHeight
     radius: theme.radiusControl
     antialiasing: true
-    opacity: root.buttonEnabled ? 1.0 : 0.45
+    // Disabled buttons get a clearly-intentional muted treatment (a neutral fill + a
+    // legible muted label) rather than a uniform fade that reads as broken/ghosted.
+    opacity: root.buttonEnabled ? 1.0 : 0.9
     activeFocusOnTab: root.buttonEnabled
 
     color: {
+        if (!root.buttonEnabled)
+            return root.variant === "ghost" ? "transparent" : theme.surfaceMuted
         if (root.variant === "primary")
             return buttonArea.pressed ? theme.primaryPressed : (buttonArea.containsMouse ? theme.primaryHover : root.accent)
         if (root.variant === "danger")
@@ -40,7 +44,7 @@ Rectangle {
     Rectangle {
         anchors.fill: parent
         radius: parent.radius
-        visible: root.variant === "primary" || root.variant === "danger"
+        visible: (root.variant === "primary" || root.variant === "danger") && root.buttonEnabled
         gradient: Gradient {
             GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.18) }
             GradientStop { position: 0.5; color: "transparent" }
@@ -63,7 +67,9 @@ Rectangle {
         id: buttonLabel
         anchors.centerIn: parent
         text: root.label
-        color: root.variant === "primary" || root.variant === "danger" ? theme.textOnAccent : theme.textPrimary
+        color: !root.buttonEnabled
+            ? theme.textTertiary
+            : (root.variant === "primary" || root.variant === "danger" ? theme.textOnAccent : theme.textPrimary)
         font.family: theme.fontUi
         font.pixelSize: theme.sizeBody
         font.weight: 600

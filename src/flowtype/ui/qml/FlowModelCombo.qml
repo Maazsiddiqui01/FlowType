@@ -17,7 +17,7 @@ ComboBox {
     }
 
     width: 280
-    height: theme.controlHeight
+    height: 48
 
     delegate: ItemDelegate {
         width: ListView.view ? ListView.view.width : root.width
@@ -74,8 +74,8 @@ ComboBox {
 
         Label {
             Layout.fillWidth: true
-            text: root.displayText
-            color: theme.textPrimary
+            text: root.displayText.length > 0 ? root.displayText : "No model required"
+            color: root.displayText.length > 0 ? theme.textPrimary : theme.textTertiary
             font.family: theme.fontUi
             font.pixelSize: theme.sizeBody
             elide: Text.ElideRight
@@ -94,8 +94,10 @@ ComboBox {
 
     background: Rectangle {
         radius: theme.radiusControl
-        color: hoverArea.containsMouse ? theme.surfaceHover : theme.surface
-        border.width: root.popup.visible ? 1 : 1
+        // Match the other input fields (API key, base URL) which use surfaceSubtle, so the
+        // combo reads as one consistent input system rather than a lighter native control.
+        color: hoverArea.containsMouse ? theme.surfaceHover : theme.surfaceSubtle
+        border.width: 1
         border.color: root.popup.visible ? theme.borderSelected : theme.border
     }
 
