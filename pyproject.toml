@@ -11,6 +11,16 @@ requires-python = ">=3.11"
 authors = [
   { name = "AntiGravity" }
 ]
+license = { text = "MIT" }
+keywords = ["dictation", "speech-to-text", "whisper", "voice", "windows"]
+classifiers = [
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: Microsoft :: Windows",
+  "Environment :: Win32 (MS Windows)",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Multimedia :: Sound/Audio :: Speech",
+]
 dependencies = [
   "faster-whisper>=1.1.1",
   "ctranslate2>=4.7.1",
@@ -36,6 +46,11 @@ dev = [
 
 [project.scripts]
 flowtype = "flowtype.main:cli"
+
+[project.urls]
+Homepage = "https://github.com/Maazsiddiqui01/FlowType"
+Repository = "https://github.com/Maazsiddiqui01/FlowType"
+Issues = "https://github.com/Maazsiddiqui01/FlowType/issues"
 
 [tool.setuptools]
 package-dir = { "" = "src" }

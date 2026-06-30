@@ -1,279 +1,97 @@
 # FlowType
 
-FlowType is a Windows-focused desktop dictation app with local Faster-Whisper transcription, optional LLM cleanup, automatic paste, and a packaged Windows installer.
+**Local-first voice dictation for Windows.** Hold a hotkey, speak, and FlowType transcribes on your machine, optionally cleans the text with an AI model you bring, and pastes it into whatever app you're using.
 
-## Quick Start
+It's a [Wispr Flow](https://wisprflow.ai)-style dictation experience that runs locally and lets you plug in your own model and key — your audio is transcribed on-device, and cleanup only ever talks to the provider you choose.
 
-### Install on Windows
+> Status: Windows beta (`v0.1.13`). macOS is not supported yet.
 
-- GitHub release install: download the latest installer from [Releases](https://github.com/Maazsiddiqui01/FlowType/releases).
-- Local installer built from this workspace: `dist-installer\FlowType-Beta-0.1.13.exe`
-- Install target: `%LocalAppData%\Programs\FlowType`
-- User data stays in `%APPDATA%\FlowType`
+---
 
-### Run From Source
+## Why FlowType
 
-```powershell
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -e .[dev]
-python -m flowtype
-```
+- **Local transcription.** Speech-to-text runs on your machine with [Faster-Whisper](https://github.com/SYSTRAN/faster-whisper) (CPU int8, with an automatic CUDA→CPU fallback). No audio leaves the device for transcription.
+- **Bring your own model.** Cleanup is optional and uses *your* account: OpenRouter, OpenAI, Anthropic (Claude), Gemini, xAI (Grok), Groq, a local Ollama, any OpenAI-compatible endpoint — or no cleanup at all (raw transcript).
+- **Private by default.** API keys are encrypted at rest with Windows DPAPI. FlowType never proxies your requests; it calls your provider directly.
+- **It always records.** Recordings are journaled to disk as you speak and recovered after a crash, the capture pipeline never drops a hotkey press, and if cleanup fails for any reason you still get the raw transcript pasted.
+- **Stays out of the way.** A minimal bottom HUD shows a thin idle line that expands to a hint on hover and a compact meter while recording — and it hides itself over fullscreen video and games.
 
-### Contribute
+## Features
 
-- Start here: [CONTRIBUTING.md](CONTRIBUTING.md)
-- Packaging checklist: [PACKAGED_SMOKE_CHECKLIST.md](docs/PACKAGED_SMOKE_CHECKLIST.md)
-- Build a release locally: `python scripts/build.py --installer`
+- Global **push-to-talk** (hold) and **toggle** (tap) hotkeys, plus cancel and re-paste — all editable in-app with live reload.
+- **Cleanup modes** (Default, Focused Writing, Meetings, Technical) plus custom instructions, and **per-app modes** that auto-switch based on the app you're dictating into.
+- **Vocabulary** rules to protect names, product terms, and acronyms during cleanup.
+- **History** of every dictation, with one-click copy, re-paste, and "Clean with AI" to re-run cleanup on a take you pasted raw.
+- **Learn from behavior** — after you dictate into the same app a few times, FlowType offers to set a per-app mode for it (dismissable).
+- **Per-language** transcription lock for faster, steadier results than auto-detect.
+- Light and dark themes, system tray with close-to-tray lifecycle, and launch-at-login.
 
-## How Updates Work
+## Install (Windows)
 
-- This beta does not have auto-update yet.
-- Installed users should download the next installer and run it again when a bug fix or new release is published.
-- Config, history, logs, and model cache live outside the install folder, so reinstalling does not wipe normal user data.
-- If you run from source, just pull the latest code, reinstall dependencies if needed, and relaunch the app.
+1. Download the latest installer from [Releases](https://github.com/Maazsiddiqui01/FlowType/releases).
+2. Run it — no admin rights needed. It installs per-user to `%LocalAppData%\Programs\FlowType`.
+3. Launch FlowType and complete the short first-run setup (pick a provider + key, or stay local-only).
 
-## What FlowType Does
+Your config, history, logs, and model cache live in `%APPDATA%\FlowType`, so reinstalling or updating never wipes your data. This beta has no auto-update yet — download and run the newer installer to update.
 
-FlowType:
+## Using it
 
-- hold a global push-to-talk hotkey
-- optionally tap a toggle-recording hotkey for longer dictation
-- speak into your microphone
-- transcribe locally with Faster-Whisper
-- optionally clean the text with your own OpenRouter, OpenAI, Claude, Gemini, Grok, Groq, or Ollama setup
-- paste the final text into the active application
+1. Focus any text field.
+2. Hold **`Ctrl + Shift + Space`**, speak, and release.
+3. FlowType transcribes, cleans (if configured), and pastes.
 
-The current build includes a full PySide6 desktop shell rather than only a tray utility:
+For longer dictation, tap **`Ctrl + Alt + Space`** to start and again to stop. Press **`Esc`** to cancel a take. All shortcuts are configurable in **Settings**.
 
-- Home, Modes, Vocabulary, History, and Settings screens
-- first-run onboarding inside the desktop shell for provider, key, and language setup
-- startup-at-login choice during onboarding, preselected on for the Windows beta
-- animated bottom recording HUD with a tiny idle line, compact active states, and an in-HUD language menu
-- curated provider/model setup for OpenRouter, OpenAI, Claude, Gemini, Grok, Groq, Ollama, or raw-only mode
-- in-app shortcut editing with live runtime reload
-- recommended shortcut defaults for hold, toggle, and cancel recording
-- in-app transcription language selection for faster single-language dictation
-- vocabulary and mode instructions that feed the cleanup prompt assembly layer
-- single-instance restore behavior plus close-to-tray background lifecycle
-- branded app, tray, and installer assets generated from the FlowType logo system
+The first dictation downloads the Whisper model into `%APPDATA%\FlowType\models` (one-time).
 
-## Current MVP
+## Configuration
 
-- Global push-to-talk hotkey: `Ctrl+Shift+Space`
-- Toggle recording hotkey: `Ctrl+Alt+Space`
-- Cancel recording hotkey: `Esc`
-- Local transcription with Faster-Whisper
-- Curated cleanup providers with retry and raw-transcript fallback
-- Mode presets plus custom mode instructions
-- Vocabulary preservation rules injected into cleanup
-- Transcription language selection in Settings
-- Clipboard copy plus automatic paste
-- Desktop shell with bottom HUD, history, and unified settings
-- Close-to-tray desktop lifecycle with tray reopen and quit actions
-- Startup-at-login settings with Windows Run-key integration
-- Rotating logs
-- Config reload after in-app settings changes
-- PyInstaller + Inno Setup packaging path
+Open the **Cleanup** screen to choose a provider and paste your key. A status banner tells you whether cleanup is **off** (raw transcripts), **needs a key**, or **active**. You can also set keys via environment variables:
 
-## Project Layout
+| Provider | Variable |
+| --- | --- |
+| OpenRouter | `OPENROUTER_API_KEY` |
+| OpenAI | `OPENAI_API_KEY` |
+| Anthropic (Claude) | `ANTHROPIC_API_KEY` |
+| Gemini | `GEMINI_API_KEY` / `GOOGLE_API_KEY` |
+| xAI (Grok) | `XAI_API_KEY` |
+| Groq | `GROQ_API_KEY` |
 
-```text
-.
-|-- GEMINI.md
-|-- IMPLEMENTATION_NOTES.md
-|-- README.md
-|-- assets/
-|   `-- branding/
-|       |-- logo-mark.svg
-|       `-- wordmark.svg
-|-- config.toml
-|-- flowtype.spec
-|-- pyproject.toml
-|-- requirements.txt
-|-- scripts/
-|   |-- build.py
-|   |-- generate_branding_assets.py
-|   `-- installer.iss
-|   `-- validate_dist.py
-|-- src/
-|   `-- flowtype/
-|       |-- __init__.py
-|       |-- __main__.py
-|       |-- audio.py
-|       |-- branding.py
-|       |-- catalog.py
-|       |-- cleanup.py
-|       |-- config.py
-|       |-- history.py
-|       |-- logger.py
-|       |-- main.py
-|       |-- output.py
-|       |-- pipeline.py
-|       |-- settings.py
-|       |-- shortcuts.py
-|       |-- startup.py
-|       |-- transcriber.py
-|       |-- tray.py
-|       |-- windows.py
-|       `-- ui/
-|           |-- app.py
-|           |-- controller.py
-|           |-- single_instance.py
-|           |-- system_tray.py
-|           `-- qml/
-|               |-- GeneralSettingsView.qml
-|               |-- Main.qml
-|               |-- HUDWindow.qml
-|               |-- HomeView.qml
-|               |-- ModesView.qml
-|               |-- VocabularyView.qml
-|               |-- ConfigurationView.qml
-|               |-- SettingsView.qml
-|               |-- SoundView.qml
-|               |-- HistoryView.qml
-|               `-- ShortcutRecorder.qml
-`-- tests/
-    |-- conftest.py
-    |-- test_cleanup.py
-    |-- test_config.py
-    |-- test_output.py
-    |-- test_pipeline.py
-    `-- test_settings.py
-```
+Notes:
+- Cleanup runs only when a provider is selected and a valid key is present; otherwise the raw transcript is pasted.
+- If a target app blocks simulated paste, switch `output.paste_method` to `clipboard_only` in the config.
+- Recording is capped at 30 minutes by default to prevent a runaway background capture.
 
-## Setup
+## Run from source
 
-1. Install Python 3.11 or 3.12 on Windows.
-2. Create and activate a virtual environment.
-3. Install dependencies:
+FlowType uses [uv](https://docs.astral.sh/uv/). Python 3.11 or 3.12 on Windows.
 
 ```powershell
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -e .[dev]
+uv sync                      # create the env and install deps
+uv run python -m flowtype    # launch the desktop app
 ```
 
-4. Copy `config.toml` into `%APPDATA%\FlowType\config.toml` or let FlowType create it on first run.
-5. Add your API key:
-   - `OPENROUTER_API_KEY` for OpenRouter
-   - `OPENAI_API_KEY` for OpenAI
-   - `ANTHROPIC_API_KEY` for Claude
-   - `GEMINI_API_KEY` or `GOOGLE_API_KEY` for Gemini
-   - `XAI_API_KEY` for Grok
-   - `GROQ_API_KEY` for Groq
-   - or set `cleanup.api_key` in the generated config file
+Useful flags: `--background` (start hidden in the tray), `--no-tray` (console mode, handy for validating mic/model/cleanup), `--settings` (open the desktop shell).
 
-## Run
+Prefer plain pip? `python -m pip install -e .[dev]` then `python -m flowtype` works too.
 
-Default desktop shell:
+## Build the Windows installer
 
 ```powershell
-python -m flowtype
+uv run python scripts/build.py --installer
 ```
 
-Background launch without opening the full shell immediately:
+This produces a branded PyInstaller `onedir` build in `dist\FlowType\`, validates the bundle, and emits a per-user installer at `dist-installer\FlowType-Beta-<version>.exe`. The installer deliberately does **not** bundle a Whisper model — it's downloaded and cached on first use. See [docs/PACKAGED_SMOKE_CHECKLIST.md](docs/PACKAGED_SMOKE_CHECKLIST.md) for the release smoke test.
+
+## Development
 
 ```powershell
-python -m flowtype --background
+uv run python -m pytest          # test suite
+uv run python -m compileall src  # quick syntax check
 ```
 
-Console mode is still useful while validating microphone, model download, and cleanup settings:
+The codebase is a Python core (`src/flowtype/`: capture → transcribe → cleanup → paste pipeline, config, providers, Windows integration) with a PySide6/QML desktop shell (`src/flowtype/ui/`). See [CONTRIBUTING.md](CONTRIBUTING.md) for the product direction and contribution guidelines.
 
-```powershell
-python -m flowtype --no-tray
-```
+## License
 
-Open only the settings window:
-
-```powershell
-python -m flowtype --settings
-```
-
-`--settings` now opens the same PySide6 desktop shell instead of the legacy Tk window path.
-
-Usage:
-
-1. Focus a text field in any application.
-2. On first run, either complete onboarding with your API key or skip to stay local-only.
-3. Hold `Ctrl+Shift+Space`.
-4. Speak.
-5. Release the hotkey.
-6. FlowType transcribes, cleans, and pastes the text.
-
-For longer dictation, tap `Ctrl+Alt+Space` once to start and the same shortcut again to stop.
-
-## Notes For Daily Use
-
-- First run downloads the Faster-Whisper model into `%APPDATA%\FlowType\models`.
-- Modes and vocabulary edits are saved locally and included in cleanup automatically.
-- Cleanup only runs when a provider is selected and a valid key is configured.
-- The cleanup settings screen intentionally shows a curated model list instead of every model a provider exposes.
-- The History screen is local-only and stored in `%APPDATA%\FlowType\history.json`.
-- If cleanup fails or no API key is configured, FlowType pastes the raw transcript.
-- If paste simulation is blocked by a target app, switch `output.paste_method` to `clipboard_only`.
-- Recording is capped at 5 minutes by default to prevent runaway background recording.
-- The app reloads settings automatically when you save from the desktop shell.
-- The desktop HUD now defaults to a tiny bottom ready line plus a compact in-HUD language switcher.
-- The mini HUD is the default and is designed to stay visually quiet until you actually trigger dictation.
-- Locking transcription to one language is usually faster and more stable than auto-detect for daily use.
-- Closing the main window hides FlowType to the tray by default; quit from the tray menu if you want the process to stop.
-- Launch-at-login writes a per-user Windows Run entry and starts FlowType minimized in the tray.
-
-## Packaging
-
-Generate branding assets, build the Windows app bundle, and validate the result:
-
-```powershell
-python -m pip install -e .[build]
-python scripts/build.py
-```
-
-This produces:
-
-- a branded PyInstaller `onedir` build in `dist\FlowType\`
-- generated branding artifacts in `build\branding\`
-- a version resource in `build\version_info.txt`
-- bundle validation via `scripts\validate_dist.py`
-
-The branding pipeline accepts either `assets\branding\logo-mark.svg` or `assets\branding\logo-mark.png` as the canonical source logo. Runtime, tray, EXE, and installer assets are regenerated from that source on every build.
-
-Build the installer from the same entrypoint:
-
-```powershell
-python scripts/build.py --installer
-```
-
-That produces a per-user installer in `dist-installer\FlowType-Beta-<version>.exe`.
-
-Installer defaults:
-
-- installs to `%LocalAppData%\Programs\FlowType`
-- no admin rights required
-- Start Menu shortcut
-- optional desktop shortcut
-- branded installer icon and wizard art
-
-The installer intentionally does not bundle a Whisper model. The app downloads and caches the configured model on first use.
-
-## Verification
-
-Automated tests:
-
-```powershell
-python -m pytest
-python -m compileall src tests scripts
-```
-
-Manual checks:
-
-1. Dictate a short sentence into Notepad.
-2. Dictate a longer 60-second paragraph.
-3. Break cleanup by using an invalid API key and confirm raw text still gets copied.
-4. Change `output.paste_method` to `clipboard_only` if a target window blocks simulated paste.
-
-Packaged-app checklist:
-
-- see [PACKAGED_SMOKE_CHECKLIST.md](docs/PACKAGED_SMOKE_CHECKLIST.md)
+[MIT](LICENSE) © AntiGravity

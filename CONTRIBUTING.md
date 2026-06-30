@@ -10,38 +10,29 @@ FlowType is a Windows desktop dictation app. Contributions should preserve the p
 
 ## Development Setup
 
-```powershell
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -e .[dev,build]
-```
-
-Run the app:
+FlowType uses [uv](https://docs.astral.sh/uv/) with Python 3.11 or 3.12 on Windows.
 
 ```powershell
-python -m flowtype
+uv sync                      # create the env and install deps
+uv run python -m flowtype    # run the app
 ```
+
+(Plain pip works too: `python -m pip install -e .[dev,build]`.)
 
 Run the test and compile checks before opening a PR:
 
 ```powershell
-python -m pytest
-python -m compileall src tests scripts
+uv run python -m pytest
+uv run python -m compileall src tests scripts
 ```
 
 ## Packaging
 
-Build the branded Windows bundle:
+Build the branded Windows bundle, and optionally the installer:
 
 ```powershell
-python scripts/build.py
-```
-
-Build the installer too:
-
-```powershell
-python scripts/build.py --installer
+uv run python scripts/build.py
+uv run python scripts/build.py --installer
 ```
 
 The packaged smoke checklist is in [docs/PACKAGED_SMOKE_CHECKLIST.md](docs/PACKAGED_SMOKE_CHECKLIST.md).
