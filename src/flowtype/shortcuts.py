@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import logging
+import sys
 import threading
 from dataclasses import dataclass
 from typing import Any, Callable, Literal
@@ -267,6 +268,10 @@ class ShortcutManager:
                 self.logger.error("Error running hotkey release action: %s", exc)
 
     def _load_keyboard_backend(self) -> Any:
+        # The `keyboard` library is Windows/Linux-only and is non-functional on macOS;
+        # force the pynput backend there (start() falls back to pynput on this error).
+        if sys.platform == "darwin":
+            raise RuntimeError("keyboard backend is unsupported on macOS; using pynput")
         try:
             return importlib.import_module("keyboard")
         except ModuleNotFoundError as exc:  # pragma: no cover - dependency issue

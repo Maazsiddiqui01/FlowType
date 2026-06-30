@@ -3,8 +3,9 @@ from __future__ import annotations
 import ctypes
 import os
 import sys
-from dataclasses import dataclass
 from ctypes import wintypes
+
+from flowtype.platform._common import ForegroundWindowSnapshot
 
 
 APP_USER_MODEL_ID = "AntiGravity.FlowType"
@@ -39,14 +40,6 @@ GCLP_HICONSM = -34
 SW_RESTORE = 9
 VK_MENU = 0x12
 KEYEVENTF_KEYUP = 0x0002
-
-
-@dataclass(slots=True, frozen=True)
-class ForegroundWindowSnapshot:
-    hwnd: int
-    title: str = ""
-    process_id: int = 0
-    process_name: str = ""
 
 
 def is_windows() -> bool:

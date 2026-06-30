@@ -1,8 +1,15 @@
 from __future__ import annotations
 
+import sys
+
 from types import SimpleNamespace
 
-from flowtype.windows import _rect_covers_monitor
+import pytest
+
+if sys.platform != "win32":  # the Windows backend module is Windows-only
+    pytest.skip("Windows-only foreground helpers", allow_module_level=True)
+
+from flowtype.platform.windows import _rect_covers_monitor
 
 
 def _rect(left, top, right, bottom):

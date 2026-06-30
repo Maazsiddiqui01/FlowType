@@ -8,7 +8,7 @@ import time
 from dataclasses import dataclass
 
 from flowtype.config import OutputConfig
-from flowtype.windows import ForegroundWindowSnapshot, restore_foreground_window
+from flowtype.platform import ForegroundWindowSnapshot, restore_foreground_window
 
 
 MIN_CTRL_V_DELAY_MS = 180

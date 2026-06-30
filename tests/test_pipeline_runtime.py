@@ -9,7 +9,7 @@ from flowtype.cleanup import CleanupResult
 from flowtype.config import load_config, save_config_data, write_default_config
 from flowtype.pipeline import DictationPipeline, _Job
 from flowtype.output import DeliveryResult
-from flowtype.windows import ForegroundWindowSnapshot
+from flowtype.platform import ForegroundWindowSnapshot
 
 
 class StartFailRecorder:

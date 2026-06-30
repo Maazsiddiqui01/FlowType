@@ -4,7 +4,7 @@ import logging
 
 from flowtype.config import OutputConfig
 from flowtype.output import OutputDelivery
-from flowtype.windows import ForegroundWindowSnapshot
+from flowtype.platform import ForegroundWindowSnapshot
 
 
 class FakePyperclip:

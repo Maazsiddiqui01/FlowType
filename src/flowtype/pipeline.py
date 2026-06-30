@@ -15,7 +15,7 @@ from flowtype.config import AppConfig, load_config_data, save_config_data
 from flowtype.output import OutputDelivery
 from flowtype.transcriber import Transcriber
 from flowtype.shortcuts import ShortcutManager, normalize_hotkey_token, parse_hotkey
-from flowtype.windows import ForegroundWindowSnapshot, snapshot_foreground_window
+from flowtype.platform import ForegroundWindowSnapshot, snapshot_foreground_window
 
 @dataclass(slots=True)
 class PipelineMetrics:

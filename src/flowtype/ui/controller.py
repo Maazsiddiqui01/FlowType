@@ -24,7 +24,7 @@ from flowtype.pipeline import DictationPipeline, DictationResult
 from flowtype.shortcuts import validate_shortcut_for_action
 from flowtype.startup import sync_launch_at_login
 from flowtype.usage import SUGGESTION_THRESHOLD, UsageStore
-from flowtype.windows import is_fullscreen_app_foreground, supports_mica
+from flowtype.platform import is_fullscreen_app_foreground, supports_mica
 
 
 logger = logging.getLogger("flowtype.ui.controller")

@@ -23,7 +23,7 @@ from flowtype.transcriber import Transcriber
 from flowtype.ui.controller import AppController
 from flowtype.ui.single_instance import SingleInstanceManager
 from flowtype.ui.system_tray import UiTrayController
-from flowtype.windows import (
+from flowtype.platform import (
     enable_acrylic_blur,
     set_app_user_model_id,
     set_native_title_bar_colors,
