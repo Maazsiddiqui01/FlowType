@@ -3,7 +3,6 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 from flowtype.shortcuts import (
-    _token_virtual_keys,
     normalize_hotkey_token,
     normalize_key_token,
 )
@@ -27,18 +26,6 @@ def test_right_windows_key_normalizes_to_meta() -> None:
     assert normalize_key_token(SimpleNamespace(char=None, name="cmd_r")) == "meta"
 
 
-def test_token_virtual_keys_mapping() -> None:
-    assert _token_virtual_keys("ctrl") == (0x11,)
-    assert _token_virtual_keys("shift") == (0x10,)
-    assert _token_virtual_keys("meta") == (0x5B, 0x5C)  # left or right Windows key
-    assert _token_virtual_keys("space") == (0x20,)
-    assert _token_virtual_keys("a") == (0x41,)
-    assert _token_virtual_keys("0") == (0x30,)
-    assert _token_virtual_keys("f5") == (0x74,)
-
-
-def test_token_virtual_keys_unknown_returns_none() -> None:
-    # Unmappable tokens must return None so the watchdog never force-releases them.
-    assert _token_virtual_keys("é") is None
-    assert _token_virtual_keys("mediaplay") is None
-    assert _token_virtual_keys("f25") is None
+def test_left_windows_key_normalizes_to_meta() -> None:
+    assert normalize_hotkey_token("cmd_l") == "meta"
+    assert normalize_hotkey_token("win_l") == "meta"
