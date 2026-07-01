@@ -32,6 +32,9 @@ set_native_window_icon = _backend.set_native_window_icon
 snapshot_foreground_window = _backend.snapshot_foreground_window
 restore_foreground_window = _backend.restore_foreground_window
 is_fullscreen_app_foreground = _backend.is_fullscreen_app_foreground
+configure_overlay_panel = _backend.configure_overlay_panel
+prime_permissions = _backend.prime_permissions
+accessibility_trusted = _backend.accessibility_trusted
 
 __all__ = [
     "ForegroundWindowSnapshot",
@@ -45,4 +48,7 @@ __all__ = [
     "snapshot_foreground_window",
     "restore_foreground_window",
     "is_fullscreen_app_foreground",
+    "configure_overlay_panel",
+    "prime_permissions",
+    "accessibility_trusted",
 ]

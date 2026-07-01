@@ -49,3 +49,15 @@ def restore_foreground_window(snapshot: ForegroundWindowSnapshot | None) -> bool
 
 def is_fullscreen_app_foreground() -> bool:
     return False
+
+
+def configure_overlay_panel(window) -> bool:
+    return False
+
+
+def prime_permissions() -> None:
+    return None
+
+
+def accessibility_trusted() -> bool:
+    return True  # no OS-level gate on this platform

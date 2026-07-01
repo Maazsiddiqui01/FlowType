@@ -24,7 +24,9 @@ from flowtype.ui.controller import AppController
 from flowtype.ui.single_instance import SingleInstanceManager
 from flowtype.ui.system_tray import UiTrayController
 from flowtype.platform import (
+    configure_overlay_panel,
     enable_acrylic_blur,
+    prime_permissions,
     set_app_user_model_id,
     set_native_title_bar_colors,
     set_native_window_icon,
@@ -88,6 +90,10 @@ def run_ui_mode(
     app.setApplicationName(APP_DISPLAY_NAME)
     app.setOrganizationName(APP_PUBLISHER)
     set_app_user_model_id()
+    # macOS: surface the Accessibility permission prompt early (needed to paste + restore
+    # focus). No-op on Windows. Input Monitoring registers when the hotkey listener starts;
+    # Microphone prompts on first capture.
+    prime_permissions()
 
     font_family = "Segoe UI Variable Text"
     font_path = _font_asset_path()
@@ -332,6 +338,9 @@ def run_ui_mode(
                 enable_acrylic_blur(hud_hwnd)
                 if icon_path.exists():
                     set_native_window_icon(hud_hwnd, str(icon_path))
+            # macOS: make the overlays non-activating panels so they float over other apps
+            # without stealing focus (no-op on Windows, where Qt flags handle it).
+            configure_overlay_panel(hud_window)
             try:
                 result_hwnd = int(result_window.winId())
             except Exception:
@@ -340,6 +349,7 @@ def run_ui_mode(
                 enable_acrylic_blur(result_hwnd)
                 if icon_path.exists():
                     set_native_window_icon(result_hwnd, str(icon_path))
+            configure_overlay_panel(result_window)
 
         apply_window_branding()
         reposition_hud()

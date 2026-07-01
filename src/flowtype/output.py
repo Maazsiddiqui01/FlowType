@@ -137,13 +137,15 @@ class OutputDelivery:
 
     def _paste_via_keyboard(self) -> bool:
         controller, key = self._load_keyboard()
+        # macOS pastes with Cmd+V; Windows/Linux with Ctrl+V.
+        paste_modifier = key.cmd if sys.platform == "darwin" else key.ctrl
         try:
             self._release_hotkey_modifiers(controller, key)
             time.sleep(0.05)
-            controller.press(key.ctrl)
+            controller.press(paste_modifier)
             controller.press("v")
             controller.release("v")
-            controller.release(key.ctrl)
+            controller.release(paste_modifier)
             return True
         except Exception as exc:  # pragma: no cover - depends on active desktop
             self.logger.warning(

@@ -1,0 +1,63 @@
+name: macOS build
+
+# Builds a macOS .app/.dmg in the cloud (neither maintainer has a Mac). The artifact is
+# ad-hoc signed (dev/test only) — it runs, but a tester must allow it past Gatekeeper via
+# System Settings > Privacy & Security > "Open Anyway", and grant Microphone / Input
+# Monitoring / Accessibility on first use. See MACOS_PORT_PLAN.md.
+
+on:
+  push:
+    branches: [main, "feat/**"]
+    paths:
+      - "src/**"
+      - "flowtype-mac.spec"
+      - "packaging/**"
+      - "pyproject.toml"
+      - ".github/workflows/macos-build.yml"
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: macos-14  # Apple Silicon (arm64)
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[build,macos]"
+
+      - name: Import smoke test (catches port/import errors early)
+        run: |
+          python -c "import flowtype; import flowtype.platform as p; print('backend:', p._backend.__name__)"
+          python -c "from flowtype.platform import darwin; print('darwin backend imports OK')"
+          python -c "import flowtype.output, flowtype.shortcuts, flowtype.config, flowtype.ui.controller; print('core modules import OK')"
+
+      - name: Build FlowType.app
+        run: |
+          pyinstaller --noconfirm --clean flowtype-mac.spec
+          test -d "dist/FlowType.app" && echo "app bundle created"
+
+      - name: Ad-hoc code sign
+        run: |
+          codesign --force --deep --sign - "dist/FlowType.app" || true
+          codesign --verify --deep --verbose=2 "dist/FlowType.app" || true
+
+      - name: Create DMG
+        run: |
+          hdiutil create -volname "FlowType" -srcfolder "dist/FlowType.app" \
+            -ov -format UDZO "FlowType-0.1.13-macos-arm64.dmg"
+
+      - name: Upload DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FlowType-macos-arm64
+          path: FlowType-0.1.13-macos-arm64.dmg
+          if-no-files-found: error
+          retention-days: 30

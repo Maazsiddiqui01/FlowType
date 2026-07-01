@@ -445,6 +445,20 @@ def is_fullscreen_app_foreground() -> bool:
         return False
 
 
+# The HUD's no-focus-steal behavior comes from its Qt window flags on Windows, so these
+# are no-ops here (they exist for macOS, which needs a native NSPanel reconfig + TCC).
+def configure_overlay_panel(window) -> bool:
+    return False
+
+
+def prime_permissions() -> None:
+    return None
+
+
+def accessibility_trusted() -> bool:
+    return True
+
+
 def _send_alt_keypress(user32) -> None:
     try:
         user32.keybd_event(VK_MENU, 0, 0, 0)

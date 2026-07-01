@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import os
 import shutil
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -18,9 +19,13 @@ from flowtype.shortcuts import validate_shortcut_for_action
 
 APP_NAME = "FlowType"
 
+# macOS uses hold Right-Option (a single, conflict-free push-to-talk key that needs no
+# suppression); Windows/Linux use Ctrl+Shift+Space. See MACOS_PORT_PLAN.md.
+_MACOS = sys.platform == "darwin"
+
 RECOMMENDED_SHORTCUTS: dict[str, str] = {
-    "hold_to_talk": "ctrl+shift+space",
-    "toggle_recording": "ctrl+alt+space",
+    "hold_to_talk": "ralt" if _MACOS else "ctrl+shift+space",
+    "toggle_recording": "" if _MACOS else "ctrl+alt+space",
     "cancel_recording": "escape",
     "repaste_last": "",
 }
@@ -316,7 +321,17 @@ def default_app_dir() -> Path:
 
 def write_default_config(destination: Path) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
-    destination.write_text(DEFAULT_CONFIG_TEXT, encoding="utf-8")
+    text = DEFAULT_CONFIG_TEXT
+    if _MACOS:
+        # Seed macOS-appropriate defaults (Windows text is left byte-for-byte identical).
+        text = (
+            text.replace('hotkey = "ctrl+shift+space"', 'hotkey = "ralt"')
+            .replace('hold_to_talk = "ctrl+shift+space"', 'hold_to_talk = "ralt"')
+            .replace('toggle_recording = "ctrl+alt+space"', 'toggle_recording = ""')
+            .replace("launch_at_login = true", "launch_at_login = false")
+            .replace("start_minimized = true", "start_minimized = false")
+        )
+    destination.write_text(text, encoding="utf-8")
 
 
 def seed_runtime_config(config_path: Path) -> None:

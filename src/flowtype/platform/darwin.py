@@ -99,3 +99,68 @@ def restore_foreground_window(snapshot: ForegroundWindowSnapshot | None) -> bool
 def is_fullscreen_app_foreground() -> bool:
     # v1: let the HUD ride over fullscreen apps; a proper CGWindow check is a later refinement.
     return False
+
+
+# ── HUD overlay: make the QML window a non-activating panel so it floats over other apps
+#    WITHOUT stealing keyboard focus (otherwise every paste target would be lost). ──
+def configure_overlay_panel(window) -> bool:
+    """Reconfigure a Qt overlay window's underlying NSWindow as a non-activating,
+    always-visible status panel. Called after the window is shown (and on screen change).
+    Best-effort: any failure leaves the Qt flags in place and returns False."""
+    try:
+        import ctypes
+
+        import objc
+        from AppKit import (
+            NSFloatingWindowLevel,
+            NSWindowCollectionBehaviorCanJoinAllSpaces,
+            NSWindowCollectionBehaviorFullScreenAuxiliary,
+            NSWindowCollectionBehaviorStationary,
+            NSWindowStyleMaskNonactivatingPanel,
+        )
+
+        handle = int(window.winId())
+        if not handle:
+            return False
+        view = objc.objc_object(c_void_p=ctypes.c_void_p(handle))
+        ns_window = view.window()
+        if ns_window is None:
+            return False
+
+        ns_window.setStyleMask_(ns_window.styleMask() | NSWindowStyleMaskNonactivatingPanel)
+        ns_window.setLevel_(NSFloatingWindowLevel)
+        ns_window.setCollectionBehavior_(
+            NSWindowCollectionBehaviorCanJoinAllSpaces
+            | NSWindowCollectionBehaviorStationary
+            | NSWindowCollectionBehaviorFullScreenAuxiliary
+        )
+        ns_window.setHidesOnDeactivate_(False)
+        return True
+    except Exception as exc:
+        logger.debug("configure_overlay_panel failed: %s", exc)
+        return False
+
+
+def prime_permissions() -> None:
+    """Proactively surface the Accessibility permission prompt at startup so the user is
+    guided to grant it (synthetic paste + focus restore need it). Input Monitoring is
+    registered when the pynput listener starts; Microphone prompts on first capture.
+    Best-effort and silent on failure."""
+    try:
+        from ApplicationServices import AXIsProcessTrustedWithOptions
+        from CoreFoundation import kCFBooleanTrue
+
+        # kAXTrustedCheckOptionPrompt is a CFString constant; the string value is stable.
+        AXIsProcessTrustedWithOptions({"AXTrustedCheckOptionPrompt": kCFBooleanTrue})
+    except Exception as exc:
+        logger.debug("prime_permissions failed: %s", exc)
+
+
+def accessibility_trusted() -> bool:
+    """True if the app has been granted macOS Accessibility (needed to paste + restore focus)."""
+    try:
+        from ApplicationServices import AXIsProcessTrusted
+
+        return bool(AXIsProcessTrusted())
+    except Exception:
+        return False

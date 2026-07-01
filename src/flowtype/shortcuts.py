@@ -15,7 +15,13 @@ HOTKEY_ALIASES = {
     "shift_l": "shift",
     "shift_r": "shift",
     "alt_l": "alt",
-    "alt_r": "alt",
+    # Right-Option gets its own token ("ralt") so it can be a dedicated macOS push-to-talk
+    # key distinct from left-Option (which composes accented characters). On Windows the
+    # keyboard backend strips the left/right prefix before this alias applies, so Windows
+    # is unaffected.
+    "alt_r": "ralt",
+    "right option": "ralt",
+    "roption": "ralt",
     "cmd": "meta",
     "cmd_l": "meta",
     "cmd_r": "meta",

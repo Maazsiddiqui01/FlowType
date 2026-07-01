@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import logging
 import os
+import subprocess
+import sys
 import threading
 from dataclasses import replace
 from datetime import datetime
@@ -1166,7 +1168,12 @@ class AppController(QObject):
 
     def _open_path(self, path: Path) -> None:
         try:
-            os.startfile(str(path))  # type: ignore[attr-defined]
+            if sys.platform == "win32":
+                os.startfile(str(path))  # type: ignore[attr-defined]
+            elif sys.platform == "darwin":
+                subprocess.run(["open", str(path)], check=False)
+            else:
+                subprocess.run(["xdg-open", str(path)], check=False)
         except Exception as exc:
             self._logger.warning("Failed to open %s: %s", path, exc)
             self._set_notification(f"Could not open {path}", "error")
