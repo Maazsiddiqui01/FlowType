@@ -216,6 +216,24 @@ class Transcriber:
             self._used_compute_type = ""
             self._warmup_inference_validated = False
 
+    def _hotwords(self) -> str | None:
+        """Personal-dictionary entries as Whisper hotwords.
+
+        Biases decoding toward the user's names and terms ("Maaz", not "Mas").
+        Correction rules written as "wrong -> right" contribute their right-hand
+        side -- that is the spelling we want the model to prefer. Kept short:
+        hotwords share the prompt window with the audio context.
+        """
+        words: list[str] = []
+        for entry in self.settings.vocabulary_entries:
+            term = entry.split("->", 1)[1].strip() if "->" in entry else entry.strip()
+            if term:
+                words.append(term)
+        if not words:
+            return None
+        joined = ", ".join(words)
+        return joined[:1000]
+
     def _run_model_transcribe(
         self,
         model,
@@ -230,6 +248,7 @@ class Transcriber:
             beam_size=self.settings.beam_size,
             vad_filter=self.settings.vad_filter if vad_filter_override is None else vad_filter_override,
             condition_on_previous_text=False,
+            hotwords=self._hotwords(),
         )
 
     def _validate_backend_inference(self) -> None:

@@ -75,11 +75,12 @@ timeout_seconds = 8
 max_retries = 1
 retry_backoff_seconds = 1.0
 min_word_count = 3
-prompt = \"\"\"You clean dictated text.
-Remove filler words such as um, uh, like, and you know only when they are verbal fillers.
-Fix punctuation, capitalization, spacing, and grammar.
-Do not change meaning, tone, intent, or factual content.
-Do not summarize or add new information.
+prompt = \"\"\"You polish dictated speech into clean, natural written text.
+Remove verbal fillers (um, uh, like, you know, I mean, sort of) when they carry no meaning.
+Remove false starts, stutters, and immediate self-corrections - keep only the wording the speaker settled on.
+Fix punctuation, capitalization, spacing, and grammar so it reads as seamless writing.
+Break rambling run-on sentences into clear ones; add paragraph breaks where the topic shifts.
+Do not change meaning, tone, intent, or factual content. Do not summarize. Do not add anything new.
 Return only the cleaned text.\"\"\"
 
 [output]
@@ -105,6 +106,30 @@ prompt_completed = false
 max_items = 40
 persist = true
 """
+
+# Prior default cleanup prompts, verbatim. A persisted prompt matching one of these
+# is a default the user never touched -- upgrade it to the current default on load.
+# Custom prompts never match and are always kept as-is.
+LEGACY_CLEANUP_PROMPTS: frozenset[str] = frozenset(
+    {
+        (
+            "You clean dictated text.\n"
+            "Remove filler words such as um, uh, like, and you know only when they are verbal fillers.\n"
+            "Fix punctuation, capitalization, spacing, and grammar.\n"
+            "Do not change meaning, tone, intent, or factual content.\n"
+            "Do not summarize or add new information.\n"
+            "Return only the cleaned text."
+        ),
+    }
+)
+
+
+def _effective_cleanup_prompt(raw: str) -> str:
+    normalized = raw.replace("\r\n", "\n").strip()
+    if normalized in LEGACY_CLEANUP_PROMPTS:
+        return str(DEFAULT_CONFIG["cleanup"]["prompt"]).strip()
+    return normalized
+
 
 DEFAULT_CONFIG: dict[str, Any] = {
     "general": {
@@ -153,11 +178,12 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "retry_backoff_seconds": 1.0,
         "min_word_count": 3,
         "prompt": (
-            "You clean dictated text.\n"
-            "Remove filler words such as um, uh, like, and you know only when they are verbal fillers.\n"
-            "Fix punctuation, capitalization, spacing, and grammar.\n"
-            "Do not change meaning, tone, intent, or factual content.\n"
-            "Do not summarize or add new information.\n"
+            "You polish dictated speech into clean, natural written text.\n"
+            "Remove verbal fillers (um, uh, like, you know, I mean, sort of) when they carry no meaning.\n"
+            "Remove false starts, stutters, and immediate self-corrections - keep only the wording the speaker settled on.\n"
+            "Fix punctuation, capitalization, spacing, and grammar so it reads as seamless writing.\n"
+            "Break rambling run-on sentences into clear ones; add paragraph breaks where the topic shifts.\n"
+            "Do not change meaning, tone, intent, or factual content. Do not summarize. Do not add anything new.\n"
             "Return only the cleaned text."
         ),
     },
@@ -215,6 +241,9 @@ class TranscriptionConfig:
     beam_size: int
     vad_filter: bool
     model_cache_dir: Path
+    # Personal dictionary entries (also fed to cleanup). The transcriber turns these
+    # into Whisper hotwords so names like "Maaz" decode correctly instead of "Mas".
+    vocabulary_entries: tuple[str, ...] = ()
 
 
 @dataclass(slots=True, frozen=True)
@@ -453,6 +482,7 @@ def load_config(explicit_path: str | Path | None = None) -> AppConfig:
         beam_size=int(merged["transcription"]["beam_size"]),
         vad_filter=bool(merged["transcription"]["vad_filter"]),
         model_cache_dir=app_dir / "models",
+        vocabulary_entries=vocabulary.entries,
     )
     provider = str(merged["cleanup"]["provider"]).strip().lower()
     cleanup = CleanupConfig(
@@ -460,7 +490,7 @@ def load_config(explicit_path: str | Path | None = None) -> AppConfig:
         api_key=resolve_api_key(provider, str(merged["cleanup"]["api_key"]).strip()),
         base_url=str(merged["cleanup"].get("base_url", "")).strip(),
         model=str(merged["cleanup"]["model"]).strip(),
-        prompt=str(merged["cleanup"]["prompt"]).strip(),
+        prompt=_effective_cleanup_prompt(str(merged["cleanup"]["prompt"])),
         temperature=float(merged["cleanup"]["temperature"]),
         max_tokens=int(merged["cleanup"]["max_tokens"]),
         timeout_seconds=int(merged["cleanup"]["timeout_seconds"]),

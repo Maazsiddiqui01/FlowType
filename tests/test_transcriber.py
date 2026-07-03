@@ -98,3 +98,62 @@ def test_transcriber_skips_cuda_when_runtime_probe_fails(tmp_path: Path, monkeyp
     assert transcriber.consume_persist_cpu_requested() is True
     notice = transcriber.consume_runtime_notice().lower()
     assert "cpu mode" in notice or "not available" in notice
+
+
+class CapturingWhisperModel:
+    """Records the kwargs transcribe() was called with."""
+
+    last_kwargs: dict = {}
+
+    def __init__(self, *_args, **_kwargs) -> None:
+        pass
+
+    def transcribe(self, _audio, **kwargs):
+        CapturingWhisperModel.last_kwargs = kwargs
+        return [SimpleNamespace(text="Hi Maaz.")], SimpleNamespace(language="en")
+
+
+class CapturingWhisperModule:
+    WhisperModel = CapturingWhisperModel
+
+
+def test_transcriber_passes_vocabulary_as_hotwords(tmp_path: Path, monkeypatch) -> None:
+    config = TranscriptionConfig(
+        model_size="base.en",
+        device="cpu",
+        compute_type="int8",
+        language="en",
+        beam_size=1,
+        vad_filter=True,
+        model_cache_dir=tmp_path / "models",
+        vocabulary_entries=("Maaz", "FlowType", "Mas -> Maaz", "  ", "flow type -> FlowType"),
+    )
+    transcriber = Transcriber(config)
+    monkeypatch.setattr(transcriber, "_load_whisper_module", lambda: CapturingWhisperModule())
+
+    audio = CapturedAudio(
+        audio_array=np.zeros(16000, dtype=np.float32),
+        sample_rate=16000,
+        duration_seconds=1.0,
+        was_truncated=False,
+        frame_count=16000,
+    )
+    result = transcriber.transcribe(audio)
+
+    assert result.text == "Hi Maaz."
+    hotwords = CapturingWhisperModel.last_kwargs.get("hotwords")
+    # Plain entries pass through; "wrong -> right" rules contribute their right side.
+    assert hotwords == "Maaz, FlowType, Maaz, FlowType"
+
+
+def test_transcriber_hotwords_empty_without_vocabulary(tmp_path: Path) -> None:
+    config = TranscriptionConfig(
+        model_size="base.en",
+        device="cpu",
+        compute_type="int8",
+        language="en",
+        beam_size=1,
+        vad_filter=True,
+        model_cache_dir=tmp_path / "models",
+    )
+    assert Transcriber(config)._hotwords() is None

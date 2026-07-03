@@ -307,3 +307,44 @@ def test_invalid_base_url_scheme_is_rejected(tmp_path: Path) -> None:
 # paid model on load. That lost a deliberate user choice and risked unexpected billing for
 # a model the catalog still offers, so the migration was removed. Preservation is covered by
 # test_explicit_openrouter_free_model_is_preserved above.
+
+
+def test_legacy_default_cleanup_prompt_upgrades(tmp_path: Path) -> None:
+    """A persisted prompt that matches an old default gets the new default on load."""
+    config_path = tmp_path / "config.toml"
+    write_default_config(config_path)
+    legacy = (
+        "You clean dictated text.\n"
+        "Remove filler words such as um, uh, like, and you know only when they are verbal fillers.\n"
+        "Fix punctuation, capitalization, spacing, and grammar.\n"
+        "Do not change meaning, tone, intent, or factual content.\n"
+        "Do not summarize or add new information.\n"
+        "Return only the cleaned text."
+    )
+    save_config_data(config_path, {"cleanup": {"prompt": legacy}})
+
+    config = load_config(config_path)
+
+    assert "polish dictated speech" in config.cleanup.prompt
+    assert "false starts" in config.cleanup.prompt
+
+
+def test_custom_cleanup_prompt_is_preserved(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.toml"
+    write_default_config(config_path)
+    save_config_data(config_path, {"cleanup": {"prompt": "Translate everything to pirate speak."}})
+
+    config = load_config(config_path)
+
+    assert config.cleanup.prompt == "Translate everything to pirate speak."
+
+
+def test_vocabulary_reaches_transcription_config(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.toml"
+    write_default_config(config_path)
+    save_config_data(config_path, {"vocabulary": {"entries": "Maaz\nMas -> Maaz\n\nFlowType"}})
+
+    config = load_config(config_path)
+
+    assert config.transcription.vocabulary_entries == ("Maaz", "Mas -> Maaz", "FlowType")
+    assert config.cleanup.vocabulary_entries == ("Maaz", "Mas -> Maaz", "FlowType")

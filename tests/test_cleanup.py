@@ -119,7 +119,9 @@ def test_build_payload_adds_hard_constraints() -> None:
     payload = cleaner._build_payload("repeat repeat repeat")
 
     system_message = payload["messages"][0]["content"]
-    assert "Do not summarize, shorten, or deduplicate repeated phrases or sentences." in system_message
+    assert "Do not summarize or condense meaningful content" in system_message
+    assert "deliberately repeats something for emphasis, keep the repetition" in system_message
+    assert "Remove speech disfluencies" in system_message
 
 
 def test_cleanup_supports_gemini_endpoint_and_headers() -> None:
@@ -229,3 +231,22 @@ def test_cleanup_ollama_base_url_override() -> None:
         logger=logging.getLogger("test.cleanup"),
     )
     assert cleaner._endpoint_for_provider() == "http://workstation:11434/v1/chat/completions"
+
+
+def test_compose_prompt_includes_personal_dictionary_rules() -> None:
+    from dataclasses import replace
+
+    settings = replace(
+        build_settings(),
+        vocabulary_entries=("Maaz", "Mas -> Maaz"),
+    )
+    cleaner = TextCleaner(settings)
+    prompt = cleaner._compose_prompt()
+
+    assert "Personal dictionary" in prompt
+    assert "- Maaz" in prompt
+    assert "- Mas -> Maaz" in prompt
+    assert "correction rule" in prompt
+    # Disfluency removal is instructed; content-preservation stays a hard rule.
+    assert "false starts" in prompt
+    assert "every point the speaker made must survive" in prompt

@@ -46,11 +46,11 @@ Item {
                     spacing: theme.space16
 
                     SectionHeader {
-                        title: "Protected words and phrases"
-                        subtitle: "Enter one item per line. Keep entries short and exact so cleanup stays precise."
+                        title: "Your words, names, and corrections"
+                        subtitle: "One item per line. Plain entries teach FlowType your spelling; 'wrong -> right' entries fix words it keeps mishearing."
 
                         trailing: FlowButton {
-                            label: "Save Vocabulary"
+                            label: "Save Dictionary"
                             variant: "primary"
                             onClicked: AppController.saveVocabulary(root.textDraft)
                         }
@@ -73,7 +73,7 @@ Item {
                             font.family: theme.fontMono
                             font.pixelSize: theme.sizeBody
                             background: null
-                            placeholderText: "FlowType\nGPT-5.4 mini\nRiyadh\njohn.doe@example.com"
+                            placeholderText: "Maaz\nFlowType\njohn.doe@example.com\nMas -> Maaz\nflow type -> FlowType"
                             placeholderTextColor: theme.textTertiary
                             onTextChanged: root.textDraft = text
                         }
@@ -92,7 +92,7 @@ Item {
 
                     SectionHeader {
                         title: "Preview"
-                        subtitle: "A quick view of the exact entries FlowType will add to cleanup guidance."
+                        subtitle: "These entries steer both transcription (as Whisper hotwords) and AI cleanup."
                     }
 
                     Loader {
@@ -152,7 +152,7 @@ Item {
 
                     Label {
                         Layout.fillWidth: true
-                        text: "Best results come from short, exact entries. Use one line per item instead of writing long guidance paragraphs here."
+                        text: "Best results come from short, exact entries — one line per item. Names and brands work as plain entries; use 'wrong -> right' only for words FlowType repeatedly gets wrong."
                         color: theme.textSecondary
                         font.family: theme.fontText
                         font.pixelSize: theme.sizeHelper

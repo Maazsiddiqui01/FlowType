@@ -203,12 +203,13 @@ class TextCleaner:
         sections = [self.settings.prompt.strip()]
         sections.append(
             "Hard constraints:\n"
-            "- Preserve meaning, tone, and factual content exactly.\n"
-            "- Do not summarize, shorten, or deduplicate repeated phrases or sentences.\n"
-            "- If the speaker intentionally repeats a sentence, keep the repetition.\n"
-            "- You may correct obvious speech-recognition mistakes or homophone errors only when the intended wording is clear from surrounding context.\n"
-            "- If a word is uncertain and context does not make the intended wording clear, keep the raw wording instead of guessing.\n"
-            "- Only remove filler words when they are verbal fillers rather than meaningful content."
+            "- Preserve meaning, tone, and factual content exactly. Never add information that was not spoken.\n"
+            "- Do not summarize or condense meaningful content; every point the speaker made must survive.\n"
+            "- Remove speech disfluencies: verbal fillers, false starts, stutters, and immediate self-corrections (keep the wording the speaker settled on).\n"
+            "- If the speaker deliberately repeats something for emphasis, keep the repetition.\n"
+            "- Correct obvious speech-recognition or homophone errors only when the intended wording is clear from surrounding context; if uncertain, keep the raw wording instead of guessing.\n"
+            "- Keep names, numbers, URLs, emails, file paths, commands, and technical terms exactly as spoken unless the personal dictionary below says otherwise.\n"
+            "- Return only the final text, with no preamble, labels, or commentary."
         )
 
         # A runtime override (per-app Mode resolved for the foreground window) wins over
@@ -220,8 +221,10 @@ class TextCleaner:
         if self.settings.vocabulary_entries:
             entries = "\n".join(f"- {entry}" for entry in self.settings.vocabulary_entries)
             sections.append(
-                "Vocabulary and phrase guidance:\n"
-                "Preserve these words, names, brands, or preferred replacements when they appear intentionally.\n"
+                "Personal dictionary:\n"
+                "These are the user's names, brands, and terms. Spell them exactly as written here whenever they appear.\n"
+                "An entry written as 'wrong -> right' is a correction rule: when the transcript contains the left side "
+                "(or something that sounds like it), replace it with the right side.\n"
                 f"{entries}"
             )
 
