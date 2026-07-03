@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Shapes
 
 /*
  * Selectable option card, logo-forward. Selection reads as an accent-tinted
@@ -82,21 +83,18 @@ Rectangle {
         color: root.accent
         visible: root.selected
 
-        // Vector check mark
-        Canvas {
+        // Vector check mark (Shape, consistent with NavIcon/ProviderBadge rendering)
+        Shape {
             anchors.fill: parent
-            onPaint: {
-                var ctx = getContext("2d")
-                ctx.reset()
-                ctx.strokeStyle = "#FFFFFF"
-                ctx.lineWidth = 2
-                ctx.lineCap = "round"
-                ctx.lineJoin = "round"
-                ctx.beginPath()
-                ctx.moveTo(width * 0.28, height * 0.52)
-                ctx.lineTo(width * 0.44, height * 0.68)
-                ctx.lineTo(width * 0.72, height * 0.34)
-                ctx.stroke()
+            antialiasing: true
+
+            ShapePath {
+                strokeColor: "#FFFFFF"
+                strokeWidth: 2
+                capStyle: ShapePath.RoundCap
+                joinStyle: ShapePath.RoundJoin
+                fillColor: "transparent"
+                PathSvg { path: "M5 9.4 7.9 12.2 13 6.3" }
             }
         }
     }
