@@ -112,11 +112,11 @@ Item {
                 // are being delivered raw (and what to do about it).
                 Rectangle {
                     Layout.fillWidth: true
-                    implicitHeight: statusRow.implicitHeight + theme.space12 * 2
-                    radius: theme.radiusControl
-                    color: theme.tint(root.cleanupStatusColor, theme.darkMode ? 0.13 : 0.10)
+                    implicitHeight: statusRow.implicitHeight + theme.space8 * 2
+                    radius: theme.radiusPill
+                    color: theme.tint(root.cleanupStatusColor, theme.darkMode ? 0.10 : 0.08)
                     border.width: 1
-                    border.color: theme.tint(root.cleanupStatusColor, theme.darkMode ? 0.38 : 0.30)
+                    border.color: theme.tint(root.cleanupStatusColor, theme.darkMode ? 0.30 : 0.24)
 
                     RowLayout {
                         id: statusRow
@@ -125,14 +125,22 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.leftMargin: theme.space16
                         anchors.rightMargin: theme.space16
-                        spacing: theme.space12
+                        spacing: theme.space8 + 2
 
                         Rectangle {
                             Layout.alignment: Qt.AlignVCenter
-                            width: 9
-                            height: 9
-                            radius: 4.5
+                            width: 8
+                            height: 8
+                            radius: 4
                             color: root.cleanupStatusColor
+
+                            // Gentle breathing while cleanup is active
+                            SequentialAnimation on opacity {
+                                running: root.cleanupActive
+                                loops: Animation.Infinite
+                                NumberAnimation { to: 0.45; duration: 1100; easing.type: Easing.InOutSine }
+                                NumberAnimation { to: 1.0; duration: 1100; easing.type: Easing.InOutSine }
+                            }
                         }
 
                         Label {
@@ -141,6 +149,7 @@ Item {
                             color: theme.textPrimary
                             font.family: theme.fontText
                             font.pixelSize: theme.sizeHelper
+                            font.weight: 550
                             wrapMode: Text.WordWrap
                         }
                     }
@@ -255,18 +264,37 @@ Item {
                         }
                     }
 
-                    Label {
+                    RowLayout {
                         visible: root.providerRequiresKey
-                        text: "Get your " + root.selectedProviderLabel() + " key"
-                        color: theme.primary
-                        font.family: theme.fontUi
-                        font.pixelSize: theme.sizeHelper
-                        font.weight: 650
+                        spacing: theme.space16
 
-                        MouseArea {
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: AppController.openProviderKeyPage(root.providerDraft)
+                        Label {
+                            text: "Get your " + root.selectedProviderLabel() + " key →"
+                            color: theme.primary
+                            font.family: theme.fontUi
+                            font.pixelSize: theme.sizeHelper
+                            font.weight: 650
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: AppController.openProviderKeyPage(root.providerDraft)
+                            }
+                        }
+
+                        Label {
+                            visible: AppController.hasHelpPage(root.providerDraft)
+                            text: "Step-by-step guide"
+                            color: theme.textSecondary
+                            font.family: theme.fontUi
+                            font.pixelSize: theme.sizeHelper
+                            font.weight: 650
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: AppController.openHelpPage(root.providerDraft)
+                            }
                         }
                     }
                 }
@@ -350,8 +378,8 @@ Item {
                             text: root.promptDraft
                             color: theme.textPrimary
                             wrapMode: TextEdit.Wrap
-                            font.family: theme.fontText
-                            font.pixelSize: theme.sizeBody
+                            font.family: theme.fontMono
+                            font.pixelSize: theme.sizeHelper
                             background: null
                             onTextChanged: root.promptDraft = text
                         }

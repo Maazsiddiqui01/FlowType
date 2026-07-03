@@ -34,7 +34,7 @@ QtObject {
     readonly property int controlHeight: 42
     readonly property int buttonHeight: 42
     readonly property int chipHeight: 26
-    readonly property int railItemHeight: 44
+    readonly property int railItemHeight: 40
     readonly property int railWidth: 212
 
     // ── radii ────────────────────────────────────────────────────────────────

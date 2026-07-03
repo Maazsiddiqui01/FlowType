@@ -2,6 +2,11 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
+/*
+ * Selectable option card, logo-forward. Selection reads as an accent-tinted
+ * border + a small check chip in the top-right corner (no radio dot competing
+ * with the content). Hover brightens the border and lifts the fill slightly.
+ */
 Rectangle {
     id: root
 
@@ -14,20 +19,40 @@ Rectangle {
     property color accent: theme.primary
     property bool selected: false
     property bool compact: false
-    property bool hideChevron: false
+    property bool hideChevron: false // kept for API compatibility; check chip replaces the chevron
 
     signal clicked()
 
-    implicitHeight: root.compact ? 64 : 88
+    implicitHeight: root.compact ? 60 : 84
     radius: theme.radiusCard
     antialiasing: true
     activeFocusOnTab: true
     color: root.selected
-        ? theme.tint(root.accent, theme.darkMode ? 0.14 : 0.08)
+        ? theme.tint(root.accent, theme.darkMode ? 0.12 : 0.07)
         : (choiceArea.containsMouse ? theme.surfaceHover : theme.surface)
     border.width: 1
-    border.color: root.selected ? theme.tint(root.accent, theme.darkMode ? 0.55 : 0.35) : theme.border
+    border.color: root.selected
+        ? theme.tint(root.accent, theme.darkMode ? 0.60 : 0.40)
+        : (choiceArea.containsMouse ? theme.borderSelected : theme.border)
 
+    Behavior on color { ColorAnimation { duration: 120 } }
+    Behavior on border.color { ColorAnimation { duration: 120 } }
+
+    // Soft inner top sheen so cards don't read flat
+    Rectangle {
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.margins: 1
+        height: parent.height * 0.5
+        radius: parent.radius - 1
+        gradient: Gradient {
+            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, theme.darkMode ? 0.03 : 0.25) }
+            GradientStop { position: 1.0; color: "transparent" }
+        }
+    }
+
+    // Focus ring (keyboard accessibility)
     Rectangle {
         anchors.fill: parent
         anchors.margins: -theme.focusRingOffset
@@ -45,18 +70,51 @@ Rectangle {
         }
     }
 
+    // Check chip, top-right — the single selection signal
+    Rectangle {
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.topMargin: 10
+        anchors.rightMargin: 10
+        width: 18
+        height: 18
+        radius: 9
+        color: root.accent
+        visible: root.selected
+
+        // Vector check mark
+        Canvas {
+            anchors.fill: parent
+            onPaint: {
+                var ctx = getContext("2d")
+                ctx.reset()
+                ctx.strokeStyle = "#FFFFFF"
+                ctx.lineWidth = 2
+                ctx.lineCap = "round"
+                ctx.lineJoin = "round"
+                ctx.beginPath()
+                ctx.moveTo(width * 0.28, height * 0.52)
+                ctx.lineTo(width * 0.44, height * 0.68)
+                ctx.lineTo(width * 0.72, height * 0.34)
+                ctx.stroke()
+            }
+        }
+    }
+
     RowLayout {
         anchors.fill: parent
-        anchors.margins: theme.space16
+        anchors.leftMargin: theme.space16
+        anchors.rightMargin: theme.space16
         spacing: theme.space12
 
         ProviderBadge {
             providerId: root.providerId
             badgeText: root.badge
-            accentColor: root.selected ? root.accent : theme.textSecondary
+            accentColor: root.accent
             visible: root.badge.length > 0 || root.providerId.length > 0
-            width: root.compact ? 34 : 38
+            width: root.compact ? 34 : 40
             height: width
+            radius: root.compact ? 10 : 12
         }
 
         ColumnLayout {
@@ -65,6 +123,7 @@ Rectangle {
 
             Label {
                 Layout.fillWidth: true
+                Layout.rightMargin: root.selected ? 18 : 0
                 text: root.title
                 color: theme.textPrimary
                 font.family: theme.fontText
@@ -85,26 +144,6 @@ Rectangle {
                 elide: Text.ElideRight
             }
         }
-
-        Rectangle {
-            visible: !root.hideChevron
-            Layout.alignment: Qt.AlignVCenter
-            width: 18
-            height: 18
-            radius: 9
-            color: root.selected ? root.accent : "transparent"
-            border.width: root.selected ? 0 : 1
-            border.color: theme.borderSelected
-
-            Rectangle {
-                anchors.centerIn: parent
-                visible: root.selected
-                width: 6
-                height: 6
-                radius: 3
-                color: "#FFFFFF"
-            }
-        }
     }
 
     MouseArea {
@@ -114,7 +153,4 @@ Rectangle {
         cursorShape: Qt.PointingHandCursor
         onClicked: root.clicked()
     }
-
-    Behavior on color { ColorAnimation { duration: 120 } }
-    Behavior on border.color { ColorAnimation { duration: 120 } }
 }

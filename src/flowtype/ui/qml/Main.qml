@@ -131,60 +131,69 @@ ApplicationWindow {
                 anchors.margins: theme.space16
                 spacing: theme.space8
 
-                Rectangle {
+                // Brand row: flat, no card box — the rail itself is the surface.
+                RowLayout {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 64
-                    radius: theme.radiusCard
-                    color: theme.surface
-                    border.width: 1
-                    border.color: theme.border
+                    Layout.preferredHeight: 56
+                    Layout.leftMargin: 6
+                    spacing: theme.space12
 
-                    RowLayout {
-                        anchors.fill: parent
-                        anchors.margins: theme.space12
-                        spacing: theme.space12
-
-                        Rectangle {
-                            Layout.preferredWidth: 36
-                            Layout.preferredHeight: 36
-                            radius: 12
-                            color: theme.primary
-
-                            Label {
-                                anchors.centerIn: parent
-                                text: "F"
-                                color: "#FFFFFF"
-                                font.family: theme.fontDisplay
-                                font.pixelSize: 16
-                                font.weight: 760
-                            }
+                    Rectangle {
+                        Layout.preferredWidth: 34
+                        Layout.preferredHeight: 34
+                        radius: 11
+                        gradient: Gradient {
+                            GradientStop { position: 0.0; color: theme.tint(theme.primary, 0.92) }
+                            GradientStop { position: 1.0; color: theme.primary }
                         }
 
-                        ColumnLayout {
+                        // Mini waveform mark (matches the recording pill identity)
+                        Row {
+                            anchors.centerIn: parent
+                            spacing: 2.5
+
+                            Repeater {
+                                model: [7, 13, 17, 10, 6]
+                                delegate: Rectangle {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: 2.5
+                                    height: modelData
+                                    radius: 1.25
+                                    color: "#FFFFFF"
+                                }
+                            }
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 0
+
+                        Label {
+                            text: "FlowType"
+                            color: theme.textPrimary
+                            font.family: theme.fontDisplay
+                            font.pixelSize: theme.sizeAppTitle
+                            font.weight: 760
+                        }
+
+                        Label {
                             Layout.fillWidth: true
-                            spacing: 1
-
-                            Label {
-                                text: "FlowType"
-                                color: theme.textPrimary
-                                font.family: theme.fontDisplay
-                                font.pixelSize: theme.sizeAppTitle
-                                font.weight: 760
-                            }
-
-                            Label {
-                                Layout.fillWidth: true
-                                text: "Local-first"
-                                color: theme.textSecondary
-                                font.family: theme.fontText
-                                font.pixelSize: theme.sizeHelper
-                                elide: Text.ElideRight
-                            }
+                            text: "Local-first dictation"
+                            color: theme.textTertiary
+                            font.family: theme.fontText
+                            font.pixelSize: theme.sizeLabel
+                            elide: Text.ElideRight
                         }
                     }
                 }
 
-                Item { Layout.preferredHeight: theme.space12 }
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 1
+                    Layout.bottomMargin: theme.space8
+                    color: theme.divider
+                }
 
                 Repeater {
                     model: window.pages
@@ -282,24 +291,29 @@ ApplicationWindow {
 
                 Rectangle {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 38
+                    Layout.preferredHeight: 34
                     radius: theme.radiusPill
-                    color: theme.surface
+                    color: theme.tint(window.statusTone(), theme.darkMode ? 0.10 : 0.07)
                     border.width: 1
-                    border.color: theme.border
+                    border.color: theme.tint(window.statusTone(), theme.darkMode ? 0.28 : 0.20)
+
+                    Behavior on color { ColorAnimation { duration: 160 } }
+                    Behavior on border.color { ColorAnimation { duration: 160 } }
 
                     Row {
                         anchors.centerIn: parent
                         spacing: theme.space8
 
                         Rectangle {
-                            width: 8
-                            height: 8
-                            radius: 4
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 7
+                            height: 7
+                            radius: 3.5
                             color: window.statusTone()
                         }
 
                         Label {
+                            anchors.verticalCenter: parent.verticalCenter
                             text: window.statusLabel()
                             color: theme.textSecondary
                             font.family: theme.fontUi
