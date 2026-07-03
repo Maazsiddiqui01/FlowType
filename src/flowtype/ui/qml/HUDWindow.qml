@@ -24,11 +24,13 @@ Window {
     property bool hovered: hoverArea.containsMouse || (typeof HudForceHover !== "undefined" && HudForceHover)
     property bool expanded: active || hovered
     // The idle line is always present (unless disabled); it expands on hover/activity.
-    // Hidden while the result card is up, and while a fullscreen app (YouTube/Netflix
-    // fullscreen, games) owns the screen so the overlay never covers it.
-    property bool shouldShow: (active || (isReady && showIdleHud))
+    // The fullscreen gate (YouTube/Netflix fullscreen, games) only suppresses the IDLE
+    // line: while recording/busy/error the pill must stay visible no matter what the
+    // foreground app looks like — a maximized window misdetected as fullscreen must
+    // never hide an active recording indicator. The result card still wins the slot
+    // (the controller dismisses it the moment a new recording starts).
+    property bool shouldShow: (active || (isReady && showIdleHud && !AppController.fullscreenForeground))
         && !AppController.resultCardVisible
-        && !AppController.fullscreenForeground
 
     readonly property int idleWidth: 66
     readonly property int idleHeight: 16

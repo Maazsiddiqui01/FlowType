@@ -131,7 +131,7 @@ Item {
 
                     Label {
                         Layout.fillWidth: true
-                        text: "The idle line expands to a 'Dictate' hint on hover, becomes the recording pill while you speak, and hides over fullscreen video and games. Style and position apply immediately."
+                        text: "The idle line expands to a 'Dictate' hint on hover and becomes the recording pill while you speak. When idle it hides over fullscreen video and games — while recording it always stays visible, on whichever screen your cursor is on."
                         color: theme.textSecondary
                         font.family: theme.fontText
                         font.pixelSize: theme.sizeHelper

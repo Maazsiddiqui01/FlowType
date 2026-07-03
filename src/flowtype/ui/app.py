@@ -8,7 +8,8 @@ from typing import Any, Callable
 
 from PySide6.QtCore import QEvent, QObject, QTimer
 from PySide6.QtQml import QQmlApplicationEngine
-from PySide6.QtGui import QFont, QFontDatabase, QIcon
+from PySide6.QtGui import QCursor, QFont, QFontDatabase, QIcon
+from PySide6.QtQuick import QQuickWindow
 from PySide6.QtQuickControls2 import QQuickStyle
 from PySide6.QtWidgets import QApplication
 
@@ -25,7 +26,6 @@ from flowtype.ui.single_instance import SingleInstanceManager
 from flowtype.ui.system_tray import UiTrayController
 from flowtype.platform import (
     configure_overlay_panel,
-    enable_acrylic_blur,
     prime_permissions,
     set_app_user_model_id,
     set_native_title_bar_colors,
@@ -85,6 +85,11 @@ def run_ui_mode(
     activation_message: str = "show",
 ) -> int:
     QQuickStyle.setStyle("Basic")
+    # Overlay windows (HUD pill, result card) use color:"transparent"; without an
+    # alpha channel in the default surface format the "transparent" area renders as
+    # an opaque box around the rounded shapes. Must be set before any QQuickWindow
+    # is created.
+    QQuickWindow.setDefaultAlphaBuffer(True)
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
     app.setApplicationName(APP_DISPLAY_NAME)
@@ -254,14 +259,25 @@ def run_ui_mode(
         if app_icon and hasattr(result_window, "setIcon"):
             result_window.setIcon(app_icon)
 
-        def reposition_overlay(overlay_window: Any) -> None:
-            # Anchor to the main window's screen (or primary). Do NOT trust the overlay's
-            # own current screen -- on multi-monitor setups it can drift onto a secondary
-            # monitor and strand the HUD off-screen (e.g. at a negative x).
+        def overlay_target_screen() -> Any:
+            # Follow the mouse: on multi-monitor setups the pill must appear on the
+            # screen the user is actually working on, or they never see that a
+            # recording is running. Fall back to the main window's screen (never the
+            # overlay's own current screen -- it can drift and strand the HUD at a
+            # negative x).
             try:
-                target_screen = window.screen() or app.primaryScreen()
+                cursor_screen = app.screenAt(QCursor.pos())
+                if cursor_screen is not None:
+                    return cursor_screen
             except Exception:
-                target_screen = app.primaryScreen()
+                pass
+            try:
+                return window.screen() or app.primaryScreen()
+            except Exception:
+                return app.primaryScreen()
+
+        def reposition_overlay(overlay_window: Any) -> None:
+            target_screen = overlay_target_screen()
             if target_screen is None:
                 return
 
@@ -330,14 +346,16 @@ def run_ui_mode(
                 if controller.windowMaterial != "solid":
                     if not set_window_backdrop_material(hwnd, dark_mode, "mica"):
                         controller.set_window_material("solid")
+            # No native acrylic on the overlays: SetWindowCompositionAttribute frost
+            # fills the whole rectangular HWND and cannot clip to the pill/card's
+            # rounded corners, which reads as an ugly opaque box around the shape.
+            # The QML fills carry their own translucency instead.
             try:
                 hud_hwnd = int(hud_window.winId())
             except Exception:
                 hud_hwnd = 0
-            if hud_hwnd:
-                enable_acrylic_blur(hud_hwnd)
-                if icon_path.exists():
-                    set_native_window_icon(hud_hwnd, str(icon_path))
+            if hud_hwnd and icon_path.exists():
+                set_native_window_icon(hud_hwnd, str(icon_path))
             # macOS: make the overlays non-activating panels so they float over other apps
             # without stealing focus (no-op on Windows, where Qt flags handle it).
             configure_overlay_panel(hud_window)
@@ -345,15 +363,30 @@ def run_ui_mode(
                 result_hwnd = int(result_window.winId())
             except Exception:
                 result_hwnd = 0
-            if result_hwnd:
-                enable_acrylic_blur(result_hwnd)
-                if icon_path.exists():
-                    set_native_window_icon(result_hwnd, str(icon_path))
+            if result_hwnd and icon_path.exists():
+                set_native_window_icon(result_hwnd, str(icon_path))
             configure_overlay_panel(result_window)
 
         apply_window_branding()
         reposition_hud()
         QTimer.singleShot(0, reposition_hud)
+
+        # Follow the cursor across monitors: when the mouse moves to another screen,
+        # bring the overlays along so the recording indicator is always where the
+        # user is looking. Polling is cheap (a point-in-rect lookup once a second).
+        def follow_cursor_screen() -> None:
+            try:
+                target = overlay_target_screen()
+                if target is not None and hud_window.screen() is not target:
+                    reposition_hud()
+            except Exception:
+                pass
+
+        cursor_follow_timer = QTimer()
+        cursor_follow_timer.setInterval(1000)
+        cursor_follow_timer.timeout.connect(follow_cursor_screen)
+        cursor_follow_timer.start()
+
         controller.stateChanged.connect(reposition_hud)
         controller.configChanged.connect(reposition_hud)
         # Re-apply native title-bar colors when the theme is toggled at runtime.

@@ -114,7 +114,9 @@ QtObject {
     readonly property int focusRingOffset: 3
 
     // ── HUD (frameless overlay over other apps) ──────────────────────────────
-    readonly property color hudFill: darkMode ? Qt.rgba(0.05, 0.07, 0.11, 0.82) : Qt.rgba(0.06, 0.09, 0.14, 0.80)
+    // Denser than it looks: there is no native blur behind the pill (acrylic frost
+    // boxes the rounded window), so the fill alone keeps text readable anywhere.
+    readonly property color hudFill: darkMode ? Qt.rgba(0.05, 0.07, 0.11, 0.92) : Qt.rgba(0.06, 0.09, 0.14, 0.90)
     readonly property color hudBorder: Qt.rgba(1, 1, 1, 0.10)
     readonly property color hudText: "#F1F5FA"
 
