@@ -51,13 +51,14 @@ jobs:
 
       - name: Create DMG
         run: |
+          VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
           hdiutil create -volname "FlowType" -srcfolder "dist/FlowType.app" \
-            -ov -format UDZO "FlowType-0.1.13-macos-arm64.dmg"
+            -ov -format UDZO "FlowType-${VERSION}-macos-arm64.dmg"
 
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
         with:
           name: FlowType-macos-arm64
-          path: FlowType-0.1.13-macos-arm64.dmg
+          path: FlowType-*-macos-arm64.dmg
           if-no-files-found: error
           retention-days: 30
