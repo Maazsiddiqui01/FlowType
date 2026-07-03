@@ -72,7 +72,7 @@ Rectangle {
                 spacing: theme.space8
 
                 Repeater {
-                    model: 3
+                    model: 4
                     delegate: Rectangle {
                         width: root.step === index ? 28 : 8
                         height: 8
@@ -141,11 +141,197 @@ Rectangle {
                     accent: theme.primary
                     onClicked: root.step = 1
                 }
+
+                Label {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "Skip the tour"
+                    color: theme.textTertiary
+                    font.family: theme.fontText
+                    font.pixelSize: theme.sizeHelper
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: AppController.skipOnboarding(true)
+                    }
+                }
             }
 
-            // ── Step 1: Provider setup ───────────────────
+            // ── Step 1: How dictation works ──────────────
             Column {
                 visible: root.step === 1
+                width: parent.width
+                spacing: theme.space16
+
+                Label {
+                    text: "Dictate in three seconds"
+                    color: theme.textPrimary
+                    font.family: theme.fontDisplay
+                    font.pixelSize: 20
+                    font.weight: Font.Bold
+                }
+
+                Label {
+                    width: parent.width
+                    text: "FlowType types wherever your cursor is — editor, browser, chat, terminal. No window to switch to."
+                    color: theme.textSecondary
+                    font.family: theme.fontText
+                    font.pixelSize: theme.sizeBody
+                    wrapMode: Text.WordWrap
+                    lineHeight: 1.4
+                }
+
+                // The three moves, each on its own row
+                Column {
+                    width: parent.width
+                    spacing: theme.space8
+
+                    Repeater {
+                        model: [
+                            { num: "1", title: "Hold", desc: "Press and keep holding your hotkey", showKeys: true, showWave: false },
+                            { num: "2", title: "Speak", desc: "Say what you want to write — a pill shows it's listening", showKeys: false, showWave: true },
+                            { num: "3", title: "Release", desc: "Let go. Your words appear where the cursor is", showKeys: false, showWave: false }
+                        ]
+
+                        delegate: Rectangle {
+                            width: parent.width
+                            height: 64
+                            radius: theme.radiusCard
+                            color: theme.darkMode ? Qt.rgba(1,1,1,0.03) : Qt.rgba(0,0,0,0.02)
+                            border.width: 1
+                            border.color: theme.border
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: theme.space16
+                                anchors.rightMargin: theme.space16
+                                spacing: theme.space12
+
+                                Rectangle {
+                                    width: 28; height: 28; radius: 14
+                                    color: theme.tint(theme.primary, 0.14)
+
+                                    Label {
+                                        anchors.centerIn: parent
+                                        text: modelData.num
+                                        color: theme.primary
+                                        font.family: theme.fontDisplay
+                                        font.pixelSize: 13
+                                        font.weight: Font.Bold
+                                    }
+                                }
+
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 1
+
+                                    Label {
+                                        text: modelData.title
+                                        color: theme.textPrimary
+                                        font.family: theme.fontText
+                                        font.pixelSize: theme.sizeBody
+                                        font.weight: 650
+                                    }
+
+                                    Label {
+                                        Layout.fillWidth: true
+                                        text: modelData.desc
+                                        color: theme.textSecondary
+                                        font.family: theme.fontText
+                                        font.pixelSize: theme.sizeHelper
+                                        wrapMode: Text.WordWrap
+                                    }
+                                }
+
+                                // Keycaps for step 1
+                                Row {
+                                    visible: modelData.showKeys
+                                    spacing: 4
+
+                                    Repeater {
+                                        model: (AppController.holdToTalk || "ctrl+shift+space").split("+")
+
+                                        delegate: Rectangle {
+                                            width: keyLabel.implicitWidth + 14
+                                            height: 26
+                                            radius: 6
+                                            color: theme.darkMode ? Qt.rgba(1,1,1,0.07) : Qt.rgba(0,0,0,0.05)
+                                            border.width: 1
+                                            border.color: theme.borderSelected
+
+                                            Label {
+                                                id: keyLabel
+                                                anchors.centerIn: parent
+                                                text: modelData.trim().charAt(0).toUpperCase() + modelData.trim().slice(1)
+                                                color: theme.textPrimary
+                                                font.family: theme.fontUi
+                                                font.pixelSize: 11
+                                                font.weight: 650
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Mini recording pill for step 2
+                                Rectangle {
+                                    visible: modelData.showWave
+                                    width: 74; height: 26
+                                    radius: 13
+                                    color: theme.darkMode ? Qt.rgba(0.05, 0.07, 0.11, 0.92) : Qt.rgba(0.06, 0.09, 0.14, 0.90)
+                                    border.width: 1
+                                    border.color: Qt.rgba(1, 1, 1, 0.10)
+
+                                    Row {
+                                        anchors.centerIn: parent
+                                        spacing: 6
+
+                                        Rectangle {
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            width: 7; height: 7; radius: 3.5
+                                            color: theme.warm
+                                        }
+
+                                        WaveStrip {
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            bars: 5
+                                            barWidth: 2
+                                            gap: 2
+                                            minimumBarHeight: 2
+                                            maximumBarHeight: 10
+                                            level: 0.65
+                                            mode: "recording"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                RowLayout {
+                    width: parent.width
+                    spacing: theme.space12
+
+                    FlowButton {
+                        label: "Back"
+                        variant: "secondary"
+                        onClicked: root.step = 0
+                    }
+
+                    Item { Layout.fillWidth: true }
+
+                    FlowButton {
+                        label: "Continue"
+                        variant: "primary"
+                        accent: theme.primary
+                        onClicked: root.step = 2
+                    }
+                }
+            }
+
+            // ── Step 2: Provider setup ───────────────────
+            Column {
+                visible: root.step === 2
                 width: parent.width
                 spacing: theme.space16
 
@@ -191,19 +377,38 @@ Rectangle {
                     }
                 }
 
-                // Get API Key link
-                Label {
+                // Get API Key + step-by-step guide links
+                Row {
                     visible: root.providerDraft !== "none" && root.providerDraft !== "ollama"
-                    text: "→ Get your " + root.providerDraft + " API key"
-                    color: theme.primary
-                    font.family: theme.fontText
-                    font.pixelSize: theme.sizeBody
-                    font.weight: Font.DemiBold
+                    spacing: theme.space16
 
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: AppController.openProviderKeyPage(root.providerDraft)
+                    Label {
+                        text: "→ Get your " + root.providerDraft + " API key"
+                        color: theme.primary
+                        font.family: theme.fontText
+                        font.pixelSize: theme.sizeBody
+                        font.weight: Font.DemiBold
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: AppController.openProviderKeyPage(root.providerDraft)
+                        }
+                    }
+
+                    Label {
+                        visible: AppController.hasHelpPage(root.providerDraft)
+                        text: "Stuck? Step-by-step guide"
+                        color: theme.textSecondary
+                        font.family: theme.fontText
+                        font.pixelSize: theme.sizeBody
+                        font.weight: Font.DemiBold
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: AppController.openHelpPage(root.providerDraft)
+                        }
                     }
                 }
 
@@ -320,7 +525,7 @@ Rectangle {
                     FlowButton {
                         label: "Back"
                         variant: "secondary"
-                        onClicked: root.step = 0
+                        onClicked: root.step = 1
                     }
 
                     Item { Layout.fillWidth: true }
@@ -330,7 +535,7 @@ Rectangle {
                         variant: "secondary"
                         onClicked: {
                             root.providerDraft = "none"
-                            root.step = 2
+                            root.step = 3
                         }
                     }
 
@@ -338,14 +543,14 @@ Rectangle {
                         label: "Continue"
                         variant: "primary"
                         accent: theme.primary
-                        onClicked: root.step = 2
+                        onClicked: root.step = 3
                     }
                 }
             }
 
-            // ── Step 2: Confirm & launch ─────────────────
+            // ── Step 3: Confirm & launch ─────────────────
             Column {
-                visible: root.step === 2
+                visible: root.step === 3
                 width: parent.width
                 spacing: theme.space16
 
@@ -375,6 +580,7 @@ Rectangle {
 
                     Repeater {
                         model: [
+                            { key: "Dictation hotkey", val: "Hold " + (AppController.holdToTalk || "ctrl+shift+space").split("+").map(function(k){ var t = k.trim(); return t.charAt(0).toUpperCase() + t.slice(1) }).join(" + ") },
                             { key: "Provider", val: root.providerDraft === "none" ? "None (local only)" : root.providerDraft },
                             { key: "Model", val: root.providerDraft === "none" ? "Raw transcript" : (root.modelDraft.length > 0 ? root.modelDraft : "Default") },
                             { key: "Language", val: root.languageDraft === "auto" ? "Auto-detect" : root.languageDraft.toUpperCase() },
@@ -423,7 +629,7 @@ Rectangle {
                     FlowButton {
                         label: "Back"
                         variant: "secondary"
-                        onClicked: root.step = 1
+                        onClicked: root.step = 2
                     }
 
                     Item { Layout.fillWidth: true }

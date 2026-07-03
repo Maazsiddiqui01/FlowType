@@ -1078,6 +1078,26 @@ class AppController(QObject):
         if url:
             webbrowser.open(url)
 
+    # Step-by-step guides on the FlowType site. The github.io URL 301-redirects to
+    # the custom domain once one is connected, so these links never go stale.
+    _DOCS_BASE = "https://maazsiddiqui01.github.io/flowtype-ai/docs"
+
+    @Slot(str)
+    def openHelpPage(self, topic: str) -> None:
+        import webbrowser
+
+        normalized = topic.strip().lower()
+        pages = {
+            "openrouter": f"{self._DOCS_BASE}/openrouter-api-key",
+            "openai": f"{self._DOCS_BASE}/openai-api-key",
+            "anthropic": f"{self._DOCS_BASE}/anthropic-api-key",
+        }
+        webbrowser.open(pages.get(normalized, f"{self._DOCS_BASE}/getting-started"))
+
+    @Slot(str, result=bool)
+    def hasHelpPage(self, provider: str) -> bool:  # pragma: no cover - trivial
+        return provider.strip().lower() in {"openrouter", "openai", "anthropic"}
+
     @Slot(str, str, str, str, bool)
     def completeOnboarding(
         self,

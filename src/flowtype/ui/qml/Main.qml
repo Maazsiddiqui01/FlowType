@@ -21,13 +21,13 @@ ApplicationWindow {
     property bool notificationVisible: false
 
     readonly property var pages: [
-        { "label": "Home", "title": "Home", "subtitle": "Dictate, clean, and paste with less friction." },
-        { "label": "Cleanup", "title": "Cleanup", "subtitle": "Choose the provider, model, and cleanup behavior." },
-        { "label": "Modes", "title": "Modes", "subtitle": "Tune the cleanup style for the way you work." },
-        { "label": "Vocabulary", "title": "Vocabulary", "subtitle": "Protect names, brands, acronyms, and spellings." },
-        { "label": "History", "title": "History", "subtitle": "Review recent output and fallback behavior." },
-        { "label": "Recording", "title": "Recording", "subtitle": "Adjust the HUD and capture timing." },
-        { "label": "Settings", "title": "Settings", "subtitle": "Shortcuts, startup behavior, and app support." }
+        { "label": "Home", "icon": "house", "title": "Home", "subtitle": "Dictate, clean, and paste with less friction." },
+        { "label": "AI Models", "icon": "sparkles", "title": "AI Models", "subtitle": "Choose the provider, model, and cleanup behavior." },
+        { "label": "Modes", "icon": "sliders_horizontal", "title": "Modes", "subtitle": "Tune the cleanup style for the way you work." },
+        { "label": "Dictionary", "icon": "book_open", "title": "Dictionary", "subtitle": "Teach FlowType your names, brands, and spellings." },
+        { "label": "History", "icon": "history", "title": "History", "subtitle": "Review recent output and fallback behavior." },
+        { "label": "Recording", "icon": "mic", "title": "Recording", "subtitle": "Adjust the HUD and capture timing." },
+        { "label": "Settings", "icon": "settings", "title": "Settings", "subtitle": "Shortcuts, startup behavior, and app support." }
     ]
 
     function currentPageMeta() {
@@ -190,37 +190,56 @@ ApplicationWindow {
                     model: window.pages
 
                     delegate: Rectangle {
+                        id: navItem
+                        readonly property bool navActive: window.currentPage === index
+
                         Layout.fillWidth: true
                         Layout.preferredHeight: theme.railItemHeight
                         radius: theme.radiusControl
-                        color: window.currentPage === index
-                            ? theme.tint(theme.primary, theme.darkMode ? 0.18 : 0.09)
+                        color: navActive
+                            ? theme.tint(theme.primary, theme.darkMode ? 0.16 : 0.09)
                             : (navArea.containsMouse ? theme.surfaceHover : "transparent")
                         border.width: 1
-                        border.color: window.currentPage === index
-                            ? theme.tint(theme.primary, theme.darkMode ? 0.38 : 0.22)
+                        border.color: navActive
+                            ? theme.tint(theme.primary, theme.darkMode ? 0.36 : 0.22)
                             : "transparent"
 
+                        Behavior on color { ColorAnimation { duration: 120 } }
+                        Behavior on border.color { ColorAnimation { duration: 120 } }
+
                         Rectangle {
-                            visible: window.currentPage === index
+                            visible: navItem.navActive
                             anchors.left: parent.left
-                            anchors.leftMargin: 8
+                            anchors.leftMargin: 6
                             anchors.verticalCenter: parent.verticalCenter
-                            width: 4
-                            height: 18
-                            radius: 2
+                            width: 3
+                            height: 16
+                            radius: 1.5
                             color: theme.primary
                         }
 
-                        Label {
+                        Row {
                             anchors.left: parent.left
-                            anchors.leftMargin: 20
+                            anchors.leftMargin: 16
                             anchors.verticalCenter: parent.verticalCenter
-                            text: modelData.label
-                            color: window.currentPage === index ? theme.textPrimary : theme.textSecondary
-                            font.family: theme.fontUi
-                            font.pixelSize: theme.sizeBody
-                            font.weight: window.currentPage === index ? 650 : 500
+                            spacing: 11
+
+                            NavIcon {
+                                anchors.verticalCenter: parent.verticalCenter
+                                name: modelData.icon
+                                size: 17
+                                strokeWidth: navItem.navActive ? 2.2 : 1.8
+                                color: navItem.navActive ? theme.primary : theme.textTertiary
+                            }
+
+                            Label {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: modelData.label
+                                color: navItem.navActive ? theme.textPrimary : theme.textSecondary
+                                font.family: theme.fontUi
+                                font.pixelSize: theme.sizeBody
+                                font.weight: navItem.navActive ? 650 : 500
+                            }
                         }
 
                         MouseArea {

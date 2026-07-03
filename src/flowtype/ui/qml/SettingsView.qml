@@ -260,12 +260,24 @@ Item {
 
                 SectionHeader {
                     title: "Support and app data"
-                    subtitle: "Open the underlying folders quickly when you need logs or want to inspect the config."
+                    subtitle: "Guides, the welcome tour, and quick access to the folders behind FlowType."
                 }
 
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: theme.space12
+
+                    FlowButton {
+                        label: "Replay Welcome Tour"
+                        variant: "secondary"
+                        onClicked: AppController.resetOnboarding()
+                    }
+
+                    FlowButton {
+                        label: "Help && Guides"
+                        variant: "secondary"
+                        onClicked: AppController.openHelpPage("getting-started")
+                    }
 
                     FlowButton {
                         label: "App Data Folder"
