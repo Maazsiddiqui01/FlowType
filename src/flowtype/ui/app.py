@@ -319,6 +319,7 @@ def run_ui_mode(
             open_app_folder_callback=controller.openAppDirectory,
             open_logs_callback=controller.openLogsDirectory,
             quit_callback=lambda: quit_app(),
+            hint_flag_path=config.config_path.parent / "tray_hint_shown",
             logger=parent_logger.getChild("tray"),
         )
         tray.start()

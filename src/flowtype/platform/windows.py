@@ -8,7 +8,10 @@ from ctypes import wintypes
 from flowtype.platform._common import ForegroundWindowSnapshot
 
 
-APP_USER_MODEL_ID = "AntiGravity.FlowType"
+# Windows shows this AppUserModelID as the notification "sender" line and uses it for
+# taskbar grouping. We deliberately use the bare product name so toasts read "FlowType"
+# rather than a company-qualified "AntiGravity.FlowType".
+APP_USER_MODEL_ID = "FlowType"
 DWMWA_USE_IMMERSIVE_DARK_MODE = 20
 DWMWA_BORDER_COLOR = 34
 DWMWA_CAPTION_COLOR = 35

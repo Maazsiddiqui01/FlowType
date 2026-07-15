@@ -19,6 +19,7 @@ class UiTrayController:
         open_app_folder_callback: Callable[[], None],
         open_logs_callback: Callable[[], None],
         quit_callback: Callable[[], None],
+        hint_flag_path: Path | None = None,
         logger: logging.Logger | None = None,
     ) -> None:
         self._logger = logger or logging.getLogger("flowtype.ui.tray")
@@ -29,7 +30,10 @@ class UiTrayController:
         self._quit_callback = quit_callback
         self._status = "starting"
         self._detail = "Starting FlowType..."
-        self._close_hint_shown = False
+        # Persisted so the "minimized to tray" hint appears at most once, ever —
+        # not on every launch. Falls back to per-run only if no path is given.
+        self._hint_flag_path = hint_flag_path
+        self._close_hint_shown = self._hint_flag_path.exists() if self._hint_flag_path else False
         self._icon: QSystemTrayIcon | None = None
 
     @property
@@ -67,12 +71,26 @@ class UiTrayController:
         if self._icon is None or self._close_hint_shown:
             return
         self._close_hint_shown = True
+        self._persist_hint_shown()
+        # Use the FlowType logo (not the generic system "info" glyph) and keep the
+        # copy short. Windows attributes it to "FlowType" via the AppUserModelID.
+        icon_path = app_icon_path()
+        icon = QIcon(str(icon_path)) if icon_path.exists() else QSystemTrayIcon.MessageIcon.Information
         self._icon.showMessage(
             APP_DISPLAY_NAME,
-            "FlowType is still running in the tray. Use the tray icon to reopen or quit.",
-            QSystemTrayIcon.MessageIcon.Information,
-            5000,
+            "Still running in the tray — click the icon to reopen or quit.",
+            icon,
+            3500,
         )
+
+    def _persist_hint_shown(self) -> None:
+        if self._hint_flag_path is None:
+            return
+        try:
+            self._hint_flag_path.parent.mkdir(parents=True, exist_ok=True)
+            self._hint_flag_path.write_text("1", encoding="utf-8")
+        except Exception as exc:  # pragma: no cover - best-effort flag
+            self._logger.debug("Could not persist tray hint flag: %s", exc)
 
     def _build_menu(self) -> QMenu:
         menu = QMenu()
