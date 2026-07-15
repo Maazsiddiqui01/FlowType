@@ -17,55 +17,100 @@ Window {
         return theme.primary
     }
 
-    width: 428
+    // Transient "Copied" hint shown after tapping a recent result.
+    property int copiedIndex: -1
+    Timer {
+        id: copiedTimer
+        interval: 1200
+        onTriggered: resultWindow.copiedIndex = -1
+    }
+    function copyRecent(index) {
+        AppController.copyRecentResult(index)
+        resultWindow.copiedIndex = index
+        copiedTimer.restart()
+    }
+
+    width: 460
     height: card.implicitHeight + 16
 
     Rectangle {
         id: card
         anchors.centerIn: parent
         width: resultWindow.width
-        implicitHeight: contentColumn.implicitHeight + theme.space16 * 2
-        radius: 18
+        implicitHeight: contentColumn.implicitHeight + theme.space20 * 2
+        radius: theme.radiusCard
         color: theme.darkMode ? "#0D131D" : theme.surface
         border.width: 1
         border.color: theme.tint(resultWindow.toneColor, theme.darkMode ? 0.42 : 0.24)
 
+        // Soft top sheen for depth
+        Rectangle {
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.margins: 1
+            height: 64
+            radius: parent.radius - 1
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, theme.darkMode ? 0.04 : 0.30) }
+                GradientStop { position: 1.0; color: "transparent" }
+            }
+        }
+
         ColumnLayout {
             id: contentColumn
             anchors.fill: parent
-            anchors.margins: theme.space16
+            anchors.margins: theme.space20
             spacing: theme.space12
 
+            // ── Header ───────────────────────────────────────────────────────
             RowLayout {
                 Layout.fillWidth: true
                 spacing: theme.space12
 
                 Rectangle {
-                    width: 10
-                    height: 10
-                    radius: 5
+                    Layout.alignment: Qt.AlignVCenter
+                    width: 9
+                    height: 9
+                    radius: 4.5
                     color: resultWindow.toneColor
                 }
 
-                Label {
+                ColumnLayout {
                     Layout.fillWidth: true
-                    text: AppController.resultCardTitle
-                    color: theme.textPrimary
-                    font.family: theme.fontDisplay
-                    font.pixelSize: 16
-                    font.weight: 700
-                    elide: Text.ElideRight
+                    spacing: 1
+
+                    Label {
+                        Layout.fillWidth: true
+                        text: AppController.resultCardTitle
+                        color: theme.textPrimary
+                        font.family: theme.fontDisplay
+                        font.pixelSize: 15
+                        font.weight: 700
+                        elide: Text.ElideRight
+                    }
+
+                    Label {
+                        Layout.fillWidth: true
+                        visible: text.length > 0
+                        text: AppController.resultCardMessage
+                        color: theme.textSecondary
+                        font.family: theme.fontText
+                        font.pixelSize: theme.sizeHelper
+                        elide: Text.ElideRight
+                    }
                 }
 
                 ToolButton {
-                    implicitWidth: 28
-                    implicitHeight: 28
+                    Layout.alignment: Qt.AlignTop
+                    implicitWidth: 26
+                    implicitHeight: 26
                     background: Rectangle {
-                        radius: 14
+                        radius: 13
                         color: parent.hovered ? theme.surfaceHover : "transparent"
                     }
                     contentItem: Label {
-                        text: "\u2715"
+                        text: "✕"
                         color: theme.textSecondary
                         font.pixelSize: 12
                         horizontalAlignment: Text.AlignHCenter
@@ -75,99 +120,146 @@ Window {
                 }
             }
 
-            Label {
-                Layout.fillWidth: true
-                visible: text.length > 0
-                text: AppController.resultCardMessage
-                color: theme.textSecondary
-                font.family: theme.fontText
-                font.pixelSize: theme.sizeBody
-                wrapMode: Text.WordWrap
-            }
-
+            // ── Primary result (scrolls when long) ───────────────────────────
             Rectangle {
                 Layout.fillWidth: true
                 visible: AppController.resultCardPreview.length > 0
-                radius: theme.radiusCard
+                radius: theme.radiusControl
                 color: theme.surfaceSubtle
                 border.width: 1
                 border.color: theme.border
-                implicitHeight: previewText.implicitHeight + theme.space12 * 2
+                implicitHeight: Math.min(previewText.implicitHeight + theme.space12 * 2, 148)
 
-                Label {
-                    id: previewText
+                Flickable {
+                    id: previewFlick
                     anchors.fill: parent
                     anchors.margins: theme.space12
-                    text: AppController.resultCardPreview
-                    color: theme.textPrimary
-                    font.family: theme.fontText
-                    font.pixelSize: 14
-                    wrapMode: Text.WordWrap
-                    maximumLineCount: 4
-                    elide: Text.ElideRight
+                    clip: true
+                    contentHeight: previewText.implicitHeight
+                    contentWidth: width
+                    boundsBehavior: Flickable.StopAtBounds
+                    interactive: contentHeight > height
+                    ScrollBar.vertical: ScrollBar {
+                        policy: previewFlick.interactive ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff
+                        width: 4
+                    }
+
+                    Label {
+                        id: previewText
+                        width: previewFlick.width
+                        text: AppController.resultCardPreview
+                        color: theme.textPrimary
+                        font.family: theme.fontText
+                        font.pixelSize: 14
+                        lineHeight: 1.25
+                        wrapMode: Text.WordWrap
+                    }
+                }
+
+                // Fade hint at the bottom when there's more to scroll
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    anchors.margins: 1
+                    height: 24
+                    radius: parent.radius - 1
+                    visible: previewFlick.interactive
+                        && previewFlick.contentY < previewFlick.contentHeight - previewFlick.height - 2
+                    gradient: Gradient {
+                        GradientStop { position: 0.0; color: "transparent" }
+                        GradientStop { position: 1.0; color: theme.surfaceSubtle }
+                    }
                 }
             }
 
+            // ── Recent results (clean vertical list) ─────────────────────────
             ColumnLayout {
                 Layout.fillWidth: true
                 visible: AppController.recentResultItems.length > 0
                 spacing: theme.space8
 
-                Label {
-                    text: "Recent results"
-                    color: theme.textTertiary
-                    font.family: theme.fontUi
-                    font.pixelSize: theme.sizeLabel
-                    font.weight: 650
+                RowLayout {
+                    Layout.fillWidth: true
+                    Label {
+                        text: "Recent"
+                        color: theme.textTertiary
+                        font.family: theme.fontUi
+                        font.pixelSize: theme.sizeLabel
+                        font.weight: 700
+                        font.capitalization: Font.AllUppercase
+                    }
+                    Item { Layout.fillWidth: true }
+                    Label {
+                        text: "Tap to copy"
+                        color: theme.textTertiary
+                        font.family: theme.fontUi
+                        font.pixelSize: theme.sizeLabel
+                    }
                 }
 
-                Flow {
-                    Layout.fillWidth: true
-                    spacing: theme.space8
+                Repeater {
+                    model: AppController.recentResultItems
 
-                    Repeater {
-                        model: AppController.recentResultItems
+                    delegate: Rectangle {
+                        Layout.fillWidth: true
+                        implicitHeight: theme.controlHeightCompact
+                        radius: theme.radiusControl
+                        color: rowArea.containsMouse ? theme.surfaceHover : theme.surfaceSubtle
+                        border.width: 1
+                        border.color: rowArea.containsMouse ? theme.borderSelected : theme.border
 
-                        delegate: Rectangle {
-                            width: Math.min(182, label.implicitWidth + theme.space16)
-                            height: theme.controlHeightCompact
-                            radius: theme.radiusControl
-                            color: copyArea.containsMouse ? theme.surfaceHover : theme.surfaceSubtle
-                            border.width: 1
-                            border.color: theme.border
+                        Behavior on color { ColorAnimation { duration: 100 } }
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: theme.space12
+                            anchors.rightMargin: theme.space12
+                            spacing: theme.space8
 
                             Label {
-                                id: label
-                                anchors.fill: parent
-                                anchors.leftMargin: theme.space12
-                                anchors.rightMargin: theme.space12
-                                verticalAlignment: Text.AlignVCenter
+                                Layout.fillWidth: true
                                 text: modelData.finalText
                                 color: theme.textPrimary
                                 font.family: theme.fontText
                                 font.pixelSize: theme.sizeHelper
+                                maximumLineCount: 1
                                 elide: Text.ElideRight
+                                verticalAlignment: Text.AlignVCenter
                             }
 
-                            MouseArea {
-                                id: copyArea
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: AppController.copyRecentResult(index)
+                            // "Copied" confirmation, else word count on hover
+                            Label {
+                                visible: resultWindow.copiedIndex === index || (rowArea.containsMouse && modelData.wordCount > 0)
+                                text: resultWindow.copiedIndex === index
+                                    ? "Copied"
+                                    : modelData.wordCount + "w"
+                                color: resultWindow.copiedIndex === index ? theme.success : theme.textTertiary
+                                font.family: theme.fontUi
+                                font.pixelSize: theme.sizeLabel
+                                font.weight: 650
                             }
+                        }
+
+                        MouseArea {
+                            id: rowArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: resultWindow.copyRecent(index)
                         }
                     }
                 }
             }
 
+            // ── Actions ──────────────────────────────────────────────────────
             RowLayout {
                 Layout.fillWidth: true
+                Layout.topMargin: theme.space4
                 spacing: theme.space8
 
                 readonly property bool isError: AppController.resultCardTone === "error"
 
-                // Error recovery action.
                 FlowButton {
                     visible: parent.isError
                     label: "Open Settings"
@@ -175,7 +267,6 @@ Window {
                     onClicked: AppController.requestOpenSettings()
                 }
 
-                // Result actions (hidden on error: there is no result to act on).
                 FlowButton {
                     visible: !parent.isError
                     label: "Copy"
